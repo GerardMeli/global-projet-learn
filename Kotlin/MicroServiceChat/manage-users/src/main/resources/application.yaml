@@ -2,14 +2,14 @@ spring:
   application:
     name: manage-users
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: dev  # Activer le profil dev
 
   # Database configuration
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/management_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:root}
-    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
+    url: jdbc:postgresql://localhost:5432/management_db
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
 
   session:
     store-type: jdbc
@@ -19,11 +19,11 @@ spring:
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:update}
-    show-sql: ${JPA_SHOW_SQL:true}
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        format_sql: ${JPA_FORMAT_SQL:true}
+        format_sql: true
 
   # Thymeleaf
   thymeleaf:
@@ -37,38 +37,22 @@ spring:
       content-type: text/html
     enabled: true
 
-  # Mail configuration - Only used when EMAIL_ENABLED=true
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    protocol: ${MAIL_PROTOCOL:smtp}
-    properties:
-      mail:
-        smtp:
-          auth: ${MAIL_SMTP_AUTH:false}
-          starttls:
-            enable: ${MAIL_SMTP_STARTTLS_ENABLE:false}
-            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
-    test-connection: false
+  # Mail configuration - DISABLED for development
+  # Ne pas activer spring.mail car nous utilisons MockJavaMailSender
 
   security:
     oauth2:
       client:
         registration:
           google:
-            client-id: ${OAUTH2_GOOGLE_CLIENT_ID}
-            client-secret: ${OAUTH2_GOOGLE_CLIENT_SECRET}
+            client-id: 353683862208-r5g3ln4citdgt5svjbkhgp3jp3hnsjtd.apps.googleusercontent.com
+            client-secret: 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
             scope:
               - email
               - profile
           github:
-            client-id: ${OAUTH2_GITHUB_CLIENT_ID}
-            client-secret: ${OAUTH2_GITHUB_CLIENT_SECRET}
+            client-id: Ov23liKDKcYYe5CVmklS
+            client-secret: 7cc48bebd3c1691a403d556719b89e626424c6d2
             scope:
               - user:email
               - read:user
@@ -76,37 +60,37 @@ spring:
 server:
   servlet:
     session:
-      timeout: ${SESSION_TIMEOUT:30m}
+      timeout: 30m
       cookie:
-        http-only: ${COOKIE_HTTP_ONLY:true}
-        secure: ${COOKIE_SECURE:false}
-  port: ${SERVER_PORT:8082}
+        http-only: true
+        secure: false  # false pour dev
+  port: 8082
   error:
     include-message: always
     include-binding-errors: always
 
 logging:
   level:
-    com.example.manage_users: ${LOG_LEVEL_APP:DEBUG}
-    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
-    org.springframework.mail: ${LOG_LEVEL_MAIL:DEBUG}
+    com.example.manage_users: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.mail: DEBUG
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8405/eureka/}
-    register-with-eureka: ${EUREKA_REGISTER_WITH_EUREKA:true}
-    fetch-registry: ${EUREKA_FETCH_REGISTRY:true}
+      defaultZone: http://localhost:8405/eureka/
+    register-with-eureka: true
+    fetch-registry: true
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
-    access-expiration: ${JWT_ACCESS_EXPIRATION:3600000}
-    refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000000}
-    email-verification-expiration: ${JWT_EMAIL_VERIFICATION_EXPIRATION:86400000}
-    password-reset-expiration: ${JWT_PASSWORD_RESET_EXPIRATION:1800000}
-    email-change-expiration: ${JWT_EMAIL_CHANGE_EXPIRATION:3600000}
-  base-url: ${APP_BASE_URL:http://localhost:8082}
+    secret: TGHJVxyGBVg9oBpHJED2bECDujeT+gd3Hm1Uy2TE3N0Rv+m+mFE2oE/ucN692Wp6pwqKc9eVEk6SbHwHVwcykQ==
+    access-expiration: 3600000  # 1 heure
+    refresh-expiration: 2592000000  # 30 jours
+    email-verification-expiration: 86400000  # 24 heures
+    password-reset-expiration: 1800000  # 30 minutes
+    email-change-expiration: 3600000  # 1 heure
+  base-url: http://localhost:8082
   email:
-    from: ${EMAIL_FROM:support@example.com}
-    enabled: ${EMAIL_ENABLED:false}
+    from: support@example.com
+    enabled: false  # Désactiver l'envoi réel d'emails
