@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Success</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .success-container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+        }
+
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 4px solid #2ecc71;
+            position: relative;
+            animation: pop 0.6s ease;
+            margin-bottom: 20px;
+        }
+
+        .checkmark::after {
+            content: '';
+            position: absolute;
+            left: 22px;
+            top: 12px;
+            width: 20px;
+            height: 40px;
+            border-right: 4px solid #2ecc71;
+            border-bottom: 4px solid #2ecc71;
+            transform: rotate(45deg);
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-container h1 {
+            color: #27ae60;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .success-container p {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 30px;
+        }
+
+        .success-container a {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #2980b9;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .success-container a:hover {
+            background-color: #21618c;
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="checkmark"></div>
+        <h1>✅ Success!</h1>
+        <p th:text="${message} ?: 'Your registration was completed successfully.'"></p>
+		<a th:href="@{/voter}" class="btn">Register Another Voter</a>
+        <a th:href="@{/}">Back to Home</a>
+    </div>
+
+    <!-- Optional Confetti JS -->
+    <script>
+        // Simple confetti effect using emojis 🎉
+        function launchConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div');
+                confetti.textContent = '🎉';
+                confetti.style.position = 'fixed';
+                confetti.style.left = Math.random() * window.innerWidth + 'px';
+                confetti.style.top = '-40px';
+                confetti.style.fontSize = '24px';
+                confetti.style.zIndex = '9999';
+                confetti.style.animation = `fall ${2 + Math.random() * 2}s linear forwards`;
+                document.body.appendChild(confetti);
+            }
+        }
+
+        // Confetti animation
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @keyframes fall {
+                to {
+                    transform: translateY(100vh) rotate(360deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        window.onload = launchConfetti;
+    </script>
+</body>
+</html>

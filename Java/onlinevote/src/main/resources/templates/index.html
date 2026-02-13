@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>VoteNow - Secure Online Voting Platform</title>
+	<!-- <link rel="stylesheet" href="../static/css/style.css"> -->
+	<link rel="stylesheet" th:href="@{/css/style.css}">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+<body>
+<!-- Header -->
+<header id="header">
+	<div class="container">
+		<nav>
+			<a href="#" class="logo">Vote<span>Now</span></a>
+			<button class="mobile-menu-btn" id="mobileMenuBtn">
+				<i class="fas fa-bars"></i>
+			</button>
+			<ul class="nav-links" id="navLinks">
+				<li><a th:href="@{/index}" class="active">Home</a></li>
+				<li><a href="#features">Features</a></li>
+				<li><a href="#how-it-works">How It Works</a></li>
+				<li><a href="#elections">Elections</a></li>
+				<li><a href="#security">Security</a></li>
+				<li><a th:href="@{/auth}" class="btn btn-outline">Login / Register</a></li>
+			</ul>
+		</nav>
+	</div>
+</header>
+
+<!-- Hero Section --> 
+<section class="hero" id="home">
+	<div class="container">
+		<div class="hero-content">
+			<h1>Secure Online Voting Made Simple</h1>
+			<p>VoteNow provides a secure, transparent, and accessible platform for conducting elections online. Our cutting-edge technology ensures the integrity of every vote while making the process easier for voters and administrators alike.</p>
+			
+		</div>
+		<div class="hero-image">
+			<img th:src="@{/image/img-online-voting.png}" alt="Online Voting Interface">
+		</div>
+	</div>
+</section>
+
+<!-- Features Section -->
+<section class="features" id="features">
+	<div class="container">
+		<div class="section-title text-center">
+			<h2>Why Choose VoteNow?</h2>
+			<p>Our platform offers everything you need for secure, transparent online elections</p>
+		</div>
+		<div class="features-grid">
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-shield-alt"></i>
+				</div>
+				<h3>Military-Grade Security</h3>
+				<p>End-to-end encryption and blockchain technology ensure tamper-proof voting with complete auditability.</p>
+			</div>
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-user-check"></i>
+				</div>
+				<h3>Identity Verification</h3>
+				<p>Multi-factor authentication and government ID verification prevent fraudulent votes.</p>
+			</div>
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-mobile-alt"></i>
+				</div>
+				<h3>Mobile Friendly</h3>
+				<p>Voters can participate from any device, increasing accessibility and participation rates.</p>
+			</div>
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-chart-bar"></i>
+				</div>
+				<h3>Real-Time Results</h3>
+				<p>Get instant results with our comprehensive analytics dashboard as soon as voting closes.</p>
+			</div>
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-users"></i>
+				</div>
+				<h3>Voter Management</h3>
+				<p>Easily manage voter rolls, eligibility, and participation with our admin tools.</p>
+			</div>
+			<div class="feature-card">
+				<div class="feature-icon">
+					<i class="fas fa-globe"></i>
+				</div>
+				<h3>Global Accessibility</h3>
+				<p>Support for multiple languages and time zones makes voting accessible worldwide.</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-it-works" id="how-it-works">
+	<div class="container">
+		<div class="section-title text-center">
+			<h2>How It Works</h2>
+			<p>Simple steps to conduct your online election</p>
+		</div>
+		<div class="steps">
+			<div class="step">
+				<div class="step-number">1</div>
+				<h3>Create Election</h3>
+				<p>Set up your election with candidates, options, and voting rules in minutes.</p>
+			</div>
+			<div class="step">
+				<div class="step-number">2</div>
+				<h3>Invite Voters</h3>
+				<p>Add voters manually or import from your existing membership database.</p>
+			</div>
+			<div class="step">
+				<div class="step-number">3</div>
+				<h3>Voters Participate</h3>
+				<p>Voters receive secure links to cast their ballots from any device.</p>
+			</div>
+			<div class="step">
+				<div class="step-number">4</div>
+				<h3>Get Results</h3>
+				<p>View real-time results and download certified reports when voting ends.</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Active Elections Section -->
+<section class="elections" id="elections">
+	<div class="container">
+		<div class="section-title text-center">
+			<h2>Current Elections</h2>
+			<p>Participate in these active elections or view past results</p>
+		</div>
+		<div class="elections-grid">
+			<div class="election-card">
+				<div class="election-image">
+					<img th:src="@{/image/JFN.jpg}" alt="Student Council Election">
+				</div>
+				<div class="election-info">
+					<div class="election-date">
+						<i class="far fa-calendar-alt"></i> June 1 - June 15, 2023
+					</div>
+					<span class="election-status status-active">Active</span>
+					<h3>University Student Council</h3>
+					<p class="election-description">Vote for your student representatives for the 2023-2024 academic year.</p>
+					<a href="#" class="btn btn-primary">Vote Now</a>
+				</div>
+			</div>
+			<div class="election-card">
+				<div class="election-image">
+					<img src="https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" alt="HOA Board Election">
+				</div>
+				<div class="election-info">
+					<div class="election-date">
+						<i class="far fa-calendar-alt"></i> June 5 - June 20, 2023
+					</div>
+					<span class="election-status status-active">Active</span>
+					<h3>HOA Board Election</h3>
+					<p class="election-description">Elect your neighborhood representatives for the Homeowners Association.</p>
+					<a href="#" class="btn btn-primary">Vote Now</a>
+				</div>
+			</div>
+			<div class="election-card">
+				<div class="election-image">
+					<img src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=600&q=80" alt="Professional Association">
+				</div>
+				<div class="election-info">
+					<div class="election-date">
+						<i class="far fa-calendar-alt"></i> July 1 - July 15, 2023
+					</div>
+					<span class="election-status status-upcoming">Upcoming</span>
+					<h3>Professional Association</h3>
+					<p class="election-description">Vote for board members of the National Engineering Association.</p>
+					<a th:href="@{/success}" class="btn btn-outline">View Details</a>
+					<!-- <a th:href="@{/displ_cand}" class="btn btn-outline">View Details</a>
+					<a th:href="@{/vote_office_display}" class="btn btn-outline">View Details</a> -->
+				</div>
+			</div>
+		</div>
+		<div class="text-center" style="margin-top: 40px;">
+			<a th:href="@{/display_election}" class="btn btn-outline">View All Elections</a>
+		</div>
+	</div>
+</section>
+
+<!-- Security Section -->
+<section class="security" id="security">
+	<div class="container">
+		<div class="section-title text-center">
+			<h2>Uncompromising Security</h2>
+			<p>Our platform is built with multiple layers of security to protect the integrity of your election</p>
+		</div>
+		<div class="security-content">
+			<div class="security-image">
+				<img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80" alt="Security Features">
+			</div>
+			<div class="security-features">
+				<div class="security-feature">
+					<div class="security-icon">
+						<i class="fas fa-lock"></i>
+					</div>
+					<div class="security-text">
+						<h3>End-to-End Encryption</h3>
+						<p>All votes are encrypted from the voter's device to final tabulation, ensuring confidentiality.</p>
+					</div>
+				</div>
+				<div class="security-feature">
+					<div class="security-icon">
+						<i class="fas fa-fingerprint"></i>
+					</div>
+					<div class="security-text">
+						<h3>Biometric Verification</h3>
+						<p>Optional facial recognition and fingerprint scanning prevent duplicate voting.</p>
+					</div>
+				</div>
+				<div class="security-feature">
+					<div class="security-icon">
+						<i class="fas fa-project-diagram"></i>
+					</div>
+					<div class="security-text">
+						<h3>Blockchain Technology</h3>
+						<p>Immutable ledger records all votes for complete transparency and auditability.</p>
+					</div>
+				</div>
+				<div class="security-feature">
+					<div class="security-icon">
+						<i class="fas fa-certificate"></i>
+					</div>
+					<div class="security-text">
+						<h3>Independent Audits</h3>
+						<p>Third-party security audits and penetration testing ensure system integrity.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="testimonials">
+	<div class="container">
+		<div class="section-title text-center">
+			<h2>Trusted by Organizations Worldwide</h2>
+			<p>Hear from organizations that have used VoteNow for their elections</p>
+		</div>
+		<div class="testimonials-slider">
+			<div class="testimonials-container" id="testimonialsContainer">
+				<div class="testimonial">
+					<div class="testimonial-content">
+						<p>"VoteNow transformed our student government elections. Participation increased by 65% compared to in-person voting, and the results were available instantly with complete transparency."</p>
+					</div>
+					<img src="#" alt="Mounir Mohammed" class="testimonial-avatar">
+					<h4 class="testimonial-author">Dr. Mounir Mohammed</h4>
+					<p class="testimonial-role">Dean of Students, University of California</p>
+				</div>
+				<div class="testimonial">
+					<div class="testimonial-content">
+						<p>"As a global professional association, we needed a secure way to conduct elections across 42 countries. VoteNow delivered with multilingual support and ironclad security our members trust."</p>
+					</div>
+					<img src="#" alt="Atsopgue Elsa" class="testimonial-avatar">
+					<h4 class="testimonial-author">Atsopgue Elsa</h4>
+					<p class="testimonial-role">Executive Director, Global Engineering Association</p>
+				</div>
+				<div class="testimonial">
+					<div class="testimonial-content">
+						<p>"Our HOA elections used to be chaotic with low turnout. With VoteNow, we achieved 92% participation and eliminated all disputes about the results. The audit trail is impeccable."</p>
+					</div>
+					<img src="#" alt="Tchomeni Orlyne" class="testimonial-avatar">
+					<h4 class="testimonial-author">Tchomeni Orlyne</h4>
+					<p class="testimonial-role">President, Lakeside Homeowners Association</p>
+				</div>
+			</div>
+			<div class="slider-nav">
+				<div class="slider-dot active" data-index="0"></div>
+				<div class="slider-dot" data-index="1"></div>
+				<div class="slider-dot" data-index="2"></div>
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta">
+	<div class="container">
+		<h2>Ready to Modernize Your Elections?</h2>
+		<p>Join thousands of organizations that trust VoteNow for secure, accessible online voting.</p>
+		<div style="display: flex; gap: 20px; justify-content: center;">
+			<a href="#" class="btn">Start Free Trial</a>
+			<a href="#" class="btn btn-outline">Schedule Demo</a>
+		</div>
+	</div>
+</section>
+
+<!-- Footer -->
+<footer>
+	<div class="container">
+		<div class="footer-content">
+			<div class="footer-column">
+				<h3>VoteNow</h3>
+				<p>The most secure online voting platform for organizations of all sizes.</p>
+				<div class="social-links">
+					<a href="#"><i class="fab fa-facebook-f"></i></a>
+					<a href="#"><i class="fab fa-twitter"></i></a>
+					<a href="#"><i class="fab fa-linkedin-in"></i></a>
+					<a href="#"><i class="fab fa-instagram"></i></a>
+				</div>
+			</div>
+			<div class="footer-column">
+				<h3>Product</h3>
+				<ul class="footer-links">
+					<li><a href="#">Features</a></li>
+					<li><a href="#">Pricing</a></li>
+					<li><a href="#">Security</a></li>
+					<li><a href="#">Integrations</a></li>
+					<li><a href="#">Updates</a></li>
+				</ul>
+			</div>
+			<div class="footer-column">
+				<h3>Solutions</h3>
+				<ul class="footer-links">
+					<li><a href="#">Universities</a></li>
+					<li><a href="#">Associations</a></li>
+					<li><a href="#">Government</a></li>
+					<li><a href="#">Corporations</a></li>
+					<li><a href="#">Nonprofits</a></li>
+				</ul>
+			</div>
+			<div class="footer-column">
+				<h3>Resources</h3>
+				<ul class="footer-links">
+					<li><a href="#">Documentation</a></li>
+					<li><a href="#">Help Center</a></li>
+					<li><a href="#">Webinars</a></li>
+					<li><a href="#">Election Guides</a></li>
+					<li><a href="#">Status</a></li>
+				</ul>
+			</div>
+			<div class="footer-column">
+				<h3>Company</h3>
+				<ul class="footer-links">
+					<li><a href="#">About Us</a></li>
+					<li><a href="#">Careers</a></li>
+					<li><a href="#">Press</a></li>
+					<li><a href="#">Contact</a></li>
+					<li><a href="#">Legal</a></li>
+				</ul>
+			</div>
+		</div>
+		<div class="copyright">
+			<p>&copy; 2025 VoteNow. All rights reserved. | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a> | <a href="#">Security Policy</a></p>
+		</div>
+	</div>
+</footer>
+
+<!-- Back to Top Button -->
+<div class="back-to-top" id="backToTop">
+	<i class="fas fa-arrow-up"></i>
+</div>
+
+<script th:src="@{/js/main.js}"></script>
+<script src="../static/js/main.js"></script>
+</body>
+</html>

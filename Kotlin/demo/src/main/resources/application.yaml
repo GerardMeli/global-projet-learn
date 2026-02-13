@@ -1,0 +1,35 @@
+server:
+  port: 8000
+  error:
+    include-message: always
+    include-binding-errors: always
+
+#Database configuration
+spring:
+  application:
+    name: demo
+  datasource:
+    url: jdbc:postgresql://localhost:5432/crud_product
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database: postgresql
+    hibernate:
+      ddl-auto: update # Use 'update' for development, 'validate' or 'none' for production
+    show-sql: true # Set to true to log SQL statements
+    properties:
+      hibernate:
+        format_sql: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://auth-server:8000
+
+app:
+  api:
+    key: ${MY_API_KEY}
+  database:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/crud_product}

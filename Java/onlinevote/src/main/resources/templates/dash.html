@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoteNow - Online Voting Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/dash.css}">
+    <link rel="stylesheet" href="../static/css/dash.css">
+    <meta name="description" content="VoteNow - Secure online voting platform dashboard">
+    <meta name="theme-color" content="#4f46e5">
+</head>
+<body>
+<div class="dashboard">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" aria-label="Main navigation">
+        <div class="logo">
+            <i class="fas fa-vote-yea" aria-hidden="true"></i>
+            <h2>VoteNow</h2>
+            <button class="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="false">
+                <i class="fas fa-bars" aria-hidden="true"></i>
+            </button>
+        </div>
+        <ul class="nav-menu" role="menubar">
+            <li class="nav-item" role="none">
+                <a href="#dashboard" class="nav-link active" role="menuitem" aria-current="page" data-section="dashboard">
+                    <i class="fas fa-home" aria-hidden="true"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a th:href="@{/display_election}" class="nav-link" role="menuitem" data-section="elections">
+                    <i class="fas fa-vote-yea" aria-hidden="true"></i>
+                    <span>Elections</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a th:href="@{/displ_cand}" class="nav-link" role="menuitem" data-section="candidates">
+                    <i class="fas fa-users" aria-hidden="true"></i>
+                    <span>Candidates</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a th:href="@{/disp_voter}"  class="nav-link" role="menuitem">
+                    <i class="fas fa-user-friends" aria-hidden="true"></i>
+                    <span>Voters</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a th:href="@{/vote_office_display}" class="nav-link" role="menuitem" data-section="voteoffice">
+                    <i class="fa-solid fa-building" aria-hidden="true"></i>
+                    <span>Vote Office</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a href="#results" class="nav-link" role="menuitem" data-section="results">
+                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                    <span>Results</span>
+                </a>
+            </li>
+            <li class="nav-item" role="none">
+                <a href="#settings" class="nav-link" role="menuitem" data-section="settings">
+                    <i class="fas fa-cog" aria-hidden="true"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="nav-menu logout" role="menu">
+            <li class="nav-item" role="none">
+                <a href="#" class="nav-link" id="logout-btn" role="menuitem">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                    <span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <div class="search-bar">
+                <label for="main-search" class="sr-only">Search elections, candidates</label>
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="main-search" placeholder="Search elections, candidates..." aria-label="Search">
+                
+            </div>
+        </header>
+
+        <!-- Dashboard Content (shown by default) -->
+        <section id="dashboard-content" class="content-section active" aria-labelledby="dashboard-heading">
+            <h2 id="dashboard-heading" class="sr-only">Dashboard Overview</h2>
+            
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <article class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Total Voters</h3>
+                            <div class="card-value" text="#">2,451</div>
+                            <div class="card-change positive">
+                                <i class="fas fa-arrow-up" aria-hidden="true"></i> 
+                                <span text="#">12% from last month</span>
+                            </div>
+                        </div>
+                        <div class="card-icon voters">
+                            <i class="fas fa-user-friends" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <a th:href="@{/disp_voter}" class="card-link">View all voters</a>
+                </article>
+                
+                <article class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Active Elections</h3>
+                            <div class="card-value" text="${stats.activeElections}">8</div>
+                            <div class="card-change positive">
+                                <i class="fas fa-arrow-up" aria-hidden="true"></i> 
+                                <span text="${stats.newElectionsThisWeek} + ' new this week'">2 new this week</span>
+                            </div>
+                        </div>
+                        <div class="card-icon elections">
+                            <i class="fas fa-vote-yea" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <a th:href="@{/display_election}" class="card-link">Manage elections</a>
+                </article>
+                
+                <article class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Candidates</h3>
+                            <div class="card-value" text="#">127</div>
+                            <div class="card-change negative">
+                                <i class="fas fa-arrow-down" aria-hidden="true"></i> 
+                                <span text="#">3 withdrawn</span>
+                            </div>
+                        </div>
+                        <div class="card-icon candidates">
+                            <i class="fas fa-users" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <a th:href="@{/displ_cand}" class="card-link">View candidates</a>
+                </article>
+                
+                <article class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Completed</h3>
+                            <div class="card-value" text="${stats.completedElections}">24</div>
+                            <div class="card-change positive">
+                                <i class="fas fa-arrow-up" aria-hidden="true"></i> 
+                                <span text="${stats.completedThisQuarter} + ' this quarter'">5 this quarter</span>
+                            </div>
+                        </div>
+                        <div class="card-icon completed">
+                            <i class="fas fa-check-circle" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <a href="#results" class="card-link">View results</a>
+                </article>
+            </div>
+
+            <!-- Recent Activity Section -->
+            <section aria-labelledby="recent-activity-heading">
+                <div class="section-header">
+                    <h3 id="recent-activity-heading" class="section-title">
+                        <i class="fas fa-history" aria-hidden="true"></i> Recent Activity
+                    </h3>
+                    <button class="btn btn-refresh" aria-label="Refresh activities">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="activity-timeline" role="list">
+                    <th:block th:each="activity : ${recentActivities}">
+                        <div class="timeline-item" role="listitem">
+                            <div th:class="'timeline-icon ' + ${activity.type}">
+                                <i th:class="'fas ' + ${activity.icon}" aria-hidden="true"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <p th:text="${activity.message}">New vote recorded for <strong>Student Council Election</strong></p>
+                                <small th:text="${#temporals.format(activity.timestamp, 'MMM d, h:mm a')}">2 minutes ago</small>
+                            </div>
+                        </div>
+                    </th:block>
+                    <div class="timeline-item empty-state" th:if="${recentActivities == null or recentActivities.empty}">
+                        <div class="timeline-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <p>No recent activities found</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- Elections Management Section -->
+        <section id="elections-content" class="content-section" aria-labelledby="elections-heading">
+            <div class="container">
+                <header>
+                    <h1 id="elections-heading">Elections Dashboard</h1>
+                    <div class="header-actions">
+                        <a th:href="@{/election/add}" class="btn btn-primary" id="createElectionBtn" aria-label="Create new election">
+                            <i class="fas fa-plus" aria-hidden="true"></i> Create New Election
+                        </a>
+                        <button class="btn btn-outline" id="refreshElections">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </header>
+
+                <div class="filters" role="group" aria-label="Election filters">
+                    <button class="filter-btn active" data-status="all" aria-pressed="true">All Elections</button>
+                    <button class="filter-btn" data-status="active" aria-pressed="false">Active</button>
+                    <button class="filter-btn" data-status="upcoming" aria-pressed="false">Upcoming</button>
+                    <button class="filter-btn" data-status="ended" aria-pressed="false">Ended</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results-content" class="content-section" aria-labelledby="results-heading">
+            <div class="container">
+                <div class="section-header">
+                    <h1 id="results-heading">Election Results</h1>
+                    <div class="export-actions">
+                        <button class="btn btn-outline" aria-label="Export results as PDF" id="exportPdf">
+                            <i class="fas fa-file-pdf" aria-hidden="true"></i> Export PDF
+                        </button>
+                        <button class="btn btn-outline" aria-label="Export results as CSV" id="exportCsv">
+                            <i class="fas fa-file-excel" aria-hidden="true"></i> Export CSV
+                        </button>
+                        <button class="btn btn-outline" aria-label="Print results" id="printResults">
+                            <i class="fas fa-print" aria-hidden="true"></i> Print
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results-filter">
+                    <label for="electionSelect" class="sr-only">Select election</label>
+                    <select class="election-select" id="electionSelect">
+                        <option value="">Select an election</option>
+                        <option th:each="election : ${pastElections}" 
+                                th:value="${election.id}" 
+                                th:text="${election.title + ' (' + #temporals.format(election.endDate, 'yyyy') + ')'}">
+                            Student Council Election 2024
+                        </option>
+                    </select>
+                </div>
+
+                <div class="results-container" th:if="${selectedElection != null}">
+                    <div class="results-summary">
+                        <article class="summary-card">
+                            <h3>Total Votes</h3>
+                            <div class="summary-value" th:text="${selectedElection.totalVotes}">782</div>
+                            <div class="summary-meta" th:text="${selectedElection.participationRate} + '% participation'">62% participation</div>
+                        </article>
+                        <article class="summary-card">
+                            <h3>Valid Votes</h3>
+                            <div class="summary-value" th:text="${selectedElection.validVotes}">765</div>
+                            <div class="summary-meta" th:text="${#numbers.formatDecimal(selectedElection.validVotes/selectedElection.totalVotes*100, 1, 1)} + '% of total'">97.8% of total</div>
+                        </article>
+                        <article class="summary-card">
+                            <h3>Invalid Votes</h3>
+                            <div class="summary-value" th:text="${selectedElection.invalidVotes}">17</div>
+                            <div class="summary-meta" th:text="${#numbers.formatDecimal(selectedElection.invalidVotes/selectedElection.totalVotes*100, 1, 1)} + '% of total'">2.2% of total</div>
+                        </article>
+                    </div>
+
+                    <div class="results-chart">
+                        <div class="chart-header">
+                            <h3 th:text="${selectedElection.mainPosition} + ' - Vote Distribution'">President - Vote Distribution</h3>
+                            <div class="chart-legend" role="list">
+                                <th:block th:each="candidate : ${selectedElection.candidates}">
+                                    <div class="legend-item" role="listitem">
+                                        <span class="legend-color" th:style="'background-color: ' + ${candidate.color} + ';'"></span>
+                                        <span th:text="${candidate.name} + ' (' + ${candidate.percentage} + '%)'">Michael Chen (43.7%)</span>
+                                    </div>
+                                </th:block>
+                            </div>
+                        </div>
+                        <div class="chart-container" role="img" aria-label="Vote distribution chart">
+                            <canvas id="resultsChart" width="400" height="200"></canvas>
+                            <noscript>
+                                <p>Vote distribution: 
+                                    <th:block th:each="candidate : ${selectedElection.candidates}">
+                                        <span th:text="${candidate.name} + ' ' + ${candidate.percentage} + '%'">Michael Chen 43.7%</span>
+                                        <span th:unless="${candidateStat.last}">, </span>
+                                    </th:block>
+                                </p>
+                            </noscript>
+                        </div>
+                    </div>
+
+                    <div class="results-table">
+                        <table aria-describedby="resultsTableDesc">
+                            <caption id="resultsTableDesc" class="sr-only">Election results by position</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Position</th>
+                                    <th scope="col">Winner</th>
+                                    <th scope="col">Votes</th>
+                                    <th scope="col">Percentage</th>
+                                    <th scope="col">Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="position : ${selectedElection.positions}">
+                                    <th scope="row" th:text="${position.name}">President</th>
+                                    <td>
+                                        <div class="candidate-info">
+                                            <img th:src="${position.winnerImageUrl}" alt="Winner photo">
+                                            <span th:text="${position.winnerName}">Michael Chen</span>
+                                        </div>
+                                    </td>
+                                    <td th:text="${position.winnerVotes}">342</td>
+                                    <td th:text="${position.winnerPercentage} + '%'">43.7%</td>
+                                    <td th:text="'+' + ${position.voteMargin} + ' votes'">+53 votes</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings-content" class="content-section" aria-labelledby="settings-heading">
+            <div class="section-header">
+                <h3 id="settings-heading" class="section-title">
+                    <i class="fas fa-cog" aria-hidden="true"></i> Settings
+                </h3>
+            </div>
+            <div class="settings-content">
+                <div class="settings-tabs" role="tablist" aria-label="Settings tabs">
+                    <button class="settings-tab active" data-tab="account" role="tab" aria-selected="true" aria-controls="account-tab">Account</button>
+                    <button class="settings-tab" data-tab="security" role="tab" aria-selected="false" aria-controls="security-tab">Security</button>
+                    <button class="settings-tab" data-tab="notifications" role="tab" aria-selected="false" aria-controls="notifications-tab">Notifications</button>
+                    <button class="settings-tab" data-tab="system" role="tab" aria-selected="false" aria-controls="system-tab">System</button>
+                </div>
+
+                <div class="settings-tab-content active" id="account-tab" role="tabpanel" aria-labelledby="account-tab" data-tab="account">
+                    <div class="settings-card">
+                        <h4><i class="fas fa-user-shield" aria-hidden="true"></i> Account Settings</h4>
+                        <form th:action="@{/settings/account}" method="post" class="settings-form" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" value="${user.username}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="fullname">Full Name</label>
+                                <div class="name-fields">
+                                    <input type="text" id="firstName" name="firstName" value="${user.firstName}" placeholder="First Name" required>
+                                    <input type="text" id="lastName" name="lastName" value="${user.lastName}" placeholder="Last Name" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" value="${user.email}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Profile Photo</label>
+                                <div class="file-upload">
+                                    <img src="@{${user.profileImageUrl != null} ? ${user.profileImageUrl} : '/images/default-profile.png'}" 
+                                         alt="Current profile" 
+                                         class="profile-preview"
+                                         id="profilePreview">
+                                    <div class="upload-actions">
+                                        <input type="file" id="profileImage" name="profileImage" accept="image/*" class="d-none">
+                                        <button type="button" class="btn btn-outline btn-sm" id="changeProfileBtn">
+                                            <i class="fas fa-camera" aria-hidden="true"></i> Change
+                                        </button>
+                                        <button type="button" class="btn btn-outline btn-sm" id="removeProfileBtn">
+                                            <i class="fas fa-trash" aria-hidden="true"></i> Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Account</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="settings-tab-content" id="security-tab" role="tabpanel" aria-labelledby="security-tab" data-tab="security">
+                    <div class="settings-card">
+                        <h4><i class="fas fa-lock" aria-hidden="true"></i> Security</h4>
+                        <form th:action="@{/settings/security}" method="post" class="settings-form">
+                            <div class="form-group">
+                                <label for="currentPassword">Current Password</label>
+                                <input type="password" id="currentPassword" name="currentPassword" placeholder="Enter current password" required>
+                                <div class="invalid-feedback">Please provide your current password</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="newPassword">New Password</label>
+                                <input type="password" id="newPassword" name="newPassword" placeholder="Enter new password" required>
+                                <div class="password-strength">
+                                    <span class="strength-bar"></span>
+                                    <span class="strength-text">Weak</span>
+                                </div>
+                                <small class="form-text">Password must be at least 8 characters long</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirm New Password</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm new password" required>
+                                <div class="invalid-feedback">Passwords do not match</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="2fa-toggle">Two-Factor Authentication</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="2fa-toggle" name="twoFactorEnabled" checked="${user.twoFactorEnabled}">
+                                    <label for="2fa-toggle"></label>
+                                    <span text="${user.twoFactorEnabled} ? 'Enabled' : 'Disabled'">Enabled</span>
+                                </div>
+                                <small class="form-text">Add an extra layer of security to your account</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Update Security Settings</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="settings-tab-content" id="notifications-tab" role="tabpanel" aria-labelledby="notifications-tab" data-tab="notifications">
+                    <div class="settings-card">
+                        <h4><i class="fas fa-bell" aria-hidden="true"></i> Notification Preferences</h4>
+                        <form th:action="@{/settings/notifications}" method="post" class="settings-options">
+                            <div class="option-group">
+                                <h5>Email Notifications</h5>
+                                <div class="option-item">
+                                    <input type="checkbox" id="email-election" name="emailElection" checked="${user.notificationPreferences.emailElection}">
+                                    <label for="email-election">Election updates</label>
+                                </div>
+                                <div class="option-item">
+                                    <input type="checkbox" id="email-results" name="emailResults" checked="${user.notificationPreferences.emailResults}">
+                                    <label for="email-results">Election results</label>
+                                </div>
+                                <div class="option-item">
+                                    <input type="checkbox" id="email-system" name="emailSystem" checked="${user.notificationPreferences.emailSystem}">
+                                    <label for="email-system">System notifications</label>
+                                </div>
+                            </div>
+                            <div class="option-group">
+                                <h5>In-App Notifications</h5>
+                                <div class="option-item">
+                                    <input type="checkbox" id="app-new-voter" name="appNewVoter" checked="${user.notificationPreferences.appNewVoter}">
+                                    <label for="app-new-voter">New voter registrations</label>
+                                </div>
+                                <div class="option-item">
+                                    <input type="checkbox" id="app-new-candidate" name="appNewCandidate" checked="${user.notificationPreferences.appNewCandidate}">
+                                    <label for="app-new-candidate">New candidate applications</label>
+                                </div>
+                                <div class="option-item">
+                                    <input type="checkbox" id="app-vote-activity" name="appVoteActivity" checked="${user.notificationPreferences.appVoteActivity}">
+                                    <label for="app-vote-activity">Vote activity</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="settings-tab-content" id="system-tab" role="tabpanel" aria-labelledby="system-tab" data-tab="system">
+                    <div class="settings-card">
+                        <h4><i class="fas fa-server" aria-hidden="true"></i> System Settings</h4>
+                        <form action="@{/settings/system}" method="post" class="settings-form">
+                            <div class="form-group">
+                                <label for="timezone">Timezone</label>
+                                <select id="timezone" name="timezone" value="${systemSettings.timezone}">
+                                    <option each="tz : ${timezones}" 
+                                            value="${tz.id}" 
+                                            text="${tz.displayName}"
+                                            selected="${tz.id == systemSettings.timezone}">
+                                        (UTC-05:00) Eastern Time (US & Canada)
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dateFormat">Date Format</label>
+                                <select id="dateFormat" name="dateFormat" value="${systemSettings.dateFormat}">
+                                    <option each="format : ${dateFormats}" 
+                                            value="${format}" 
+                                            text="${format}"
+                                            selected="${format == systemSettings.dateFormat}">
+                                        MM/DD/YYYY
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="resultsVisibility">Results Visibility</label>
+                                <select id="resultsVisibility" name="resultsVisibility" value="${systemSettings.resultsVisibility}">
+                                    <option each="visibility : ${visibilityOptions}" 
+                                            value="${visibility.key}" 
+                                            text="${visibility.value}"
+                                            selected="${visibility.key == systemSettings.resultsVisibility}">
+                                        Show after election ends
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="electionDuration">Default Election Duration</label>
+                                <div class="input-group">
+                                    <input type="number" id="electionDuration" name="electionDuration" 
+                                           value="${systemSettings.defaultElectionDuration}" min="1" max="30">
+                                    <span class="input-group-text">Days</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="maxCandidates">Max Candidates Per Position</label>
+                                <input type="number" id="maxCandidates" name="maxCandidates" 
+                                       value="${systemSettings.maxCandidatesPerPosition}" min="1" max="20">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save System Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="logoutModalTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalTitle">Confirm Logout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to logout from your account?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="@{/logout}" method="post">
+                    <button type="submit" class="btn btn-primary" id="confirmLogout">Logout</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script th:src="@{/js/dash.js}"></script>
+<script src="../static/js/dash.js"></script>
+</body>
+</html>

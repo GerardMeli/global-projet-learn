@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="../static/css/election.css">
+	<link rel="stylesheet" th:href="@{/css/election.css}">
+	<title>Election Management</title>
+</head>
+<body>
+<div class="container">
+	<h1>Election Management</h1>
+	<div id="statusMessage" class="status-message"></div>
+	<form id="electionForm">
+		<div class="form-group">
+			<label for="electionName">Election Name</label>
+			<input type="text" id="electionName" name="electionName" placeholder="Enter election name" required>
+			<div class="error" id="nameError">Please enter a valid election name</div>
+		</div>
+
+		<div class="form-group">
+			<label for="electionDescription">Election Description</label>
+			<textarea id="electionDescription" name="electionDescription" placeholder="Enter election description"></textarea>
+		</div>
+
+		<div class="form-group">
+			<label for="electionStatus">Election Status</label>
+			<select id="electionStatus" name="electionStatus" required>
+				<option value="">Select status</option>
+				<option value="Active">ACTIVE</option>
+				<option value="UPCOMING">UPCOMING</option>
+				<option value="ENDED">ENDED</option>
+				<option value="SCHEDULED">SCHEDULED</option>
+			</select>
+			<div class="error" id="statusError">Please select a status</div>
+		</div>
+
+		<div class="date-group">
+			<div class="form-group">
+				<label for="electionStartDate">Start Date</label>
+				<input type="date" id="electionStartDate" name="electionStartDate" required>
+				<div class="error" id="startDateError">Please select a valid start date</div>
+			</div>
+
+			<div class="form-group">
+				<label for="electionEndDate">End Date</label>
+				<input type="date" id="electionEndDate" name="electionEndDate" required>
+				<div class="error" id="endDateError">Please select a valid end date</div>
+			</div>
+		</div>
+
+		<div class="form-group form-footer">
+			<button type="submit" class="btn">Save Election</button>
+		</div>
+	</form>
+</div>
+
+<script src="../static/js/election.js"></script>
+<script th:src="@{/js/election.js}"></script>
+</body>
+</html>

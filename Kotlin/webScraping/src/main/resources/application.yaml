@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: webScraping
+  datasource:
+    url: jdbc:postgresql://localhost:5432/scrapp
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+    jpa:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      database: postgresql
+      hibernate:
+        ddl-auto: update # Use 'update' for development, 'validate' or 'none' for production
+      show-sql: true # Set to true to log SQL statements
+      properties:
+        hibernate:
+          format_sql: true

@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: quizservice
+  datasource:
+    url: jdbc:postgresql://localhost:5432/quizzdb  # PostgreSQL connection URL
+    username: postgres                             # Your PostgreSQL username
+    password: root                             # Your PostgreSQL password
+    driver-class-name: org.postgresql.Driver
+
+    # Show SQL in logs for debugging
+  jpa:
+    hibernate:
+      ddl-auto: update   # creates tables automatically
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8000
+
+eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka

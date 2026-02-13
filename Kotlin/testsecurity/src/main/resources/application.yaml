@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: testsecurity
+
+  # src/main/resources/application.yml
+  datasource:
+    url: jdbc:postgresql://localhost:5432/authentification?sslmode=disable  # PostgreSQL connection URL
+    username: postgres                             # Your PostgreSQL username
+    password: root                             # Your PostgreSQL password
+    driver-class-name: org.postgresql.Driver
+#    hikari:
+#      pool-name: HikariPool
+#      shutdown-timeout: 1000
+#  lifecycle:
+#    timeout-per-shutdown-phase: 30s
+
+  # Show SQL in logs for debugging
+  jpa:
+    hibernate:
+      ddl-auto: update                             # Automatically update schema
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+
+  # Enable the OAuth2 Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-very-long-secure-secret-key-with-at-least-32-characters-here}
+  access-token-expiration: 900000  # 15 minutes in milliseconds
+  refresh-token-expiration: 604800000  # 7 days in milliseconds
+  reset-token-expiration: 1800000  # 30 minutes in milliseconds
+  verification-token-expiration: 86400000  # 24 hours in milliseconds
+  issuer: auth-service
+
+# Server Configuration
+server:
+  port: 8080

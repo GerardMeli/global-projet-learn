@@ -1,0 +1,87 @@
+spring:
+  application:
+    name: web-application-chat
+
+  # Database configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/chatdb
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+
+  session:
+    store-type: jdbc
+
+  # Hibernate properties
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Thymeleaf
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding : UTF-8
+    cache: false
+
+
+# WebSocket Configuration
+websocket:
+  path: /ws-chat
+  allowed-origins: "*"
+
+server:
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        secure: true
+  port: 8081
+  error:
+    include-message: always
+    include-binding-errors: always
+
+logging:
+  level:
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.security: DEBUG
+    org:
+      springframework:
+        web:
+          socket:
+            handler: DEBUG
+            socktjs: DEBUG
+          messaging:
+            #            simp: DEBUG
+            simp:
+              stomp: DEBUG
+
+# JWT Configuration
+# Secret key should be at least 32 characters for HS512
+jwt:
+  secret: mySecretKeyForJWTTokenGenerationAndValidationPurposesOnly1234567890
+  # Token expiration in milliseconds (1200 = 20minutes)
+  expiration: 86400
+
+# File Service Configuration
+#file:
+#  service:
+#    url: http://localhost:8752 # API Gateway URL
+#    upload-path: /upload
+#    download-path: /download
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8405/eureka/
+    register-with-eureka: true
+    fetch-registry: true

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="../static/css/voteoffice.css">
+	<link rel="stylesheet" th:href="@{/css/voteoffice.css}">
+	<title>Office Management</title>
+</head>
+<body>
+<div class="container">
+	<h1>Office Management</h1>
+	<div id="statusMessage" class="status-message"></div>
+	<form id="officeForm" th:action="@{/vote_office/add}" th:object="${voteoffice}" method="post">
+
+		<div class="form-group">
+			<label for="nameOffice">Office Name</label>
+			<input type="text" id="nameOffice" name="nameOffice" placeholder="Enter office name" required>
+			<div class="error" id="nameError">Please enter a valid office name</div>
+		</div>
+
+		<div class="form-group">
+			<label for="positionOffice">Position</label>
+			<input type="text" id="positionOffice" name="positionOffice" placeholder="Enter position title" required>
+			<div class="error" id="positionError">Please enter a valid position</div>
+		</div>
+
+		<div class="form-group">
+			<label for="descriptionOffice">Description</label>
+			<textarea id="descriptionOffice" name="descriptionOffice" placeholder="Enter office description"></textarea>
+		</div>
+
+		<div class="form-group form-footer">
+			<button type="submit" class="btn">Save Office</button>
+		</div>
+	</form>
+</div>
+
+<script src="../static/js/voteoffice.js"></script>
+<script th:src="@{/js/voteoffice.js}"></script>
+</body>
+</html>

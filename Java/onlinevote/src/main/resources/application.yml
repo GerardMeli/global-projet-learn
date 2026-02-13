@@ -1,0 +1,39 @@
+server:
+  port: 8081
+  error:
+    include-message: always
+    include-binding-errors: always
+# Database configuration
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/votebd
+    username: postgres
+    password: root
+    driver-class-name: org.postgresql.Driver
+  # Hibernate properties
+  jpa:
+    database: postgresql
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  # Thymeleaf
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    cache: false
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+  # Security configuration
+  # security:
+  #   user:
+  #     name: admin
+  #     password: admin
+      

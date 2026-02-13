@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Voting Platform</title>
+    
+    <!-- Modern CSS Framework (Tailwind CDN for example) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        .candidate-card {
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        .candidate-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .candidate-card.selected {
+            border-color: #4f46e5;
+            background-color: #f5f3ff;
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Modern Navbar -->
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center">
+                        <i class="fas fa-vote-yea text-indigo-600 text-2xl mr-2"></i>
+                        <span class="text-xl font-bold text-gray-900">Vote<span class="text-indigo-600">Now</span></span>
+                    </a>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
+                    <a th:href="@{/profile}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                        <i class="fas fa-user-circle mr-2"></i> My Profile
+                    </a>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium flex items-center">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Voting Container -->
+    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- Header with Progress Steps -->
+        <div class="mb-10 text-center">
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+                <span class="block">Cast Your Vote Securely</span>
+            </h1>
+            <p class="mt-3 text-lg text-gray-500">Exercise your democratic right with our encrypted voting system</p>
+            
+            <div class="mt-8">
+                <div class="flex items-center justify-center">
+                    <div class="flex flex-col items-center mr-8">
+                        <div class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center">
+                            1
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-700">Select Election</span>
+                    </div>
+                    <div class="h-1 w-16 bg-gray-200"></div>
+                    <div class="flex flex-col items-center mx-8">
+                        <div id="step2" class="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                            2
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-500">Choose Candidate</span>
+                    </div>
+                    <div class="h-1 w-16 bg-gray-200"></div>
+                    <div class="flex flex-col items-center ml-8">
+                        <div id="step3" class="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                            3
+                        </div>
+                        <span class="mt-2 text-sm font-medium text-gray-500">Confirm Vote</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voting Content -->
+        <div th:if="${voter.voterStatus == 'APPROVED'}" class="bg-white shadow rounded-lg overflow-hidden fade-in">
+            <!-- Step 1: Election Selection -->
+            <div id="step1Content" class="p-6">
+                <div class="mb-6">
+                    <label for="election" class="block text-sm font-medium text-gray-700 mb-2">Select Election</label>
+                    <select id="election" class="mt-1 block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border">
+                        <option value="" disabled selected>Choose an election...</option>
+                        <option th:each="election : ${elections}"
+                                th:value="${election.id}"
+                                th:text="${election.name} + ' (' + ${#temporals.format(election.date, 'MMM d, yyyy')} + ')'"></option>
+                    </select>
+                </div>
+                <div class="flex justify-end">
+                    <button id="nextStep1" disabled class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Candidate Selection (Initially hidden) -->
+            <div id="step2Content" class="hidden p-6">
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Available Candidates</h2>
+                    <div id="loadingCandidates" class="text-center py-8 hidden">
+                        <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+                        <p class="mt-2 text-gray-500">Loading candidates...</p>
+                    </div>
+                    <div id="candidatesList" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <!-- Candidates will be loaded here via AJAX -->
+                    </div>
+                </div>
+                <div class="flex justify-between">
+                    <button id="backStep2" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-arrow-left mr-2"></i> Back
+                    </button>
+                    <button id="nextStep2" disabled class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed">
+                        Next <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Vote Confirmation (Initially hidden) -->
+            <div id="step3Content" class="hidden p-6">
+                <div class="text-center mb-8">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                    <h2 class="mt-3 text-lg font-medium text-gray-900">Confirm Your Vote</h2>
+                    <div class="mt-4 bg-gray-50 p-4 rounded-lg">
+                        <p class="text-gray-600">You are about to vote for:</p>
+                        <p id="selectedCandidateName" class="mt-1 text-xl font-semibold text-indigo-600"></p>
+                        <p class="mt-2 text-gray-600">in the election:</p>
+                        <p id="selectedElectionName" class="mt-1 text-lg font-medium text-gray-900"></p>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500">
+                        <i class="fas fa-lock mr-1"></i> Your vote is encrypted and anonymous
+                    </p>
+                </div>
+                <form id="voteForm" th:action="@{/vote/submit}" method="post">
+                    <input type="hidden" id="electionId" name="electionId">
+                    <input type="hidden" id="candidateId" name="candidateId">
+                    <div class="flex justify-between">
+                        <button id="backStep3" type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-arrow-left mr-2"></i> Back
+                        </button>
+                        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-check-circle mr-2"></i> Confirm & Submit Vote
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Not Approved Message -->
+        <div th:if="${voter.voterStatus != 'APPROVED'}" class="bg-white shadow overflow-hidden sm:rounded-lg fade-in">
+            <div class="px-4 py-5 sm:px-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-yellow-100 rounded-full p-2">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 h-5 w-5"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Voting Not Available</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            Your voter status is: <span th:text="${voter.voterStatus}" class="font-semibold"></span>
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-4 border-t border-gray-200 pt-4">
+                    <p class="text-sm text-gray-500">
+                        Only approved voters can participate in elections. If you believe this is an error, 
+                        please contact our support team.
+                    </p>
+                    <div class="mt-4">
+                        <a th:href="@{/support}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-headset mr-2"></i> Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const electionSelect = document.getElementById('election');
+            const nextStep1Btn = document.getElementById('nextStep1');
+            const backStep2Btn = document.getElementById('backStep2');
+            const nextStep2Btn = document.getElementById('nextStep2');
+            const backStep3Btn = document.getElementById('backStep3');
+            const step1Content = document.getElementById('step1Content');
+            const step2Content = document.getElementById('step2Content');
+            const step3Content = document.getElementById('step3Content');
+            const candidatesList = document.getElementById('candidatesList');
+            const loadingCandidates = document.getElementById('loadingCandidates');
+            const selectedCandidateName = document.getElementById('selectedCandidateName');
+            const selectedElectionName = document.getElementById('selectedElectionName');
+            const electionIdInput = document.getElementById('electionId');
+            const candidateIdInput = document.getElementById('candidateId');
+            const step2Indicator = document.getElementById('step2');
+            const step3Indicator = document.getElementById('step3');
+            
+            // Track selected candidate
+            let selectedCandidate = null;
+
+            // Enable/disable next button based on election selection
+            electionSelect.addEventListener('change', function() {
+                nextStep1Btn.disabled = !this.value;
+            });
+
+            // Step 1: Election Selection -> Step 2: Candidate Selection
+            nextStep1Btn.addEventListener('click', function() {
+                const electionId = electionSelect.value;
+                if (!electionId) return;
+                
+                // Show loading state
+                candidatesList.innerHTML = '';
+                loadingCandidates.classList.remove('hidden');
+                
+                // Fetch candidates
+                fetch(`/vote/candidates/${electionId}`)
+                    .then(response => response.json())
+                    .then(candidates => {
+                        loadingCandidates.classList.add('hidden');
+                        candidatesList.innerHTML = '';
+                        
+                        if (candidates.length === 0) {
+                            candidatesList.innerHTML = `
+                                <div class="col-span-2 text-center py-8">
+                                    <i class="fas fa-user-slash text-gray-400 text-4xl mb-3"></i>
+                                    <p class="text-gray-500">No candidates available for this election</p>
+                                </div>
+                            `;
+                            nextStep2Btn.disabled = true;
+                            return;
+                        }
+                        
+                        candidates.forEach(candidate => {
+                            const candidateCard = document.createElement('div');
+                            candidateCard.className = 'candidate-card bg-white overflow-hidden shadow rounded-lg border border-gray-200 cursor-pointer';
+                            candidateCard.innerHTML = `
+                                <div class="px-4 py-5 sm:p-6 flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <img class="h-16 w-16 rounded-full object-cover" 
+                                             src="/images/candidates/${candidate.id}.jpg" 
+                                             onerror="this.src='/images/candidates/default.jpg'"
+                                             alt="${candidate.name}">
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <h3 class="text-lg font-medium text-gray-900">${candidate.name}</h3>
+                                        <p class="text-sm text-indigo-600">${candidate.party}</p>
+                                        <p class="mt-1 text-sm text-gray-500">${candidate.bio || 'No bio available'}</p>
+                                        <button class="mt-3 select-candidate inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                data-candidate-id="${candidate.id}" 
+                                                data-candidate-name="${candidate.name}">
+                                            Select Candidate
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            candidatesList.appendChild(candidateCard);
+                        });
+                        
+                        // Show step 2
+                        step1Content.classList.add('hidden');
+                        step2Content.classList.remove('hidden');
+                        step2Indicator.classList.remove('bg-gray-200', 'text-gray-600');
+                        step2Indicator.classList.add('bg-indigo-600', 'text-white');
+                    })
+                    .catch(error => {
+                        loadingCandidates.classList.add('hidden');
+                        candidatesList.innerHTML = `
+                            <div class="col-span-2 text-center py-8">
+                                <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-3"></i>
+                                <p class="text-red-500">Failed to load candidates. Please try again.</p>
+                            </div>
+                        `;
+                        console.error('Error loading candidates:', error);
+                    });
+            });
+
+            // Handle candidate selection
+            candidatesList.addEventListener('click', function(e) {
+                if (e.target.classList.contains('select-candidate')) {
+                    // Remove selected class from all cards
+                    document.querySelectorAll('.candidate-card').forEach(card => {
+                        card.classList.remove('selected', 'border-indigo-500', 'bg-indigo-50');
+                    });
+                    
+                    // Add selected class to parent card
+                    const card = e.target.closest('.candidate-card');
+                    card.classList.add('selected', 'border-indigo-500', 'bg-indigo-50');
+                    
+                    // Store selected candidate
+                    selectedCandidate = {
+                        id: e.target.getAttribute('data-candidate-id'),
+                        name: e.target.getAttribute('data-candidate-name')
+                    };
+                    
+                    // Enable next button
+                    nextStep2Btn.disabled = false;
+                }
+            });
+
+            // Step 2: Candidate Selection -> Step 3: Confirmation
+            nextStep2Btn.addEventListener('click', function() {
+                if (!selectedCandidate) return;
+                
+                // Set hidden form values
+                electionIdInput.value = electionSelect.value;
+                candidateIdInput.value = selectedCandidate.id;
+                
+                // Update confirmation display
+                selectedCandidateName.textContent = selectedCandidate.name;
+                
+                // Get selected election name
+                const selectedOption = electionSelect.options[electionSelect.selectedIndex];
+                selectedElectionName.textContent = selectedOption.text;
+                
+                // Show step 3
+                step2Content.classList.add('hidden');
+                step3Content.classList.remove('hidden');
+                step3Indicator.classList.remove('bg-gray-200', 'text-gray-600');
+                step3Indicator.classList.add('bg-indigo-600', 'text-white');
+            });
+
+            // Step 3 -> Step 2
+            backStep3Btn.addEventListener('click', function() {
+                step3Content.classList.add('hidden');
+                step2Content.classList.remove('hidden');
+            });
+
+            // Step 2 -> Step 1
+            backStep2Btn.addEventListener('click', function() {
+                step2Content.classList.add('hidden');
+                step1Content.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

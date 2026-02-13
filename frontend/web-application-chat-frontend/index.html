@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web-application-chat-frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+  // Script de débogage React
+  window.addEventListener('error', function(event) {
+    console.error('💥 ERREUR GLOBALE:', event.error);
+    console.error('Fichier:', event.filename);
+    console.error('Ligne:', event.lineno);
+    console.error('Colonne:', event.colno);
+    
+    // Affiche l'erreur dans la page
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #dc3545;
+      color: white;
+      padding: 15px;
+      font-family: monospace;
+      z-index: 9999;
+      font-size: 14px;
+    `;
+    errorDiv.innerHTML = `
+      <strong>ERREUR REACT:</strong> ${event.error?.message || 'Erreur inconnue'}
+      <br>
+      <small>Vérifiez la console pour plus de détails</small>
+    `;
+    document.body.appendChild(errorDiv);
+  });
+</script>
+  </body>
+</html>

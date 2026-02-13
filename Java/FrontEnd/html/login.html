@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Voter</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+        <div class="form-header">
+        <h1 class="form-title">Voter Registration</h1>
+        <p class="form-subtitle">Please fill all required fields in both sections</p>
+    </div>
+
+    <form id="voterForm" novalidate>
+        <div class="form-container">
+            <!-- Personal Information Column -->
+            <div class="form-column">
+                <h2>Personal Information</h2>
+
+                <div class="form-group">
+                    <label for="firstName">
+                        First Name
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="firstName" type="text" name="firstName" required minlength="3" maxlength="50" 
+                           placeholder="Atangana Onana" pattern="[A-Za-z\s\-']+">
+                    <span class="error-message">Please enter a valid first name (3-50 letters, spaces, hyphens or apostrophes)</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="surName">
+                        Surname
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="surName" type="text" name="surName" required minlength="3" maxlength="50" 
+                           placeholder="Celestin Herve" pattern="[A-Za-z\s\-']+">
+                    <span class="error-message">Please enter a valid surname (3-50 letters, spaces, hyphens or apostrophes)</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthDate">
+                        Birth Date
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="birthDate" type="date" name="birthDate" required>
+                    <span id="birthDateError" class="error-message">You must be at least 21 years old</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">
+                        Gender
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <select id="gender" name="gender" required>
+                        <option value="" disabled selected>Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                    <span class="error-message">Please select a gender</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="placeOfBirth">
+                        Place of Birth
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="placeOfBirth" type="text" name="placeOfBirth" required minlength="3" maxlength="50" 
+                           placeholder="Douala" pattern="[A-Za-z\s\-',.]+">
+                    <span class="error-message">Please enter a valid place of birth</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">
+                        Email
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="email" type="email" name="email" required maxlength="50" 
+                           pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" 
+                           placeholder="atanganaceheve@gmail.com">
+                    <span class="error-message">Please enter a valid email address</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">
+                        Current Location
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="location" type="text" name="location" required minlength="3" maxlength="50" 
+                           placeholder="Douala" pattern="[A-Za-z\s\-',.]+">
+                    <span class="error-message">Please enter a valid location</span>
+                </div>
+            </div>
+
+            <!-- Location & Political Information Column -->
+            <div class="form-column">
+                <h2>Location & Political Data</h2>
+
+                <div class="form-group">
+                    <label for="phoneNumber">
+                        Phone Number
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="phoneNumber" type="tel" name="phoneNumber" required pattern="^[6-9][0-9]{8}$" 
+                           maxlength="9" placeholder="697541210">
+                    <span class="error-message">Please enter a valid Cameroonian phone number (9 digits starting with 6-9)</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="regionNais">
+                        Region of Birth
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="regionNais" type="text" name="regionNais" required minlength="3" maxlength="50" 
+                           placeholder="Littoral" pattern="[A-Za-z\s\-']+">
+                    <span class="error-message">Please enter a valid region</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="departNais">
+                        Department of Birth
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="departNais" type="text" name="departNais" required minlength="3" maxlength="50" 
+                           placeholder="Wouri" pattern="[A-Za-z\s\-']+">
+                    <span class="error-message">Please enter a valid department</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="arrondNais">
+                        Arrondissement of Birth
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <input id="arrondNais" type="text" name="arrondNais" required minlength="3" maxlength="50" 
+                           placeholder="Douala 4e" pattern="[A-Za-z0-9\s\-']+">
+                    <span class="error-message">Please enter a valid arrondissement</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="partiPolitique">
+                        Political Party
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <select id="partiPolitique" name="partiPolitique" required>
+                        <option value="" disabled selected>Select a political party</option>
+                        <option value="RDPC">Rassemblement Démocratique du Peuple Camerounais (RDPC)</option>
+                        <option value="UNDP">Union Nationale pour la Démocratie et le Progrès (UNDP)</option>
+                        <option value="SDF">Front Social Démocrate (SDF)</option>
+                        <option value="PCRN">Parti Camerounais pour la Réconciliation Nationale (PCRN)</option>
+                        <option value="UDC">Union Démocratique du Cameroun (UDC)</option>
+                        <option value="FSNC">Front pour le Salut National du Cameroun (FSNC)</option>
+                        <option value="MDR">Mouvement pour la Défense de la République (MDR)</option>
+                        <option value="UMS">Union des Mouvements Socialistes (UMS)</option>
+                        <option value="UPC">Union des Populations du Cameroun (UPC)</option>
+                        <option value="MRC">Mouvement pour la Renaissance du Cameroun (MRC)</option>
+                        <option value="PRC">Parti Républicain du Cameroun (PRC)</option>
+                        <option value="PDC">Parti des Démocrates Camerounais (PDC)</option>
+                        <option value="ADD">Alliance pour la Démocratie et le Développement (ADD)</option>
+                        <option value="UPA">Union des Populations Africaines (UPA)</option>
+                        <option value="MP">Mouvement Progressiste (MP)</option>
+                        <option value="CAC">Croire au Cameroun (CAC)</option>
+                    </select>
+                    <span class="error-message">Please select a political party</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="region">
+                        Current Region
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <select id="region" name="region" required>
+                        <option value="" disabled selected>Select your region</option>
+                        <option value="Adamawa">Adamawa</option>
+                        <option value="Centre">Centre</option>
+                        <option value="East">East</option>
+                        <option value="Far North">Far North</option>
+                        <option value="Littoral">Littoral</option>
+                        <option value="North">North</option>
+                        <option value="Northwest">Northwest</option>
+                        <option value="South">South</option>
+                        <option value="Southwest">Southwest</option>
+                        <option value="West">West</option>
+                    </select>
+                    <span class="error-message">Please select your current region</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="pollingStation">
+                        Polling Station
+                        <span class="required-indicator" aria-hidden="true">*</span>
+                        <span class="sr-only">required</span>
+                    </label>
+                    <select id="pollingStation" name="pollingStation" required>
+                        <option value="" disabled selected>Select your polling station</option>
+                        <!-- Polling stations will be populated by JavaScript -->
+                    </select>
+                    <span class="error-message">Please select your polling station</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" id="submitButton">
+                <span>Submit Registration</span>
+            </button>
+            <button type="reset">
+                <span>Reset Form</span>
+            </button>
+        </div>
+    </form>
+
+
+    <script src="../js/form-handler.js"></script>
+</body>
+</html>

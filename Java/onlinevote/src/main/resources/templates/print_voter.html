@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Voter Card - <span th:text="${voter.firstname + ' ' + voter.lastname}"></title>
+    <style>
+        @page { 
+            size: auto;
+            margin: 0mm;
+        }
+        body { 
+            font-family: Arial, sans-serif;
+            margin: 0; 
+            padding: 20px; 
+        }
+        .voter-card { 
+            width: 85mm; height: 54mm; 
+            border: 2px solid #333; border-radius: 10px;
+            padding: 15px; position: relative;
+            background: linear-gradient(to bottom right, #f8f9fa, #e9ecef);
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 10px; 
+        }
+        .header h2 { 
+            margin: 0; 
+            font-size: 18px; 
+        }
+        .photo-placeholder {
+            width: 30mm; height: 35mm;
+            border: 1px dashed #999;
+            float: left;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .voter-info { font-size: 12px; }
+        .voter-info p { margin: 3px 0; }
+        .footer { 
+            position: absolute; 
+            bottom: 10px; 
+            width: calc(100% - 30px);
+            font-size: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body onload="window.print();">
+    <div class="voter-card">
+        <div class="header">
+            <h2>OFFICIAL VOTER CARD</h2>
+        </div>
+        
+        <div class="photo-placeholder">
+            <span>Photo</span>
+        </div>
+        
+        <div class="voter-info">
+            <p><strong>Name:</strong> <span th:text="${voter.firstname + ' ' + voter.lastname}"></span></p>
+            <p><strong>ID:</strong> <span th:text="${voter.number}"></span></p>
+            <p><strong>DOB:</strong> <span th:text="${#temporals.format(voter.birthdate, 'dd/MM/yyyy')}"></span></p>
+            <p><strong>Region:</strong> <span th:text="${voter.region}"></span></p>
+            <p><strong>Polling Station:</strong> <span th:text="${voter.pollingstation}"></span></p>
+        </div>
+        
+        <div class="footer">
+            <p>This card is property of the National Electoral Commission</p>
+        </div>
+    </div>
+</body>
+</html>

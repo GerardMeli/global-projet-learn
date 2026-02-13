@@ -1,0 +1,26 @@
+Student Matricule: 1
+Student Name: iuytfdcvbn
+Student Surname: lkjbhvbn
+Student Email: kjhgfcvbn@iuyg.cujk
+Student Phone: 741852
+----------------------------------------
+Student Matricule: 2
+Student Name: reli
+Student Surname: rou
+Student Email: reli@rou.jh
+Student Phone: 7896
+----------------------------------------
+Student Matricule: 3
+Student Name: uytf
+Student Surname: hgf
+Student Email: oiug@dfgh
+Student Phone: 74
+Saved at Fri Aug 29 22:52:23 WAT 2025
+----------------------------------------
+Student Matricule: 4
+Student Name: meli
+Student Surname: gerard
+Student Email: meli@gerard.com
+Student Phone: 852369
+Saved at Sat Aug 30 07:42:00 WAT 2025
+----------------------------------------

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="4b12656a-586f-4480-99ab-edb92f1d1706" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../server/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/src/main/kotlin/com/gateway/server/ServerApplication.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../server/src/test/kotlin/com/gateway/server/ServerApplicationTests.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/SystemManagerFileApplication.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/config/FileStorageProperties.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/controller/WebController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/dto/ApiResponse.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/entity/FileEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/exception/FileNotFoundException.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/exception/FileStorageException.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/exception/GlobalExceptionHandler.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/feign/FileFeign.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/repository/FileRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/service/FileService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/kotlin/com/gateway/system_manager_file/service/FileServiceImpl.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/src/test/kotlin/com/gateway/system_manager_file/SystemManagerFileApplicationTests.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../system-manager-file/upload/85e12af0-6945-4a4d-ac75-2a1826178e84_ProtectedRoute.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/WebApplicationChatApplication.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/config/OpenApiConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/config/SecurityConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/config/WebConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/config/WebSocketConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/AuthController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/ChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/HomeController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/PrivateChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/UserController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/controller/WebChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/dto/ChatParticipantDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/dto/ChatRoomDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/dto/MessageDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/dto/PrivateDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/dto/UserDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/model/ChatParticipant.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/model/ChatRoom.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/model/Message.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/model/PrivateChat.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/model/Users.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/repository/ChatParticipantRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/repository/ChatRoomRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/repository/MessageRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/repository/PrivateChatRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/repository/UsersRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/security/AuthInterceptor.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/security/CustomUserDetailsService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/security/HttpAuthInterceptor.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/security/JwtAuthenticationFilter.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/security/JwtProvider.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/service/ChatParticipantService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/service/ChatRoomService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/service/MessageService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/service/PrivateChatService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/com/reli237/web_application_chat/service/UsersService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/kotlin/com/reli237/web_application_chat/WebApplicationChatApplicationTests.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/WebApplicationChatApplication.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/config/OpenApiConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/config/SecurityConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/config/WebConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/config/WebSocketConfig.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/AuthController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/ChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/HomeController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/PrivateChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/UserController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/controller/WebChatController.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/dto/ChatParticipantDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/dto/ChatRoomDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/dto/MessageDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/dto/PrivateDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/dto/UserDto.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/feign/WebChatInterface.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/model/ChatParticipant.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/model/ChatRoom.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/model/Message.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/model/PrivateChat.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/model/Users.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/repository/ChatParticipantRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/repository/ChatRoomRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/repository/MessageRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/repository/PrivateChatRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/repository/UsersRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/security/AuthInterceptor.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/security/CustomUserDetailsService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/security/HttpAuthInterceptor.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/security/JwtAuthenticationFilter.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/security/JwtProvider.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/service/ChatParticipantService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/service/ChatRoomService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/service/MessageService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/service/PrivateChatService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/kotlin/com/reli237/web_application_chat/service/UsersService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/main/resources/application.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../web-application-chat/src/test/kotlin/com/reli237/web_application_chat/WebApplicationChatApplicationTests.kt" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="39Z6P0JtHBj1cMWqATCXfzXv0Ty" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/reli237/Spring/Kotlin/MicroServiceChat/web-application-chat",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="4b12656a-586f-4480-99ab-edb92f1d1706" name="Changes" comment="" />
+      <created>1770891219954</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1770891219954</updated>
+    </task>
+    <servers />
+  </component>
+</project>

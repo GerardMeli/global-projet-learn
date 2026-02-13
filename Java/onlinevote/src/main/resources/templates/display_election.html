@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elections Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --primary-dark: #4338ca;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --gray-light: #e2e8f0;
+            --gray-dark: #64748b;
+            --border-radius: 0.5rem;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f1f5f9;
+            color: var(--dark);
+            line-height: 1.5;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border-color: var(--gray-light);
+            color: var(--dark);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--gray-light);
+            border-radius: 100px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .filter-btn.active {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .elections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .election-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .election-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: white;
+        }
+
+        .status-active {
+            background-color: var(--success);
+        }
+
+        .status-upcoming {
+            background-color: var(--warning);
+        }
+
+        .status-ended {
+            background-color: var(--danger);
+        }
+
+        .status-unknown {
+            background-color: var(--gray);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .card-body {
+            padding: 0 1.5rem 1.5rem;
+        }
+
+        .card-description {
+            color: var(--gray);
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .card-dates {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .date-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--gray-dark);
+        }
+
+        .date-item i {
+            width: 1rem;
+            text-align: center;
+            color: var(--gray);
+        }
+
+        .card-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--gray-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .participants {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .register-btn {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .register-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .view-btn {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .view-btn:hover {
+            background-color: #0d9f6e;
+        }
+
+        .error-message, .no-elections {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem 2rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .error-message {
+            color: var(--danger);
+        }
+
+        .error-message i, .no-elections i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .no-elections {
+            color: var(--gray);
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            grid-column: 1 / -1;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .loading-spinner i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            .elections-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .filters {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="elections-heading">Elections Dashboard</h1>
+            <div class="header-actions">
+                <a th:href="@{/election/add}" class="btn btn-primary" id="createElectionBtn" aria-label="Create new election">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Create New Election
+                </a>
+                <button class="btn btn-outline" id="refreshElections">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </header>
+
+        <div class="filters">
+            <button class="filter-btn active" data-status="all">All Elections</button>
+            <button class="filter-btn" data-status="ACTIVE">Active</button>
+            <button class="filter-btn" data-status="UPCOMING">Upcoming</button>
+            <button class="filter-btn" data-status="ENDED">Ended</button>
+        </div>
+
+        <div class="elections-grid" id="electionsContainer">
+            <!-- Elections will be loaded here dynamically -->
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
+    const electionsContainer = document.getElementById('electionsContainer');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const refreshBtn = document.getElementById('refreshElections');
+
+    // Initialize
+    fetchElections();
+    setupFilterButtons();
+    setupRefreshButton();
+
+    // Fetch elections from backend
+    async function fetchElections() {
+        try {
+            electionsContainer.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner"></i>
+                    <p>Loading elections...</p>
+                </div>
+            `;
+            
+            const response = await fetch('/election/show');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            
+            const elections = await response.json();
+            window.electionData = elections; // Store for filtering
+            renderElections(elections);
+        } catch (error) {
+            console.error('Fetch error:', error);
+            showErrorMessage();
+        }
+    }
+
+    // Show error message
+    function showErrorMessage() {
+        electionsContainer.innerHTML = `
+            <div class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Error loading elections. Please try again later.</p>
+                <button class="btn btn-outline" onclick="window.location.reload()" style="margin-top: 1rem;">
+                    <i class="fas fa-sync-alt"></i> Retry
+                </button>
+            </div>
+        `;
+    }
+
+    // Render elections list
+    function renderElections(elections) {
+        if (!elections || !elections.length) {
+            electionsContainer.innerHTML = `
+                <div class="no-elections">
+                    <i class="fas fa-info-circle"></i>
+                    <p>No elections found matching your criteria.</p>
+                </div>
+            `;
+            return;
+        }
+
+        electionsContainer.innerHTML = elections.map(election => `
+            <div class="election-card">
+                <div class="card-header">
+                    <span class="status-badge ${getStatusClass(election.electionStatus)}">
+                        ${election.electionStatus || 'UNKNOWN'}
+                    </span>
+                    <h3 class="card-title">${election.electionName || 'Unnamed Election'}</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-description">${election.electionDescription || 'No description available'}</p>
+                    <div class="card-dates">
+                        <div class="date-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Starts: ${formatDate(election.electionStartDate)}</span>
+                        </div>
+                        <div class="date-item">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Ends: ${formatDate(election.electionEndDate)}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="participants">
+                        <i class="fas fa-users"></i>
+                        <span>${election.users?.length || 0} participants</span>
+                    </div>
+                    ${createActionButton(election)}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Get status class for styling
+    function getStatusClass(status) {
+        if (!status) return 'status-unknown';
+        switch(status.toUpperCase()) {
+            case 'ACTIVE': return 'status-active';
+            case 'UPCOMING': return 'status-upcoming';
+            case 'SCHEDULED': return 'status-upcoming';
+            case 'ENDED': return 'status-ended';
+            default: return 'status-unknown';
+        }
+    }
+
+    // Format date
+    function formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        try {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        } catch {
+            return 'Invalid date';
+        }
+    }
+
+    // Create appropriate action button
+    function createActionButton(election) {
+        const status = election.electionStatus?.toUpperCase();
+        const isUpcoming = status === 'UPCOMING' || status === 'SCHEDULED';
+        const isActive = status === 'ACTIVE';
+        const id = election.idElection || election.id;
+        
+        if (isUpcoming) {
+            return `<a th:href="@{/elections/register/${id}}" class="action-btn register-btn" data-id="${id}">
+                <i class="fas fa-user-plus"></i> Register
+            </a>`;
+        } else if (isActive) {
+            return `<a th:href="@{/elections/vote/${id}}" class="action-btn register-btn" data-id="${id}">
+                <i class="fas fa-vote-yea"></i> Vote Now
+            </a>`;
+        } else {
+            return `<a th:href="@{/elections/${id}}" class="action-btn view-btn" data-id="${id}">
+                <i class="fas fa-eye"></i> View Results
+            </a>`;
+        }
+    }
+
+    // Set up filter buttons
+    function setupFilterButtons() {
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Filter elections
+                const status = this.dataset.status;
+                filterElections(status);
+            });
+        });
+    }
+
+    // Set up refresh button
+    function setupRefreshButton() {
+        refreshBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing';
+            fetchElections().finally(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            });
+        });
+    }
+
+    // Filter elections by status
+    function filterElections(status) {
+        if (!window.electionData) return;
+        
+        const filtered = status === 'all' ? 
+            window.electionData : 
+            window.electionData.filter(election => {
+                const electionStatus = election.electionStatus?.toUpperCase();
+                if (status === 'UPCOMING') {
+                    return electionStatus === 'UPCOMING' || electionStatus === 'SCHEDULED';
+                }
+                return electionStatus === status;
+            });
+        
+        renderElections(filtered);
+    }
+});
+</script>
+</body>
+</html>
