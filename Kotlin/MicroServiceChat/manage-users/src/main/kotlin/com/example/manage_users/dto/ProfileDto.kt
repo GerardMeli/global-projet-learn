@@ -72,4 +72,11 @@ class ProfileDto {
         val password: String
     )
 
+    data class PrivateUserResponse(
+        val id: Long,
+        val email: String,
+        val isActive: Boolean,
+        val role: String
+    )
+
 }

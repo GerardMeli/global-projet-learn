@@ -478,12 +478,6 @@ data class TokenValidationResponseDto(
     val expiresIn: Long
 )
 // Response DTOs
-data class ApiResponse<T>(
-    val success: Boolean,
-    val message: String,
-    val data: T?,
-    val timestamp: Long = System.currentTimeMillis()
-)
 
 data class LoginResponseDto(
     val user: UserDto.UserResponse,
@@ -502,4 +496,10 @@ data class TokenRefreshResponseDto(
     val token: String,
     val tokenType: String,
     val expiresIn: Long
+)
+data class ApiResponse<T>(
+    val success: Boolean,
+    val message: String,
+    val data: T?,
+    val timestamp: Long = System.currentTimeMillis()
 )

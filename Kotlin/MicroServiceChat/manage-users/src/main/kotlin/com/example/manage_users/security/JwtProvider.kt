@@ -343,6 +343,10 @@ class JwtProvider (
         return refreshTokenExpiration
     }
 
+    fun getTokenExpirationSeconds(): Long {
+        return accessTokenExpiration / 1000
+    }
+
     private fun getAllClaimsFromToken(token: String): Claims {
         return Jwts.parserBuilder()
             .setSigningKey(secretKey)

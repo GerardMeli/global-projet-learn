@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
+import java.time.LocalDateTime
 
 class RegistrationDto {
 
@@ -55,15 +56,11 @@ class RegistrationDto {
     )
 
     data class LoginResponse(
-        val id: Long,
-        val email: String,
-        val firstName: String?,
-        val lastName: String?,
-        val role: UserRole,
-        val accessToken: String,
-        val refreshToken: String,
-        val tokenType: String = "Bearer",
-        val expiresIn: Long
+        val user: UserResponse,
+        val token: String,
+        val tokenType: String,
+        val expiresIn: Long,
+        val sessionId: String
     )
 
     data class RefreshTokenRequest(
@@ -76,6 +73,14 @@ class RegistrationDto {
         val refreshToken: String,
         val tokenType: String = "Bearer",
         val expiresIn: Long
+    )
+
+    data class UserResponse(
+        val id: Long,
+        val email: String,
+        val role: UserRole,
+        val isActive: Boolean,
+        val createdAt: LocalDateTime
     )
 
 }

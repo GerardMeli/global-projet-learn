@@ -3,6 +3,7 @@ package com.example.manage_users.service.impl
 import com.example.manage_users.config.PasswordEncoderConfig
 import com.example.manage_users.dto.AdminDto
 import com.example.manage_users.dto.ProfileDto
+import com.example.manage_users.dto.RegistrationDto
 import com.example.manage_users.execption.BadRequestException
 import com.example.manage_users.execption.EmailAlreadyExistsException
 import com.example.manage_users.execption.InvalidPasswordException
@@ -14,8 +15,6 @@ import com.example.manage_users.repository.UsersRepository
 import com.example.manage_users.service.interf.EmailService
 import com.example.manage_users.service.interf.TokenService
 import com.example.manage_users.service.interf.UsersService
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
@@ -129,20 +128,26 @@ class UserServiceImpl (
     }
 
     // Admin methods
-    override fun getAllUsers(pageable: Pageable): AdminDto.PaginatedUsersResponse {
-        val page = usersRepository.findAll(pageable)
-        return toPaginatedResponse(page)
+    override fun getAllUsers(): List<ProfileDto.UserProfileResponse> {
+         return usersRepository.findAll()
+            .map { userMapper.toProfileResponse(it) }
     }
 
-    override fun searchUsers(criteria: AdminDto.UserSearchCriteria, pageable: Pageable): AdminDto.PaginatedUsersResponse {
-        val page = usersRepository.searchUsers(
-            criteria.email,
-            criteria.firstName,
-            criteria.lastName,
-            criteria.role,
-            pageable
-        )
-        return toPaginatedResponse(page)
+
+    override fun searchUsers(
+        currentUserId: Long,
+        query: String
+    ): List<ProfileDto.PrivateUserResponse> {
+
+        return usersRepository.searchUsersExceptCurrentUser(currentUserId, query)
+            .map { user ->
+                ProfileDto.PrivateUserResponse(
+                    id = user.id,
+                    email = user.email,
+                    isActive = user.isActive,
+                    role = user.role.name // ✅ enum → String
+                )
+            }
     }
 
     override fun getUserById(userId: Long): AdminDto.AdminUserResponse {
@@ -193,19 +198,19 @@ class UserServiceImpl (
             .orElseThrow { ResourceNotFoundException("User not found with id: $userId") }
     }
 
-    private fun toPaginatedResponse(page: Page<Users>): AdminDto.PaginatedUsersResponse {
-        val content = page.content.map { user ->
-            userMapper.toAdminResponse(user)
-        }
+    override fun getAllUsersExceptCurrentUser(
+        currentUserId: Long
+    ): List<ProfileDto.PrivateUserResponse> {
 
-        return AdminDto.PaginatedUsersResponse(
-            content = content,
-            page = page.number,
-            size = page.size,
-            totalElements = page.totalElements,
-            totalPages = page.totalPages,
-            last = page.isLast
-        )
+        return usersRepository.findAllExceptCurrentUser(currentUserId)
+            .map { user ->
+                ProfileDto.PrivateUserResponse(
+                    id = user.id,
+                    email = user.email,
+                    isActive = user.isActive,
+                    role = user.role.name // ✅
+                )
+            }
     }
 
 }

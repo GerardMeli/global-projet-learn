@@ -1,5 +1,6 @@
 package com.example.manage_users.service.impl
 
+import com.example.manage_users.config.PasswordEncoderConfig
 import com.example.manage_users.dto.EmailPwdDto
 import com.example.manage_users.dto.RegistrationDto
 import com.example.manage_users.execption.AccountBlockedException
@@ -10,6 +11,7 @@ import com.example.manage_users.execption.AccountSuspendedException
 import com.example.manage_users.execption.BadRequestException
 import com.example.manage_users.execption.EmailAlreadyExistsException
 import com.example.manage_users.execption.ResourceNotFoundException
+import com.example.manage_users.mapper.UserMapper
 import com.example.manage_users.models.UserRole
 import com.example.manage_users.models.UserStatus
 import com.example.manage_users.models.Users
@@ -31,7 +33,8 @@ import java.time.LocalDateTime
 @Transactional
 class AuthServiceImpl(
     private val usersRepository: UsersRepository,
-    private val passwordEncoder: PasswordEncoder,
+    private val passwordEncoder: PasswordEncoderConfig,
+    private val userMapper: UserMapper,
     private val authenticationManager: AuthenticationManager,
     private val jwtProvider: JwtProvider,
     private val emailService: EmailService,
@@ -46,7 +49,7 @@ class AuthServiceImpl(
         val user = Users(
             id = 0,
             email = request.email,
-            password = passwordEncoder.encode(request.password),
+            password = passwordEncoder.passwordEncoder().encode(request.password),
             firstName = request.firstName,
             lastName = request.lastName,
             phoneNumber = request.phoneNumber,
@@ -75,54 +78,19 @@ class AuthServiceImpl(
         )
     }
 
-    override fun login(request: RegistrationDto.LoginRequest): RegistrationDto.LoginResponse {
-        try {
-            // Authentifier l'utilisateur
-            val authentication = authenticationManager.authenticate(
-                UsernamePasswordAuthenticationToken(request.email, request.password)
-            )
+    fun authenticateUser(request: RegistrationDto.LoginRequest): RegistrationDto.UserResponse {
+        val user = usersRepository.findByEmail(request.email)
+            .orElseThrow { throw IllegalArgumentException("User not found with email: ${request.email}") }
 
-            SecurityContextHolder.getContext().authentication = authentication
-
-            // Récupérer l'utilisateur depuis la BDD
-            val user = usersRepository.findByEmail(request.email)
-                .orElseThrow { ResourceNotFoundException("User not found") }
-
-            // Vérifier le statut du compte
-            when (user.status) {
-                UserStatus.PENDING -> throw AccountNotVerifiedException("Please verify your email first")
-                UserStatus.SUSPENDED -> throw AccountSuspendedException("Account has been suspended")
-                UserStatus.BLOCKED -> throw AccountBlockedException("Account has been blocked")
-                UserStatus.DELETED -> throw AccountDeletedException("Account has been deleted")
-                else -> {}
-            }
-
-            if (!user.isActive) {
-                throw AccountInactiveException("Account is inactive")
-            }
-
-            // Réinitialiser les tentatives échouées lors d'une connexion réussie
-            usersRepository.resetFailedLoginAttempts(user.id)
-
-            // Générer les tokens JWT avec l'email de l'utilisateur
-            val accessToken = jwtProvider.generateAccessToken(user.email)
-            val refreshToken = jwtProvider.generateRefreshToken(user.email)
-
-            return RegistrationDto.LoginResponse(
-                id = user.id,
-                email = user.email,
-                firstName = user.firstName,
-                lastName = user.lastName,
-                role = user.role,
-                accessToken = accessToken,
-                refreshToken = refreshToken,
-                tokenType = "Bearer",
-                expiresIn = jwtProvider.getAccessTokenExpiration()
-            )
-        } catch (ex: BadCredentialsException) {
-            handleFailedLogin(request.email)
-            throw BadRequestException("Invalid email or password")
+        if (!user.isActive) {
+            throw IllegalStateException("User account is inactive")
         }
+
+        if (!passwordEncoder.passwordEncoder().matches(request.password, user.password)) {
+            throw IllegalArgumentException("Invalid password")
+        }
+
+        return userMapper.mapToUserResponse(user)
     }
 
     private fun handleFailedLogin(email: String) {
@@ -195,7 +163,7 @@ class AuthServiceImpl(
         val user = usersRepository.findById(userId.toLong())
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        user.password = passwordEncoder.encode(request.newPassword)
+        user.password = passwordEncoder.passwordEncoder().encode(request.newPassword)
         usersRepository.save(user)
 
         tokenService.deletePasswordResetToken(tokenValue)

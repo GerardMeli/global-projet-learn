@@ -1,13 +1,7 @@
 package com.example.manage_users.service.interf
 
 import com.example.manage_users.dto.AdminDto
-import com.example.manage_users.dto.EmailPwdDto
 import com.example.manage_users.dto.ProfileDto
-import com.example.manage_users.dto.RegistrationDto
-import com.example.manage_users.dto.StatisticsDto
-import com.example.manage_users.models.Users
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
 import org.springframework.security.core.userdetails.UserDetailsService
 
 interface UsersService : UserDetailsService {
@@ -19,11 +13,19 @@ interface UsersService : UserDetailsService {
     fun confirmEmailChange(userId: Long, token: String)
 
     // Admin methods
-    fun getAllUsers(pageable: Pageable): AdminDto.PaginatedUsersResponse
-    fun searchUsers(criteria: AdminDto.UserSearchCriteria, pageable: Pageable): AdminDto.PaginatedUsersResponse
+    fun getAllUsers(): List<ProfileDto.UserProfileResponse>
     fun getUserById(userId: Long): AdminDto.AdminUserResponse
     fun updateUser(userId: Long, request: AdminDto.AdminUserUpdateRequest): AdminDto.AdminUserResponse
     fun updateUserStatus(userId: Long, request: AdminDto.UserStatusUpdateRequest): AdminDto.AdminUserResponse
     fun updateUserRole(userId: Long, request: AdminDto.UserRoleUpdateRequest): AdminDto.AdminUserResponse
     fun deleteUser(userId: Long)
+
+    fun getAllUsersExceptCurrentUser(
+        currentUserId: Long
+    ): List<ProfileDto.PrivateUserResponse>
+
+    fun searchUsers(
+        currentUserId: Long,
+        query: String
+    ): List<ProfileDto.PrivateUserResponse>
 }

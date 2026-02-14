@@ -2,6 +2,7 @@ package com.example.manage_users.mapper
 
 import com.example.manage_users.dto.AdminDto
 import com.example.manage_users.dto.ProfileDto
+import com.example.manage_users.dto.RegistrationDto
 import com.example.manage_users.models.Users
 import org.springframework.stereotype.Component
 
@@ -65,6 +66,16 @@ class UserMapper {
         request.theme?.let { user.theme = it }
         request.emailNotifications?.let { user.emailNotifications = it }
         return user
+    }
+
+    fun mapToUserResponse(user: Users): RegistrationDto.UserResponse {
+        return RegistrationDto.UserResponse(
+            id = user.id,
+            email = user.email,
+            role = user.role,
+            isActive = user.isActive,
+            createdAt = user.createdAt
+        )
     }
 
 

@@ -82,4 +82,15 @@ interface UsersRepository : JpaRepository<Users, Long> {
 
     @Query("SELECT u FROM Users u WHERE u.emailVerified = false AND u.createdAt < :thresholdDate")
     fun findUnverifiedUsersOlderThan(@Param("thresholdDate") thresholdDate: LocalDateTime): List<Users>
+
+    // Récupérer tous les utilisateurs sauf celui spécifié
+    @Query("SELECT u FROM Users u WHERE u.id != :currentUserId AND u.isActive = true ORDER BY u.email")
+    fun findAllExceptCurrentUser(@Param("currentUserId") currentUserId: Long): List<Users>
+
+    // Récupérer les utilisateurs par recherche (pour la barre de recherche)
+    @Query("SELECT u FROM Users u WHERE u.id != :currentUserId AND u.isActive = true AND LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY u.email")
+    fun searchUsersExceptCurrentUser(
+        @Param("currentUserId") currentUserId: Long,
+        @Param("query") query: String
+    ): List<Users>
 }
