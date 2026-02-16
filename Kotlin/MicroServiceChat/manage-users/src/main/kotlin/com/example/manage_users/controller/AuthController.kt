@@ -118,11 +118,11 @@ class AuthController (
         return ResponseEntity.ok(response)
     }
 
-    @PostMapping("/verify-email")
-    fun verifyEmail(@Valid @RequestBody request: EmailPwdDto.EmailVerificationRequest): ResponseEntity<Void> {
-        authService.verifyEmail(request)
-        return ResponseEntity.ok().build()
-    }
+//    @GetMapping("/verify-email")
+//    fun verifyEmail(@Valid @RequestParam token: String): ResponseEntity<Void> {
+//        authService.verifyEmail(token)
+//        return ResponseEntity.ok().build()
+//    }
 
     @PostMapping("/resend-verification")
     fun resendVerificationEmail(@Valid @RequestBody request: EmailPwdDto.ResendVerificationEmailRequest): ResponseEntity<Void> {

@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity
 //import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
-@FeignClient("")
+@FeignClient("MANAGE-USERS")
 interface UsersWebChatInterface {
 
     @GetMapping("/{userId}")

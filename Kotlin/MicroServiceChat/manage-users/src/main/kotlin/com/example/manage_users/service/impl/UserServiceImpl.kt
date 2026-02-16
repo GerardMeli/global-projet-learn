@@ -150,9 +150,9 @@ class UserServiceImpl (
             }
     }
 
-    override fun getUserById(userId: Long): AdminDto.AdminUserResponse {
+    override fun getUserById(userId: Long): ProfileDto.UserProfileResponse {
         val user = findUserById(userId)
-        return userMapper.toAdminResponse(user)
+        return userMapper.toProfileResponse(user)
     }
 
     override fun updateUser(userId: Long, request: AdminDto.AdminUserUpdateRequest): AdminDto.AdminUserResponse {
@@ -187,10 +187,7 @@ class UserServiceImpl (
     }
 
     override fun deleteUser(userId: Long) {
-        val user = findUserById(userId)
-        user.status = UserStatus.DELETED
-        user.isActive = false
-        usersRepository.save(user)
+        usersRepository.deleteById(userId)
     }
 
     private fun findUserById(userId: Long): Users {

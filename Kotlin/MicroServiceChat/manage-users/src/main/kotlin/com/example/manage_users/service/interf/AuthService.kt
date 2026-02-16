@@ -9,7 +9,7 @@ interface AuthService {
 
     fun refreshToken(request: RegistrationDto.RefreshTokenRequest): RegistrationDto.TokenResponse
 
-    fun verifyEmail(request: EmailPwdDto.EmailVerificationRequest)
+    fun verifyEmail(tokenValue: String)
 
     fun resendVerificationEmail(request: EmailPwdDto.ResendVerificationEmailRequest)
 

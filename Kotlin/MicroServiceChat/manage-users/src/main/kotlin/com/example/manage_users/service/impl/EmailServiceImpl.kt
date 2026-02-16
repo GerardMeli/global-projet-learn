@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
+import java.nio.charset.StandardCharsets
 
 @Service
 class EmailServiceImpl (
@@ -46,52 +47,77 @@ class EmailServiceImpl (
             val verificationUrl = "$baseUrl/api/auth/verify-email?token=$token"
 
             val mimeMessage: MimeMessage = mailSender.createMimeMessage()
-            val helper: MimeMessageHelper = MimeMessageHelper(mimeMessage, true)
+            val helper = MimeMessageHelper(mimeMessage, true, "UTF-8")
 
             helper.setFrom(fromEmail)
             helper.setTo(user.email)
             helper.setSubject("Email Verification")
 
-            val inputStream = Objects.requiredNonNull(EmailServiceImpl::class.java.getResourceAsStream("/templates/email/"))
+            // Load HTML template
+            val htmlContent = EmailServiceImpl::class.java
+                .getResourceAsStream("/templates/email-content.html")
+                ?.bufferedReader()
+                ?.use { it.readText() }
+                ?: throw IllegalStateException("Email template not found")
 
-            try () {
+            // Replace placeholder with verification URL
+            val finalHtml = htmlContent.replace("{{VERIFICATION_URL}}", verificationUrl)
 
-            }
+            helper.setText(finalHtml, true)
 
+            // 🚀 SEND THE EMAIL (THIS WAS MISSING)
+            mailSender.send(mimeMessage)
+
+            log.info("✅ Verification email sent to: ${user.email}")
             return "Success"
+
         } catch (ex: Exception) {
             log.error("❌ Failed to send verification email to ${user.email}", ex)
-            return "❌ Failed to send verification email to ${user.email}" + ex.message
+            return "❌ Failed to send verification email to ${user.email}: ${ex.message}"
         }
     }
+
 
     @Async
     override fun sendPasswordResetEmail(user: Users) {
         try {
+            // 1️⃣ Generate token and reset URL
             val token = jwtTokenProvider.createPasswordResetToken(user.id)
             val resetUrl = "$baseUrl/api/auth/reset-password?token=$token"
 
             log.info("📧 Preparing password reset email for: ${user.email}")
             log.info("📧 Reset URL: $resetUrl")
 
-            val context = Context().apply {
-                setVariable("user", user)
-                setVariable("resetUrl", resetUrl)
-            }
+            // 2️⃣ Load HTML template
+            val htmlContent = EmailServiceImpl::class.java
+                .getResourceAsStream("/templates/password-reset.html") // new template
+                ?.bufferedReader()
+                ?.use { it.readText() }
+                ?: throw IllegalStateException("Password reset email template not found")
 
-            val content = templateEngine.process("email/password-reset", context)
+            // 3️⃣ Replace placeholder(s)
+            val finalHtml = htmlContent.replace("{{RESET_URL}}", resetUrl)
+                .replace("{{USER_NAME}}", user.firstName ?: "User") // optional
 
-            sendEmail(
-                to = user.email,
-                subject = "Password Reset Request",
-                content = content
-            )
+            // 4️⃣ Prepare MimeMessage
+            val mimeMessage: MimeMessage = mailSender.createMimeMessage()
+            val helper = MimeMessageHelper(mimeMessage, true, "UTF-8")
+            helper.setFrom(fromEmail)
+            helper.setTo(user.email)
+            helper.setSubject("Password Reset Request")
+            helper.setText(finalHtml, true)
+
+            // 5️⃣ Send email
+            mailSender.send(mimeMessage)
 
             log.info("✅ Password reset email sent to: ${user.email}")
+
         } catch (ex: Exception) {
             log.error("❌ Failed to send password reset email to ${user.email}", ex)
         }
     }
+
+
 
     @Async
     override fun sendAccountLockedNotification(user: Users) {

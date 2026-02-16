@@ -120,8 +120,7 @@ class AuthServiceImpl(
         )
     }
 
-    override fun verifyEmail(request: EmailPwdDto.EmailVerificationRequest) {
-        val tokenValue = request.token
+    override fun verifyEmail(tokenValue: String) {
         val userId = tokenService.validateEmailVerificationToken(tokenValue)
         val user = usersRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("User not found") }
@@ -168,6 +167,7 @@ class AuthServiceImpl(
 
         tokenService.deletePasswordResetToken(tokenValue)
     }
+    
     override fun logout(userId: Long) {
         SecurityContextHolder.clearContext()
         // Additional logout logic (blacklist token, etc.)
