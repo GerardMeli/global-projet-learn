@@ -69,4 +69,11 @@ class ProfileController (
         userService.confirmEmailChange(userId, token)
         return ResponseEntity.ok().build()
     }
+
+    @GetMapping("/except/{currentUserId}")
+    fun getAllUsersExceptCurrentUser(@PathVariable currentUserId: Long): ResponseEntity<List<ProfileDto.PrivateUserResponse>?> {
+        val users = userService.getAllUsersExceptCurrentUser(currentUserId)
+        return ResponseEntity.ok(users)
+    }
+
 }

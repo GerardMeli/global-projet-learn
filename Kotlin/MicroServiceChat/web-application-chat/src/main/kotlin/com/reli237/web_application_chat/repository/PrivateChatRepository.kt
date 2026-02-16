@@ -1,7 +1,7 @@
 package com.reli237.web_application_chat.repository
 
+import com.reli237.web_application_chat.dto.UserDto
 import com.reli237.web_application_chat.model.PrivateChat
-import com.reli237.web_application_chat.model.Users
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -39,7 +39,7 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         WHERE pc.senderId1.id = :userId OR pc.senderId2.id = :userId
         )
     """)
-    fun findUserContacts(@Param("userId") userId: Long): List<Users>
+    fun findUserContacts(@Param("userId") userId: Long): List<UserDto.UserResponse>
 
     @Query("""
         SELECT pc FROM PrivateChat pc 

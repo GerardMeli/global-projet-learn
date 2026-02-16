@@ -1,12 +1,12 @@
 package com.reli237.web_application_chat.service
 
 import com.reli237.web_application_chat.dto.PrivateDto
-import com.reli237.web_application_chat.feign.WebChatInterface
+import com.reli237.web_application_chat.dto.UserDto
+import com.reli237.web_application_chat.feign.FileWebChatInterface
+import com.reli237.web_application_chat.feign.UsersWebChatInterface
+import com.reli237.web_application_chat.mapper.UsersMapper
 import com.reli237.web_application_chat.model.PrivateChat
-import com.reli237.web_application_chat.model.Users
 import com.reli237.web_application_chat.repository.PrivateChatRepository
-import com.reli237.web_application_chat.repository.UsersRepository
-import org.springframework.http.ResponseEntity
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -16,9 +16,9 @@ import java.time.LocalDateTime
 @Service
 class PrivateChatService(
     private val privateChatRepository: PrivateChatRepository,
-    private val usersRepository: UsersRepository,
+    private val usersWebChatInterface: UsersWebChatInterface,
     private val messagingTemplate: SimpMessagingTemplate,
-    private val webChatInterface: WebChatInterface
+    private val fileWebChatInterface: FileWebChatInterface
 
 ) {
 
@@ -37,11 +37,11 @@ class PrivateChatService(
             throw IllegalArgumentException("Cannot send message to yourself")
         }
 
-        val sender = usersRepository.findById(senderId)
-            .orElseThrow { IllegalArgumentException("Sender not found") }
+        val sender = usersWebChatInterface.getUserById(senderId)
+            .toUserResponse()
 
-        val receiver = usersRepository.findById(request.senderId2)
-            .orElseThrow { IllegalArgumentException("Receiver not found") }
+        val receiver = usersWebChatInterface.getUserById(request.senderId2)
+            .toUserResponse()
 
         val chatMessage = PrivateChat(
             senderId1 = sender,
@@ -58,67 +58,7 @@ class PrivateChatService(
         return response
     }
 
-//    @Transactional
-//    fun sendMessage(senderId: Long, request: PrivateDto.PrivateChatRequest): PrivateDto.PrivateChatResponse {
-//        // Vérifiez que l'expéditeur n'envoie pas à lui-même
-//        if (senderId == request.senderId2) {
-//            throw IllegalArgumentException("Cannot send message to yourself")
-//        }
-//
-//        val sender = usersRepository.findById(senderId)
-//            .orElseThrow { IllegalArgumentException("Sender not found") }
-//
-//        val receiver = usersRepository.findById(request.senderId2)
-//            .orElseThrow { IllegalArgumentException("Receiver not found") }
-//
-//        val chatMessage = PrivateChat(
-//            senderId1 = sender,
-//            senderId2 = receiver,
-//            content = request.content.trim()
-//        )
-//
-//        val savedMessage = privateChatRepository.save(chatMessage)
-//
-//        // Convert to response DTO
-//        val response = convertToResponse(savedMessage)
-//
-//        // **AJOUTEZ DES LOGS pour déboguer**
-//        println("Sending WebSocket notifications:")
-//        println("- To receiver: ${receiver.id} (${receiver.email})")
-//        println("- To sender: ${sender.id} (${sender.email})")
-//
-//        // **NOTIFIEZ LE DESTINATAIRE SEULEMENT**
-//        messagingTemplate.convertAndSend(
-//            "/topic/private/${receiver.id}",
-//            PrivateChatNotification(
-//                messageId = savedMessage.id,
-//                senderId = sender.id,
-//                senderName = sender.email,
-//                content = savedMessage.content,
-//                timestamp = savedMessage.timestamp,
-//                unreadCount = getUnreadCount(receiver.id),
-//                isOwnMessage = false  // Pour le destinataire
-//            )
-//        )
-//
-//        // **NOTIFIEZ L'EXPÉDITEUR (optionnel, mais avec un flag différent)**
-//        messagingTemplate.convertAndSend(
-//            "/topic/private/${sender.id}",
-//            PrivateChatNotification(
-//                messageId = savedMessage.id,
-//                senderId = sender.id,
-//                senderName = sender.email,
-//                content = savedMessage.content,
-//                timestamp = savedMessage.timestamp,
-//                unreadCount = getUnreadCount(sender.id),
-//                isOwnMessage = true  // Pour l'expéditeur
-//            )
-//        )
-//
-//        return response
-//    }
-
-    fun getChatBetweenUsers(userId1: Long, userId2: Long): List<PrivateDto.PrivateChatResponse> {
+    fun getChatBetweenUserResponse(userId1: Long, userId2: Long): List<PrivateDto.PrivateChatResponse> {
         val messages = privateChatRepository.findChatBetweenUsers(userId1, userId2)
         return messages.map { convertToResponse(it) }
     }
@@ -207,17 +147,17 @@ class PrivateChatService(
             throw IllegalArgumentException("Cannot send file to yourself")
         }
 
-        // Validate users exist
-        val sender = usersRepository.findById(senderId)
+        // Validate UserResponse exist
+        val sender = usersWebChatInterface.getUserById(senderId)
             .orElseThrow { IllegalArgumentException("Sender not found") }
 
-        val receiver = usersRepository.findById(receiverId)
+        val receiver = usersWebChatInterface.getUserById(receiverId)
             .orElseThrow { IllegalArgumentException("Receiver not found") }
 
         try {
             // Upload file to file service
             println("📤 Uploading file to file service...")
-            val uploadResponse = webChatInterface.uploadFile(file, description)
+            val uploadResponse = fileWebChatInterface.uploadFile(file, description)
 
             if (uploadResponse.statusCode.is2xxSuccessful) {
                 val responseBody = uploadResponse.body ?: emptyMap()
@@ -277,9 +217,9 @@ class PrivateChatService(
     }
 
     /**
-     * Get all files shared between two users
+     * Get all files shared between two UserResponse
      */
-    fun getFilesBetweenUsers(userId1: Long, userId2: Long): List<PrivateDto.PrivateFileResponse> {
+    fun getFilesBetweenUserResponse(userId1: Long, userId2: Long): List<PrivateDto.PrivateFileResponse> {
         val messages = privateChatRepository.findChatBetweenUsers(userId1, userId2)
 
         return messages.filter { isFileMessage(it.content) }.map { message ->
@@ -357,8 +297,8 @@ class PrivateChatService(
      */
     private fun sendMessageNotifications(
         message: PrivateChat,
-        sender: Users,
-        receiver: Users
+        sender: UserDto.UserResponse,
+        receiver: UserDto.UserResponse
     ) {
         println("Sending WebSocket notifications:")
         println("- To receiver: ${receiver.id} (${receiver.email})")
@@ -400,8 +340,8 @@ class PrivateChatService(
      */
     private fun sendFileNotifications(
         message: PrivateChat,
-        sender: Users,
-        receiver: Users,
+        sender: UserDto.UserResponse,
+        receiver: UserDto.UserResponse,
         fileResponse: PrivateDto.PrivateFileResponse
     ) {
         println("Sending WebSocket file notifications:")
@@ -482,6 +422,15 @@ class PrivateChatService(
         return null
     }
 
+    fun UserDto.UserProfileResponse.toUserResponse(): UserDto.UserResponse {
+        return UserDto.UserResponse(
+            id = this.id,
+            email = this.email,
+            role = this.role,
+            isActive = this.isActive,
+            createdAt = this.createdAt
+        )
+    }
 
 
     /**

@@ -9,9 +9,6 @@ spring:
     password: root
     driver-class-name: org.postgresql.Driver
 
-  session:
-    store-type: jdbc
-
   # Hibernate properties
   jpa:
     database: postgresql
@@ -22,15 +19,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
-  # Thymeleaf
-  thymeleaf:
-    prefix: classpath:/templates/
-    suffix: .html
-    mode: HTML
-    encoding : UTF-8
-    cache: false
-
 
 # WebSocket Configuration
 websocket:
@@ -61,23 +49,8 @@ logging:
             handler: DEBUG
             socktjs: DEBUG
           messaging:
-            #            simp: DEBUG
             simp:
               stomp: DEBUG
-
-# JWT Configuration
-# Secret key should be at least 32 characters for HS512
-jwt:
-  secret: mySecretKeyForJWTTokenGenerationAndValidationPurposesOnly1234567890
-  # Token expiration in milliseconds (1200 = 20minutes)
-  expiration: 86400
-
-# File Service Configuration
-#file:
-#  service:
-#    url: http://localhost:8752 # API Gateway URL
-#    upload-path: /upload
-#    download-path: /download
 
 eureka:
   client:

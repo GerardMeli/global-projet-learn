@@ -2,13 +2,13 @@ package com.reli237.web_application_chat.service
 
 import com.reli237.web_application_chat.dto.MessageDto
 import com.reli237.web_application_chat.dto.UserDto
-import com.reli237.web_application_chat.feign.WebChatInterface
+import com.reli237.web_application_chat.feign.FileWebChatInterface
+import com.reli237.web_application_chat.feign.UsersWebChatInterface
 import com.reli237.web_application_chat.model.ChatRoom
 import com.reli237.web_application_chat.model.Message
 import com.reli237.web_application_chat.model.MessageType
 import com.reli237.web_application_chat.repository.ChatRoomRepository
 import com.reli237.web_application_chat.repository.MessageRepository
-import com.reli237.web_application_chat.repository.UsersRepository
 import jakarta.persistence.EntityNotFoundException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,8 +20,8 @@ import java.time.LocalDateTime
 class MessageService(
     private val messageRepository: MessageRepository,
     private val chatRoomRepository: ChatRoomRepository,
-    private val usersRepository: UsersRepository,
-    private val webChatInterface: WebChatInterface
+    private val usersWebChatInterface: UsersWebChatInterface,
+    private val fileWebChatInterface: FileWebChatInterface
 ) {
 
     companion object {
@@ -42,7 +42,7 @@ class MessageService(
         println("📝 Room ID: ${request.chatRoomId}")
         println("📝 Content: ${request.content}")
 
-        val user = usersRepository.findById(userId).orElseThrow {
+        val user = usersWebChatInterface.getUserById(userId).orElseThrow {
             println("❌ User $userId not found")
             throw EntityNotFoundException("User not found with id: $userId")
         }
@@ -107,7 +107,7 @@ class MessageService(
      * Get all messages sent by a specific user
      */
     fun getMessagesBySender(senderId: Long): List<MessageDto.MessageResponse> {
-        val sender = usersRepository.findById(senderId)
+        val sender = usersWebChatInterface.getUserById(senderId)
             .orElseThrow { throw IllegalArgumentException("User not found with id: $senderId") }
 
         return messageRepository.findBySender(sender)
@@ -255,7 +255,7 @@ class MessageService(
         println("📁 File Size: ${file.size} bytes")
 
         // Validate user
-        val user = usersRepository.findById(userId).orElseThrow {
+        val user = usersWebChatInterface.getUserById(userId).orElseThrow {
             println("❌ User $userId not found")
             throw EntityNotFoundException("User not found with id: $userId")
         }
@@ -269,7 +269,7 @@ class MessageService(
         try {
             // Upload file to file service
             println("📤 Uploading file to file service...")
-            val uploadResponse = webChatInterface.uploadFile(file, description)
+            val uploadResponse = fileWebChatInterface.uploadFile(file, description)
 
             if (uploadResponse.statusCode.is2xxSuccessful) {
                 val responseBody = uploadResponse.body ?: emptyMap()
@@ -514,7 +514,7 @@ class MessageService(
         request: MessageDto.MessageCreateRequest
     ): Message {
         // Validate user
-        val user = usersRepository.findById(userId)
+        val user = usersWebChatInterface.getUserById(userId)
             .orElseThrow { EntityNotFoundException("User not found with id: $userId") }
 
         // Validate chat room

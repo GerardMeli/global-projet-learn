@@ -14,7 +14,7 @@ interface UsersService : UserDetailsService {
 
     // Admin methods
     fun getAllUsers(): List<ProfileDto.UserProfileResponse>
-    fun getUserById(userId: Long): AdminDto.AdminUserResponse
+    fun getUserById(userId: Long): ProfileDto.UserProfileResponse
     fun updateUser(userId: Long, request: AdminDto.AdminUserUpdateRequest): AdminDto.AdminUserResponse
     fun updateUserStatus(userId: Long, request: AdminDto.UserStatusUpdateRequest): AdminDto.AdminUserResponse
     fun updateUserRole(userId: Long, request: AdminDto.UserRoleUpdateRequest): AdminDto.AdminUserResponse

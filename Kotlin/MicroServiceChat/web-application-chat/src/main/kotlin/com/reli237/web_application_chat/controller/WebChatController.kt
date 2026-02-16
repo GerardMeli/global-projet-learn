@@ -2,7 +2,7 @@ package com.reli237.web_application_chat.controller
 
 import com.reli237.web_application_chat.dto.MessageDto
 import com.reli237.web_application_chat.dto.PrivateDto
-import com.reli237.web_application_chat.repository.UsersRepository
+import com.reli237.web_application_chat.feign.UsersWebChatInterface
 import com.reli237.web_application_chat.service.ChatRoomService
 import com.reli237.web_application_chat.service.MessageService
 import com.reli237.web_application_chat.service.PrivateChatService
@@ -24,7 +24,7 @@ class WebChatController(
     private val messageService: MessageService,
     private val messagingTemplate: SimpMessagingTemplate,
     private val privateChatService: PrivateChatService,
-    private val usersRepository: UsersRepository
+    private val usersWebChatInterface: UsersWebChatInterface
 ) {
 
     private val logger = LoggerFactory.getLogger(this::class.java)
@@ -384,14 +384,14 @@ class WebChatController(
         @Payload isTyping: Boolean
     ) {
         // Vérifier si l'utilisateur existe
-        val sender = usersRepository.findById(senderId).orElse(null)
+        val sender = usersWebChatInterface.getUserById(senderId)
         if (sender == null) {
             logger.warn("Sender with ID $senderId not found")
             return
         }
 
         // Vérifier si le destinataire existe
-        val receiver = usersRepository.findById(receiverId).orElse(null)
+        val receiver = usersWebChatInterface.getUserById(receiverId)
         if (receiver == null) {
             logger.warn("Receiver with ID $receiverId not found")
             return

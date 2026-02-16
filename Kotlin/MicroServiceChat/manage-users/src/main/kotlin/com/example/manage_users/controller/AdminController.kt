@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/admin/users")
-@PreAuthorize("hasRole('ADMIN')")
 class AdminController (
     private val userService: UsersService,
     private val jwtProvider: JwtProvider
 ) {
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/")
     fun getAllUsers(request: HttpServletRequest): ResponseEntity<ApiResponse<List<ProfileDto.UserProfileResponse>>> {
         return try {
@@ -72,11 +72,12 @@ class AdminController (
 
 
     @GetMapping("/{userId}")
-    fun getUserById(@PathVariable userId: Long): ResponseEntity<AdminDto.AdminUserResponse> {
+    fun getUserById(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
         return ResponseEntity.ok(response)
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{userId}")
     fun updateUser(
         @PathVariable userId: Long,
@@ -86,6 +87,7 @@ class AdminController (
         return ResponseEntity.ok(response)
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{userId}/status")
     fun updateUserStatus(
         @PathVariable userId: Long,
@@ -109,7 +111,6 @@ class AdminController (
         userService.deleteUser(userId)
         return ResponseEntity.noContent().build()
     }
-
 
     private fun extractTokenFromRequest(request: HttpServletRequest): String? {
         val bearerToken = request.getHeader("Authorization")

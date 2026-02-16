@@ -1,5 +1,6 @@
 package com.reli237.web_application_chat.model
 
+import com.reli237.web_application_chat.dto.UserDto
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -24,7 +25,7 @@ data class Message(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "senders_id")
-    val sender: Users,
+    val sender: UserDto.UserResponse,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")

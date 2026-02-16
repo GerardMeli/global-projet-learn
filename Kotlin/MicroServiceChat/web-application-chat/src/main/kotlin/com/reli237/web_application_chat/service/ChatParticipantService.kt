@@ -3,11 +3,11 @@ package com.reli237.web_application_chat.service
 import com.reli237.web_application_chat.dto.ChatParticipantDto
 import com.reli237.web_application_chat.dto.ChatRoomDto
 import com.reli237.web_application_chat.dto.UserDto
+import com.reli237.web_application_chat.feign.UsersWebChatInterface
 import com.reli237.web_application_chat.model.ChatParticipant
 import com.reli237.web_application_chat.model.ParticipantRole
 import com.reli237.web_application_chat.repository.ChatParticipantRepository
 import com.reli237.web_application_chat.repository.ChatRoomRepository
-import com.reli237.web_application_chat.repository.UsersRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -17,14 +17,14 @@ import java.time.LocalDateTime
 class ChatParticipantService(
     private val chatParticipantRepository: ChatParticipantRepository,
     private val chatRoomRepository: ChatRoomRepository,
-    private val usersRepository: UsersRepository
+    private val usersWebChatInterface: UsersWebChatInterface
 ) {
 
     /**
      * Add a participant to a chat room
      */
     fun addParticipant(request: ChatParticipantDto.ChatParticipantCreateRequest): ChatParticipantDto.ChatParticipantResponse {
-        val user = usersRepository.findById(request.userId)
+        val user = usersWebChatInterface.getUserById(request.userId)
             .orElseThrow { throw IllegalArgumentException("User not found with id: ${request.userId}") }
 
         val chatRoom = chatRoomRepository.findById(request.chatRoomId)
@@ -73,7 +73,7 @@ class ChatParticipantService(
      * Get all chat rooms for a user
      */
     fun getChatRoomsForUser(userId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        val user = usersRepository.findById(userId)
+        val user = usersWebChatInterface.getUserById(userId)
             .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
 
         return chatParticipantRepository.findByUserId(userId)

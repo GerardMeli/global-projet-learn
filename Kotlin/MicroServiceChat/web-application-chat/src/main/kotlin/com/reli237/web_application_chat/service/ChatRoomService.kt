@@ -2,12 +2,12 @@ package com.reli237.web_application_chat.service
 
 import com.reli237.web_application_chat.dto.ChatRoomDto
 import com.reli237.web_application_chat.dto.MessageDto
+import com.reli237.web_application_chat.feign.UsersWebChatInterface
 import com.reli237.web_application_chat.model.ChatParticipant
 import com.reli237.web_application_chat.model.ChatRoom
 import com.reli237.web_application_chat.model.ChatRoomType
 import com.reli237.web_application_chat.repository.ChatParticipantRepository
 import com.reli237.web_application_chat.repository.ChatRoomRepository
-import com.reli237.web_application_chat.repository.UsersRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 class ChatRoomService(
     private val chatRoomRepository: ChatRoomRepository,
     private val chatParticipantRepository: ChatParticipantRepository,
-    private val usersRepository: UsersRepository,
+    private val usersWebChatInterface: UsersWebChatInterface,
     private val messageService: MessageService
 ) {
 
@@ -164,7 +164,7 @@ class ChatRoomService(
         }
 
         for (userId in userIds) {
-            val user = usersRepository.findById(userId)
+            val user = usersWebChatInterface.getUserById(userId)
                 .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
 
             // Check if participant already exists
@@ -194,7 +194,7 @@ class ChatRoomService(
         val chatRoom = chatRoomRepository.findById(chatRoomId)
             .orElseThrow { throw IllegalArgumentException("Chat room not found with id: $chatRoomId") }
 
-        val user = usersRepository.findById(userId)
+        val user = usersWebChatInterface.getUserById(userId)
             .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
 
         val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
@@ -237,7 +237,7 @@ class ChatRoomService(
      * Get all chat rooms for a specific user
      */
     fun getChatRoomsForUser(userId: Long): List<ChatRoomDto.ChatRoomResponse> {
-        val user = usersRepository.findById(userId)
+        val user = usersWebChatInterface.getUserById(userId)
             .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
 
         return chatParticipantRepository.findByUserId(userId)

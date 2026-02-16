@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/auth")
+@CrossOrigin(origins = ["*"], maxAge = 3600)
 class AuthController (
     private val authService: AuthService,
     private val jwtProvider: JwtProvider,
@@ -22,11 +23,6 @@ class AuthController (
 ) {
 
        private val logger = LoggerFactory.getLogger(AuthController::class.java)
-
-    @GetMapping("/")
-    fun home(): String {
-        return "Hello World"
-    }
 
     @PostMapping("/register")
     fun register(@Valid @RequestBody request: RegistrationDto.RegisterRequest): ResponseEntity<RegistrationDto.RegisterResponse> {

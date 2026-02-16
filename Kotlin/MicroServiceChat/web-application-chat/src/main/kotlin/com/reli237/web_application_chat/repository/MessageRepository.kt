@@ -1,9 +1,9 @@
 package com.reli237.web_application_chat.repository
 
+import com.reli237.web_application_chat.dto.UserDto
 import com.reli237.web_application_chat.model.ChatRoom
 import com.reli237.web_application_chat.model.Message
 import com.reli237.web_application_chat.model.MessageType
-import com.reli237.web_application_chat.model.Users
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -16,7 +16,7 @@ interface MessageRepository: JpaRepository<Message, Long> {
 
     fun findByChatRoomIdOrderByTimeStampDesc(chatRoomId: Long): List<Message>
 
-    fun findBySender(sender: Users): List<Message>
+    fun findBySender(sender: UserDto.UserResponse): List<Message>
 
     fun findByIsDeletedFalse(): List<Message>
 

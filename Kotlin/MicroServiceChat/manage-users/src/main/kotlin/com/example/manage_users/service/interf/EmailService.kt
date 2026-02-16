@@ -6,7 +6,7 @@ import com.example.manage_users.models.Users
 
 interface EmailService {
 
-    fun sendEmailVerification(user: Users)
+    fun sendEmailVerification(user: Users): String
 
     fun sendPasswordResetEmail(user: Users)
 

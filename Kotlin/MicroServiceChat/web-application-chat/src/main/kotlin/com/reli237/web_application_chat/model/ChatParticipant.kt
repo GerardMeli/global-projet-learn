@@ -1,5 +1,6 @@
 package com.reli237.web_application_chat.model
 
+import com.reli237.web_application_chat.dto.UserDto
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -20,7 +21,7 @@ data class ChatParticipant(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "users_id")
-    val user: Users,
+    val user: UserDto.UserResponse,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")

@@ -11,9 +11,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
 import org.springframework.scheduling.annotation.Async
+import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
-import org.springframework.stereotype.Service
 
 @Service
 class EmailServiceImpl (
@@ -22,7 +22,7 @@ class EmailServiceImpl (
     private val jwtTokenProvider: JwtProvider,
     @Value("\${app.base-url:http://localhost:8082}")
     private val baseUrl: String,
-    @Value("\${app.email.from:support@example.com}")
+    @Value("\${app.email.from:ngandjougerard@gmail.com}")
     private val fromEmail: String,
     @Value("\${app.email.enabled:false}")
     private val emailEnabled: Boolean
@@ -40,31 +40,28 @@ class EmailServiceImpl (
     }
 
     @Async
-    override fun sendEmailVerification(user: Users) {
+    override fun sendEmailVerification(user: Users): String {
         try {
             val token = jwtTokenProvider.createEmailVerificationToken(user.id)
             val verificationUrl = "$baseUrl/api/auth/verify-email?token=$token"
 
-            log.info("📧 Preparing verification email for: ${user.email}")
-            log.info("📧 Verification URL: $verificationUrl")
-            log.info("📧 Token: $token")
+            val mimeMessage: MimeMessage = mailSender.createMimeMessage()
+            val helper: MimeMessageHelper = MimeMessageHelper(mimeMessage, true)
 
-            val context = Context().apply {
-                setVariable("user", user)
-                setVariable("verificationUrl", verificationUrl)
+            helper.setFrom(fromEmail)
+            helper.setTo(user.email)
+            helper.setSubject("Email Verification")
+
+            val inputStream = Objects.requiredNonNull(EmailServiceImpl::class.java.getResourceAsStream("/templates/email/"))
+
+            try () {
+
             }
 
-            val content = templateEngine.process("email/email-verification", context)
-
-            sendEmail(
-                to = user.email,
-                subject = "Email Verification",
-                content = content
-            )
-
-            log.info("✅ Verification email sent to: ${user.email}")
+            return "Success"
         } catch (ex: Exception) {
             log.error("❌ Failed to send verification email to ${user.email}", ex)
+            return "❌ Failed to send verification email to ${user.email}" + ex.message
         }
     }
 

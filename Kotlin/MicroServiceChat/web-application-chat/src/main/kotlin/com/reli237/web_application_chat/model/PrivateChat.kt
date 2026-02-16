@@ -1,6 +1,7 @@
 package com.reli237.web_application_chat.model
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.reli237.web_application_chat.dto.UserDto
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -14,12 +15,12 @@ data class PrivateChat(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id_1", nullable = false)
     @JsonIgnoreProperties("chatParticipants", "password")  // ✅ Ignore des propriétés spécifiques
-    val senderId1: Users,
+    val senderId1: UserDto.UserResponse,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id_2", nullable = false)
     @JsonIgnoreProperties("chatParticipants", "password")  // ✅ Ignore des propriétés spécifiques
-    val senderId2: Users,
+    val senderId2: UserDto.UserResponse,
 
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,

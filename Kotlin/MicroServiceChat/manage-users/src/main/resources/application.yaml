@@ -39,6 +39,17 @@ spring:
 
   # Mail configuration - DISABLED for development
   # Ne pas activer spring.mail car nous utilisons MockJavaMailSender
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: reli237rou@gmail.com
+    password:
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enabled: true
 
   security:
     oauth2:
@@ -92,5 +103,5 @@ app:
     email-change-expiration: 3600000  # 1 heure
   base-url: http://localhost:8082
   email:
-    from: support@example.com
+    from: ngandjougerard@gmail.com
     enabled: false  # Désactiver l'envoi réel d'emails
