@@ -137,9 +137,12 @@ class AuthController (
     }
 
     @PostMapping("/reset-password")
-    fun resetPassword(@Valid @RequestBody request: EmailPwdDto.ResetPasswordRequest): ResponseEntity<Void> {
+    fun resetPassword(@RequestBody request: EmailPwdDto.ResetPasswordRequest): ResponseEntity<Any> {
         authService.resetPassword(request)
-        return ResponseEntity.ok().build()
+        return ResponseEntity.ok(mapOf(
+            "success" to true,
+            "message" to "Password reset successfully"
+        ))
     }
 
     @PostMapping("/logout")

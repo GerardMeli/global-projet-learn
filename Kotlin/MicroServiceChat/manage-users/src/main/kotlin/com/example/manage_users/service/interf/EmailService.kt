@@ -18,7 +18,7 @@ interface EmailService {
 
     fun sendVerificationEmail(email: String, token: String)
 
-    fun sendPasswordResetEmail(email: String, token: String)
+    fun sendPasswordResetEmailWithToken(email: String, token: String)
 
     fun sendEmailChangeConfirmation(email: String, token: String)
 

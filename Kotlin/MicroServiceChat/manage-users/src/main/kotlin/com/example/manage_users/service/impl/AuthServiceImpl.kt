@@ -148,26 +148,38 @@ class AuthServiceImpl(
         val user = usersRepository.findByEmail(request.email)
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        val token = tokenService.createPasswordResetToken(user.id)
-        emailService.sendPasswordResetEmail(user.email, token)
+        // Dans votre service d'envoi d'email
+        val token = jwtProvider.createPasswordResetToken(user.id, user.email)
+        emailService.sendPasswordResetEmailWithToken(user.email, token)
     }
 
     override fun resetPassword(request: EmailPwdDto.ResetPasswordRequest) {
+
+        // 1️⃣ Vérification des mots de passe
         if (request.newPassword != request.confirmPassword) {
-            throw BadRequestException("Passwords do not match")
+            throw BadRequestException("Les mots de passe ne correspondent pas")
         }
 
-        val tokenValue = request.token
-        val userId = tokenService.validatePasswordResetToken(tokenValue)
-        val user = usersRepository.findById(userId.toLong())
-            .orElseThrow { ResourceNotFoundException("User not found") }
+        // 2️⃣ Récupération de l’email depuis le token
+        val email = tokenService.validatePasswordResetToken(request.token)
 
-        user.password = passwordEncoder.passwordEncoder().encode(request.newPassword)
+        // 3️⃣ Récupération de l’utilisateur par email (Optional)
+        val user = usersRepository.findByEmail(email)
+            .orElseThrow { ResourceNotFoundException("Utilisateur non trouvé") }
+
+        // 4️⃣ Mise à jour du mot de passe
+        user.password = passwordEncoder
+            .passwordEncoder()
+            .encode(request.newPassword)
+
         usersRepository.save(user)
 
-        tokenService.deletePasswordResetToken(tokenValue)
+        // 5️⃣ Suppression du token
+        tokenService.deletePasswordResetToken(request.token)
     }
-    
+
+
+
     override fun logout(userId: Long) {
         SecurityContextHolder.clearContext()
         // Additional logout logic (blacklist token, etc.)

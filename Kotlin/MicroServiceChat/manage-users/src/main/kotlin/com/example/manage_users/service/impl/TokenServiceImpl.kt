@@ -33,8 +33,8 @@ class TokenServiceImpl  (
         return jwtTokenProvider.createEmailVerificationToken(userId)
     }
 
-    override fun createPasswordResetToken(userId: Long): String {
-        return jwtTokenProvider.createPasswordResetToken(userId)
+    override fun createPasswordResetToken(userId: Long, email: String): String {
+        return jwtTokenProvider.createPasswordResetToken(userId, email)
     }
 
     override fun createEmailChangeToken(userId: Long, newEmail: String): String {
@@ -84,16 +84,21 @@ class TokenServiceImpl  (
         }
     }
 
-    override fun validateEmailChangeToken(token: String, userId: Long): String {
+    override fun validateEmailChangeToken(token: String): Pair<Long, String> {
         try {
+
+            val userId = jwtTokenProvider.validateEmailChangeToken(token)  // returns userId
+            val newEmail = jwtTokenProvider.getNewEmailFromToken(token)    // returns new email
+            return Pair(userId, newEmail)
+
             // validateEmailChangeToken retourne le userId ou lance une exception
-            val tokenUserId = jwtTokenProvider.validateEmailChangeToken(token)
-
-            if (tokenUserId != userId) {
-                throw InvalidTokenException("Token does not belong to this user")
-            }
-
-            return jwtTokenProvider.getNewEmailFromToken(token)
+//            val tokenUserId = jwtTokenProvider.validateEmailChangeToken(token)
+//
+//            if (tokenUserId != userId) {
+//                throw InvalidTokenException("Token does not belong to this user")
+//            }
+//
+//            return jwtTokenProvider.getNewEmailFromToken(token)
         } catch (e: ExpiredTokenException) {
             throw e
         } catch (e: InvalidTokenException) {

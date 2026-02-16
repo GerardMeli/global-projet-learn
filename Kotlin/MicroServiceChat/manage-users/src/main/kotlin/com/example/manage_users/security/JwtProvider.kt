@@ -2,6 +2,7 @@ package com.example.manage_users.security
 
 import com.example.manage_users.execption.ExpiredTokenException
 import com.example.manage_users.execption.InvalidTokenException
+import com.example.manage_users.models.Users
 import io.jsonwebtoken.*
 import io.jsonwebtoken.security.Keys
 import org.slf4j.LoggerFactory
@@ -106,18 +107,29 @@ class JwtProvider (
     /**
      * Create a password reset token
      */
-    fun createPasswordResetToken(userId: Long): String {
+    /** Dans JwtProvider.kt **/
+    fun createPasswordResetToken(userId: Long, email: String): String { // Ajoutez l'email en paramètre
         val now = Date()
         val expiryDate = Date(now.time + passwordResetExpiration)
 
         return Jwts.builder()
-            .setSubject(userId.toString())
+            .setSubject(email) // Utiliser l'email comme sujet est plus sûr pour votre filtre
             .claim("userId", userId)
-            .claim("tokenType", "password_reset")
+            .claim("email", email)
+            .claim("tokenType", "password_reset") // Ce champ DOIT être présent
             .setIssuedAt(now)
             .setExpiration(expiryDate)
             .signWith(secretKey, SignatureAlgorithm.HS512)
             .compact()
+    }
+
+    fun getTokenTypeFromToken(token: String): String? {
+        return try {
+            val claims = getAllClaimsFromToken(token)
+            claims.get("tokenType", String::class.java)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /**

@@ -82,7 +82,7 @@ class EmailServiceImpl (
     override fun sendPasswordResetEmail(user: Users) {
         try {
             // 1️⃣ Generate token and reset URL
-            val token = jwtTokenProvider.createPasswordResetToken(user.id)
+            val token = jwtTokenProvider.createPasswordResetToken(user.id, user.email)
             val resetUrl = "$baseUrl/api/auth/reset-password?token=$token"
 
             log.info("📧 Preparing password reset email for: ${user.email}")
@@ -116,8 +116,6 @@ class EmailServiceImpl (
             log.error("❌ Failed to send password reset email to ${user.email}", ex)
         }
     }
-
-
 
     @Async
     override fun sendAccountLockedNotification(user: Users) {
@@ -229,7 +227,7 @@ class EmailServiceImpl (
     }
 
     @Async
-    override fun sendPasswordResetEmail(email: String, token: String) {
+    override fun sendPasswordResetEmailWithToken(email: String, token: String) {
         try {
             val resetUrl = "$baseUrl/api/auth/reset-password?token=$token"
 

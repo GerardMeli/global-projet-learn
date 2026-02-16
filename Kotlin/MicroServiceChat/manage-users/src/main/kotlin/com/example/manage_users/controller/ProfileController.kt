@@ -14,14 +14,14 @@ class ProfileController (
 ) {
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    
     fun getUserProfile(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserProfile(userId)
         return ResponseEntity.ok(response)
     }
 
     @PutMapping("/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    
     fun updateUserProfile(
         @PathVariable userId: Long,
         @Valid @RequestBody request: ProfileDto.UserProfileUpdateRequest
@@ -31,7 +31,7 @@ class ProfileController (
     }
 
     @PatchMapping("/{userId}/preferences")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    
     fun updateUserPreferences(
         @PathVariable userId: Long,
         @Valid @RequestBody request: ProfileDto.UserPreferencesUpdateRequest
@@ -41,7 +41,7 @@ class ProfileController (
     }
 
     @PutMapping("/{userId}/password")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    
     fun changePassword(
         @PathVariable userId: Long,
         @Valid @RequestBody request: ProfileDto.PasswordChangeRequest
@@ -51,7 +51,7 @@ class ProfileController (
     }
 
     @PostMapping("/{userId}/email-change-request")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    
     fun requestEmailChange(
         @PathVariable userId: Long,
         @Valid @RequestBody request: ProfileDto.EmailUpdateRequest
@@ -60,15 +60,20 @@ class ProfileController (
         return ResponseEntity.ok().build()
     }
 
-    @PostMapping("/{userId}/email-change-confirm")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    fun confirmEmailChange(
-        @PathVariable userId: Long,
-        @RequestParam token: String
-    ): ResponseEntity<Void> {
-        userService.confirmEmailChange(userId, token)
-        return ResponseEntity.ok().build()
+    @GetMapping("/email-change-confirm")
+    fun confirmEmailChange(@RequestParam token: String): ResponseEntity<Map<String, Any>> {
+        userService.confirmEmailChange(token)
+
+        val response = mapOf(
+            "succès" to true,
+            "message" to "Votre email a été confirmé avec succès ! ✅",
+            "horodatage" to System.currentTimeMillis()
+        )
+
+        return ResponseEntity.ok(response)
     }
+
+
 
     @GetMapping("/except/{currentUserId}")
     fun getAllUsersExceptCurrentUser(@PathVariable currentUserId: Long): ResponseEntity<List<ProfileDto.PrivateUserResponse>?> {

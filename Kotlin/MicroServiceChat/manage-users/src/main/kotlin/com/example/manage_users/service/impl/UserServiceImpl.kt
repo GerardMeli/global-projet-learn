@@ -116,9 +116,9 @@ class UserServiceImpl (
         emailService.sendEmailChangeConfirmation(request.newEmail, token)
     }
 
-    override fun confirmEmailChange(userId: Long, token: String) {
+    override fun confirmEmailChange(token: String) {
+        val (userId, newEmail) = tokenService.validateEmailChangeToken(token)
         val user = findUserById(userId)
-        val newEmail = tokenService.validateEmailChangeToken(token, userId)
 
         user.email = newEmail
         user.emailVerified = true
@@ -126,6 +126,7 @@ class UserServiceImpl (
 
         tokenService.deleteEmailChangeToken(token)
     }
+
 
     // Admin methods
     override fun getAllUsers(): List<ProfileDto.UserProfileResponse> {

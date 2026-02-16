@@ -24,6 +24,15 @@ class JwtAuthenticationFilter (
         private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
     }
 
+    /**
+     * Empêche le filtre de s'exécuter sur les routes publiques de mot de passe.
+     * Cela évite que le filtre tente d'interpréter le token de reset comme un token d'accès.
+     */
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.servletPath
+        return path.startsWith("/api/auth/reset-password")
+    }
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -32,31 +41,40 @@ class JwtAuthenticationFilter (
         try {
             val jwt = getJwtFromRequest(request)
 
+            // On valide d'abord la signature et l'expiration
             if (jwt?.isNotEmpty() == true && jwtProvider.validateToken(jwt)) {
-                val email = jwtProvider.getEmailFromToken(jwt)
-                val role = jwtProvider.getRoleFromToken(jwt)
 
-                log.debug("JWT validated - Email: $email, Role: $role")
+                // CRUCIAL : On vérifie si c'est un token d'accès (login)
+                val tokenType = jwtProvider.getTokenTypeFromToken(jwt)
 
-                if (email?.isNotBlank() == true) {
-                    val userDetails = userDetailsService.loadUserByUsername(email)
+                if (tokenType == "access") {
+                    val email = jwtProvider.getEmailFromToken(jwt)
+                    val role = jwtProvider.getRoleFromToken(jwt)
 
-                    val authorities = if (role != null) {
-                        listOf(SimpleGrantedAuthority("ROLE_$role"))
-                    } else {
-                        userDetails.authorities
+                    log.debug("JWT validated - Email: $email, Role: $role")
+
+                    if (email?.isNotBlank() == true) {
+                        val userDetails = userDetailsService.loadUserByUsername(email)
+
+                        val authorities = if (role != null) {
+                            listOf(SimpleGrantedAuthority("ROLE_$role"))
+                        } else {
+                            userDetails.authorities
+                        }
+
+                        val authentication = UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            authorities
+                        )
+
+                        authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
+                        SecurityContextHolder.getContext().authentication = authentication
+
+                        log.debug("Authentication set for user: $email")
                     }
-
-                    val authentication = UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        authorities
-                    )
-
-                    authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
-                    SecurityContextHolder.getContext().authentication = authentication
-
-                    log.debug("Authentication set for user: $email")
+                } else {
+                    log.debug("Token ignored by filter: Type is $tokenType (not 'access')")
                 }
             }
         } catch (e: Exception) {

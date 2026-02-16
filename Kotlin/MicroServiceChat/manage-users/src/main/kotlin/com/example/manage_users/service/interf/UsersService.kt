@@ -10,7 +10,7 @@ interface UsersService : UserDetailsService {
     fun updateUserPreferences(userId: Long, request: ProfileDto.UserPreferencesUpdateRequest): ProfileDto.UserProfileResponse
     fun changePassword(userId: Long, request: ProfileDto.PasswordChangeRequest)
     fun requestEmailChange(userId: Long, request: ProfileDto.EmailUpdateRequest)
-    fun confirmEmailChange(userId: Long, token: String)
+    fun confirmEmailChange(token: String)
 
     // Admin methods
     fun getAllUsers(): List<ProfileDto.UserProfileResponse>

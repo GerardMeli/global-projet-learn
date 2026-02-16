@@ -20,13 +20,13 @@ interface TokenService {
 
     fun deleteEmailVerificationToken(token: String)
 
-    fun createPasswordResetToken(userId: Long): String
+    fun createPasswordResetToken(userId: Long, email: String): String
 
     fun deletePasswordResetToken(token: String)
 
     fun createEmailChangeToken(userId: Long, newEmail: String): String
 
-    fun validateEmailChangeToken(token: String, userId: Long): String
+    fun validateEmailChangeToken(token: String): Pair<Long, String>
 
     fun deleteEmailChangeToken(token: String)
 

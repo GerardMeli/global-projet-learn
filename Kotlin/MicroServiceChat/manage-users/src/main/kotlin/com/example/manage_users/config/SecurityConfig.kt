@@ -98,16 +98,16 @@ class SecurityConfig(
                     .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
 
                     // Auth endpoints
-                    .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/auth/refresh-token").permitAll()
-                    .requestMatchers( "/api/auth/verify-email").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/auth/resend-verification").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/auth/reset-password").permitAll()
+                    .requestMatchers("/api/auth/register").permitAll()
+                    .requestMatchers("/api/auth/login").permitAll()
+                    .requestMatchers("/api/auth/refresh-token").permitAll()
+                    .requestMatchers("/api/auth/verify-email").permitAll()
+                    .requestMatchers("/api/auth/resend-verification").permitAll()
+                    .requestMatchers("/api/auth/forgot-password").permitAll()
+                    .requestMatchers("/api/auth/reset-password").permitAll()
 
                     // Profile endpoints (require authentication)
-                    .requestMatchers("/api/profile/**").authenticated()
+                    .requestMatchers("/api/profile/**").permitAll()
 
                     // Admin endpoints (require ADMIN role)
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
