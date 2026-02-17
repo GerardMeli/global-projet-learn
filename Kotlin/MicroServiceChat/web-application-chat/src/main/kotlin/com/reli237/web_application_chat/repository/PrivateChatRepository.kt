@@ -1,12 +1,10 @@
 package com.reli237.web_application_chat.repository
 
-import com.reli237.web_application_chat.dto.UserDto
 import com.reli237.web_application_chat.model.PrivateChat
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
-import org.springframework.transaction.annotation.Transactional
 
 interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
 
@@ -25,7 +23,7 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
     @Query("""
         SELECT pc FROM PrivateChat pc 
         WHERE pc.senderId1 = :userId OR pc.senderId2 = :userId
-        ORDER BY pc.timestamp DESC
+        ORDER BY pc.timestamp ASC
     """)
     fun findUserChats(@Param("userId") userId: Long): List<PrivateChat>
 

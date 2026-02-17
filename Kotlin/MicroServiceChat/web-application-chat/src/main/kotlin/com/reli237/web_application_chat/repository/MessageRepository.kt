@@ -14,16 +14,11 @@ interface MessageRepository : JpaRepository<Message, Long> {
 
     // Par chat room
     fun findByChatRoom(chatRoom: ChatRoom): List<Message>
-    fun findByChatRoomId(chatRoomId: Long): List<Message>
-    fun findByChatRoomIdOrderByTimeStampDesc(chatRoomId: Long): List<Message>
+    fun findByChatRoomIdOrderByTimeStampAsc(chatRoomId: Long): List<Message>
     fun findByChatRoomIdAndIsDeletedFalse(chatRoomId: Long): List<Message>
     fun countByChatRoomId(chatRoomId: Long): Long
 
-    // Par sender (expéditeur) - CORRECTION ICI
-    // SUPPRIMEZ cette ligne si elle existe:
-    // fun findBySender(sender: UserDto.UserResponse): List<Message>
-
-    // REMPLACEZ par:
+    // REMPLACEZ par :
     fun findBySenderId(senderId: Long): List<Message>
     fun findBySenderIdAndIsDeletedFalse(senderId: Long): List<Message>
     fun findBySenderIdOrderByTimeStampDesc(senderId: Long): List<Message>

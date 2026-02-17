@@ -29,7 +29,7 @@ class ChatRoomDto {
         val id: Long,
         val name: String,
         val type: ChatRoomType,
-        val participants: List<ChatParticipant> = emptyList(),
+        val participants: List<ChatParticipantDto.ChatParticipantResponse> = emptyList(),
         val messages: List<MessageDto.MessageResponse> = emptyList()
     )
 

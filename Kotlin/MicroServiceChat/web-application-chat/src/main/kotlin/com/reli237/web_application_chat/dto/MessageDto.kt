@@ -61,7 +61,7 @@ class MessageDto {
         val id: Long,
         val content: String,
         val sender: UserDto.UserResponse,
-        val chatRoom: ChatRoom,
+        val chatRoom: ChatRoomDto.ChatRoomResponse,
         val timeStamp: LocalDateTime,
         val messageType: MessageType,
         val isDeleted: Boolean

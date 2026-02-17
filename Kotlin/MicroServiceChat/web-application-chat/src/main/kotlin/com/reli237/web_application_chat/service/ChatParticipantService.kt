@@ -21,259 +21,158 @@ class ChatParticipantService(
     private val usersWebChatInterface: UsersWebChatInterface
 ) {
 
-    /**
-     * Add a participant to a chat room
-     */
+    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
+        if (!this.statusCode.is2xxSuccessful || this.body == null) throw IllegalArgumentException(errorMessage)
+        return this.body!!
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // CRUD PARTICIPANTS
+    // ═══════════════════════════════════════════════════════════
+
     fun addParticipant(request: ChatParticipantDto.ChatParticipantCreateRequest): ChatParticipantDto.ChatParticipantResponse {
-        // Vérifier que l'utilisateur existe
-        val user = usersWebChatInterface.getUserBasicInfo(request.userId)
-            .getBodyOrThrow("User not found with id: ${request.userId}")
-
+        usersWebChatInterface.getUserBasicInfo(request.userId).getBodyOrThrow("User not found with id: ${request.userId}")
         val chatRoom = chatRoomRepository.findById(request.chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Chat room not found with id: ${request.chatRoomId}") }
-
-        // Check if participant already exists
-        val existingParticipant = chatParticipantRepository.findByUserIdAndChatRoomId(request.userId, request.chatRoomId)
-        if (existingParticipant.isPresent) {
+            .orElseThrow { IllegalArgumentException("Chat room not found with id: ${request.chatRoomId}") }
+        if (chatParticipantRepository.findByUserIdAndChatRoomId(request.userId, request.chatRoomId).isPresent)
             throw IllegalArgumentException("User is already a participant in this chat room")
-        }
 
-        // CORRECTION ICI - utilisez userId au lieu de user
-        val participant = ChatParticipant(
-            id = 0,
-            userId = request.userId,  // ← Changé ici
-            chatRoom = chatRoom,
-            joinedAt = LocalDateTime.now(),
-            role = request.role
+        val saved = chatParticipantRepository.save(
+            ChatParticipant(id = 0, userId = request.userId, chatRoom = chatRoom,
+                joinedAt = LocalDateTime.now(), role = request.role)
         )
-
-        val savedParticipant = chatParticipantRepository.save(participant)
-        return mapToChatParticipantResponse(savedParticipant)
+        return mapToResponse(saved)
     }
 
-    /**
-     * Get participant by ID
-     */
-    fun getParticipantById(id: Long): ChatParticipantDto.ChatParticipantDetailResponse {
-        val participant = chatParticipantRepository.findById(id)
-            .orElseThrow { throw IllegalArgumentException("Participant not found with id: $id") }
+    fun getParticipantById(id: Long): ChatParticipantDto.ChatParticipantDetailResponse =
+        mapToDetailResponse(findParticipantById(id))
 
-        return mapToChatParticipantDetailResponse(participant)
-    }
+    fun getAllParticipants(): List<ChatParticipantDto.ChatParticipantResponse> =
+        chatParticipantRepository.findAll().map { mapToResponse(it) }
 
-    /**
-     * Get all participants in a chat room
-     */
-    fun getParticipantsByChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        val chatRoom = chatRoomRepository.findById(chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Chat room not found with id: $chatRoomId") }
-
-        return chatParticipantRepository.findByChatRoomId(chatRoomId)
-            .map { mapToChatParticipantResponse(it) }
-    }
-
-    /**
-     * Get all chat rooms for a user
-     */
-    fun getChatRoomsForUser(userId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        // Correction - ResponseEntity n'a pas orElseThrow()
-        val userResponse = usersWebChatInterface.getUserBasicInfo(userId)
-        if (!userResponse.statusCode.is2xxSuccessful || userResponse.body == null) {
-            throw IllegalArgumentException("User not found with id: $userId")
-        }
-        val user = userResponse.body!!
-
-        return chatParticipantRepository.findByUserId(userId)
-            .map { mapToChatParticipantResponse(it) }
-    }
-
-    /**
-     * Get participant by user and chat room
-     */
-    fun getParticipant(userId: Long, chatRoomId: Long): ChatParticipantDto.ChatParticipantResponse {
-        val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
-
-        return mapToChatParticipantResponse(participant)
-    }
-
-    /**
-     * Get all participants with a specific role
-     */
-    fun getParticipantsByRole(role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> {
-        return chatParticipantRepository.findByRole(role)
-            .map { mapToChatParticipantResponse(it) }
-    }
-
-    /**
-     * Get all participants with a specific role in a chat room
-     */
-    fun getParticipantsByRoleInChatRoom(chatRoomId: Long, role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> {
-        val chatRoom = chatRoomRepository.findById(chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Chat room not found with id: $chatRoomId") }
-
-        return chatParticipantRepository.findByChatRoomIdAndRole(chatRoomId, role)
-            .map { mapToChatParticipantResponse(it) }
-    }
-
-    /**
-     * Get all admins in a chat room
-     */
-    fun getAdminsInChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        return getParticipantsByRoleInChatRoom(chatRoomId, ParticipantRole.ADMIN)
-    }
-
-    /**
-     * Get all moderators in a chat room
-     */
-    fun getModeratorsInChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        return getParticipantsByRoleInChatRoom(chatRoomId, ParticipantRole.MODERATOR)
-    }
-
-    /**
-     * Get all members in a chat room
-     */
-    fun getMembersInChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        return getParticipantsByRoleInChatRoom(chatRoomId, ParticipantRole.MEMBER)
-    }
-
-    /**
-     * Update participant role
-     */
-    fun updateParticipantRole(participantId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
-        val participant = chatParticipantRepository.findById(participantId)
-            .orElseThrow { throw IllegalArgumentException("Participant not found with id: $participantId") }
-
-        val updatedParticipant = participant.copy(role = request.role)
-        val savedParticipant = chatParticipantRepository.save(updatedParticipant)
-        return mapToChatParticipantResponse(savedParticipant)
-    }
-
-    /**
-     * Update participant role by user and chat room
-     */
-    fun updateParticipantRole(userId: Long, chatRoomId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
-        val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
-
-        val updatedParticipant = participant.copy(role = request.role)
-        val savedParticipant = chatParticipantRepository.save(updatedParticipant)
-        return mapToChatParticipantResponse(savedParticipant)
-    }
-
-    /**
-     * Remove participant from chat room
-     */
+    /** Supprimer par participantId */
     fun removeParticipant(participantId: Long) {
-        if (!chatParticipantRepository.existsById(participantId)) {
+        if (!chatParticipantRepository.existsById(participantId))
             throw IllegalArgumentException("Participant not found with id: $participantId")
-        }
         chatParticipantRepository.deleteById(participantId)
     }
 
-    /**
-     * Remove participant by user and chat room
-     */
+    /** Supprimer par userId + chatRoomId */
     fun removeParticipant(userId: Long, chatRoomId: Long) {
-        val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-            .orElseThrow { throw IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
-
+        chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+            .orElseThrow { IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
         chatParticipantRepository.deleteByUserIdAndChatRoomId(userId, chatRoomId)
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // REQUÊTES
+    // ═══════════════════════════════════════════════════════════
+
+    fun getParticipantsByChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
+        chatRoomRepository.findById(chatRoomId)
+            .orElseThrow { IllegalArgumentException("Chat room not found with id: $chatRoomId") }
+        return chatParticipantRepository.findByChatRoomId(chatRoomId).map { mapToResponse(it) }
+    }
+
+    fun getChatRoomsForUser(userId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
+        usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow("User not found with id: $userId")
+        return chatParticipantRepository.findByUserId(userId).map { mapToResponse(it) }
+    }
+
+    fun getParticipant(userId: Long, chatRoomId: Long): ChatParticipantDto.ChatParticipantResponse =
+        mapToResponse(findParticipantByUserAndRoom(userId, chatRoomId))
+
     /**
-     * Check if user is participant of chat room
+     * Récupère les participants par rôle dans une salle.
+     * ✅ getAdminsInChatRoom + getModeratorsInChatRoom + getMembersInChatRoom SUPPRIMÉS
+     *    → ce sont de simples alias, utilisez getParticipantsByRoleInChatRoom(id, ADMIN/MODERATOR/MEMBER)
      */
-    fun isUserParticipant(userId: Long, chatRoomId: Long): Boolean {
-        return chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId).isPresent
+    fun getParticipantsByRoleInChatRoom(chatRoomId: Long, role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> {
+        chatRoomRepository.findById(chatRoomId)
+            .orElseThrow { IllegalArgumentException("Chat room not found with id: $chatRoomId") }
+        return chatParticipantRepository.findByChatRoomIdAndRole(chatRoomId, role).map { mapToResponse(it) }
     }
 
     /**
-     * Check if user is admin in chat room
+     * Raccourci conservé pour getMembersInChatRoom (utilisé dans ChatRoomController).
+     * Délègue vers getParticipantsByRoleInChatRoom.
      */
-    fun isUserAdmin(userId: Long, chatRoomId: Long): Boolean {
-        val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-        return participant.isPresent && participant.get().role == ParticipantRole.ADMIN
+    fun getMembersInChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> =
+        getParticipantsByRoleInChatRoom(chatRoomId, ParticipantRole.MEMBER)
+
+    fun getParticipantsByRole(role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> =
+        chatParticipantRepository.findByRole(role).map { mapToResponse(it) }
+
+    // ═══════════════════════════════════════════════════════════
+    // MISE À JOUR DU RÔLE
+    // ═══════════════════════════════════════════════════════════
+
+    /** Mettre à jour le rôle par participantId */
+    fun updateParticipantRole(participantId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
+        val saved = chatParticipantRepository.save(findParticipantById(participantId).copy(role = request.role))
+        return mapToResponse(saved)
     }
 
-    /**
-     * Check if user is moderator in chat room
-     */
-    fun isUserModerator(userId: Long, chatRoomId: Long): Boolean {
-        val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
-        return participant.isPresent && participant.get().role == ParticipantRole.MODERATOR
+    /** Mettre à jour le rôle par userId + chatRoomId */
+    fun updateParticipantRole(userId: Long, chatRoomId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
+        val saved = chatParticipantRepository.save(findParticipantByUserAndRoom(userId, chatRoomId).copy(role = request.role))
+        return mapToResponse(saved)
     }
 
-    /**
-     * Count participants in a chat room
-     */
-    fun countParticipantsInChatRoom(chatRoomId: Long): Long {
-        return chatParticipantRepository.countByChatRoomId(chatRoomId)
-    }
+    // ═══════════════════════════════════════════════════════════
+    // VÉRIFICATIONS / COMPTAGES
+    // ═══════════════════════════════════════════════════════════
 
-    /**
-     * Count chat rooms for a user
-     */
-    fun countChatRoomsForUser(userId: Long): Long {
-        return chatParticipantRepository.countByUserId(userId)
-    }
+    fun isUserParticipant(userId: Long, chatRoomId: Long): Boolean =
+        chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId).isPresent
 
-    /**
-     * Get all participants
-     */
-    fun getAllParticipants(): List<ChatParticipantDto.ChatParticipantResponse> {
-        return chatParticipantRepository.findAll()
-            .map { mapToChatParticipantResponse(it) }
-    }
+    fun isUserAdmin(userId: Long, chatRoomId: Long): Boolean =
+        chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+            .map { it.role == ParticipantRole.ADMIN }.orElse(false)
 
-    /**
-     * Map ChatParticipant entity to ChatParticipantResponse DTO
-     */
-    private fun mapToChatParticipantResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantResponse {
-        // Récupérer les infos utilisateur via Feign
+    fun isUserModerator(userId: Long, chatRoomId: Long): Boolean =
+        chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+            .map { it.role == ParticipantRole.MODERATOR }.orElse(false)
+
+    fun countParticipantsInChatRoom(chatRoomId: Long): Long =
+        chatParticipantRepository.countByChatRoomId(chatRoomId)
+
+    fun countChatRoomsForUser(userId: Long): Long =
+        chatParticipantRepository.countByUserId(userId)
+
+    // ═══════════════════════════════════════════════════════════
+    // MAPPERS PRIVÉS
+    // ═══════════════════════════════════════════════════════════
+
+    private fun findParticipantById(id: Long): ChatParticipant =
+        chatParticipantRepository.findById(id).orElseThrow { IllegalArgumentException("Participant not found with id: $id") }
+
+    private fun findParticipantByUserAndRoom(userId: Long, chatRoomId: Long): ChatParticipant =
+        chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+            .orElseThrow { IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
+
+    private fun mapToResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantResponse {
         val user = usersWebChatInterface.getUserBasicInfo(participant.userId)
             .getBodyOrThrow("User not found with id: ${participant.userId}")
-
         return ChatParticipantDto.ChatParticipantResponse(
             id = participant.id,
-            user = UserDto.UserSimpleResponse(
-                id = user.id,
-                email = user.email
-            ),
+            user = UserDto.UserSimpleResponse(id = user.id, email = user.email),
             chatRoomId = participant.chatRoom.id,
-            joinedAt = participant.joinedAt,
-            role = participant.role
+            joinedAt = participant.joinedAt, role = participant.role
         )
     }
 
-    /**
-     * Map ChatParticipant entity to ChatParticipantDetailResponse DTO
-     */
-    private fun mapToChatParticipantDetailResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantDetailResponse {
-        // Récupérer les infos complètes de l'utilisateur
+    private fun mapToDetailResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantDetailResponse {
         val user = usersWebChatInterface.getUserBasicInfo(participant.userId)
             .getBodyOrThrow("User not found with id: ${participant.userId}")
-
         return ChatParticipantDto.ChatParticipantDetailResponse(
-            id = participant.id,
-            user = user, // UserDto.UserResponse
+            id = participant.id, user = user,
             chatRoom = ChatRoomDto.ChatRoomResponse(
-                id = participant.chatRoom.id,
-                name = participant.chatRoom.name,
-                type = participant.chatRoom.type,
-                participantCount = participant.chatRoom.participants.size
+                id = participant.chatRoom.id, name = participant.chatRoom.name,
+                type = participant.chatRoom.type, participantCount = participant.chatRoom.participants.size
             ),
-            joinedAt = participant.joinedAt,
-            role = participant.role
+            joinedAt = participant.joinedAt, role = participant.role
         )
-    }
-
-    // Ajoutez cette fonction en haut de votre fichier service
-    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
-        if (!this.statusCode.is2xxSuccessful || this.body == null) {
-            throw IllegalArgumentException(errorMessage)
-        }
-        return this.body!!
     }
 
 }
