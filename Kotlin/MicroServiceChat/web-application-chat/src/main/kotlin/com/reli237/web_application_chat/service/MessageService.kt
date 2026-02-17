@@ -10,6 +10,7 @@ import com.reli237.web_application_chat.model.MessageType
 import com.reli237.web_application_chat.repository.ChatRoomRepository
 import com.reli237.web_application_chat.repository.MessageRepository
 import jakarta.persistence.EntityNotFoundException
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -29,9 +30,14 @@ class MessageService(
         private const val FILE_UPLOAD_FAILED = "Failed to upload file"
     }
 
-    /**
-     * Create a new message in a chat room
-     */
+    // ===== FONCTION D'EXTENSION POUR FEIGN CLIENT =====
+    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
+        if (!this.statusCode.is2xxSuccessful || this.body == null) {
+            throw IllegalArgumentException(errorMessage)
+        }
+        return this.body!!
+    }
+
     /**
      * Create a new message in a chat room
      */
@@ -42,10 +48,9 @@ class MessageService(
         println("📝 Room ID: ${request.chatRoomId}")
         println("📝 Content: ${request.content}")
 
-        val user = usersWebChatInterface.getUserById(userId).orElseThrow {
-            println("❌ User $userId not found")
-            throw EntityNotFoundException("User not found with id: $userId")
-        }
+        // Vérifier que l'utilisateur existe
+        val user = usersWebChatInterface.getUserBasicInfo(userId)
+            .getBodyOrThrow("User not found with id: $userId")
         println("✅ User found: ${user.email}")
 
         val chatRoom = chatRoomRepository.findById(request.chatRoomId).orElseThrow {
@@ -54,10 +59,11 @@ class MessageService(
         }
         println("✅ Chat room found: ${chatRoom.name}")
 
+        // CORRECTION: Utilisez senderId au lieu de sender
         val message = Message(
             id = 0,
             content = request.content,
-            sender = user,
+            senderId = userId,  // ← Changé ici
             chatRoom = chatRoom,
             timeStamp = LocalDateTime.now(),
             messageType = MessageType.TEXT,
@@ -72,8 +78,8 @@ class MessageService(
             id = savedMessage.id,
             content = savedMessage.content,
             sender = UserDto.UserSimpleResponse(
-                id = savedMessage.sender.id,
-                email = savedMessage.sender.email
+                id = user.id,
+                email = user.email
             ),
             chatRoomId = savedMessage.chatRoom.id,
             timestamp = savedMessage.timeStamp,
@@ -107,10 +113,11 @@ class MessageService(
      * Get all messages sent by a specific user
      */
     fun getMessagesBySender(senderId: Long): List<MessageDto.MessageResponse> {
-        val sender = usersWebChatInterface.getUserById(senderId)
-            .orElseThrow { throw IllegalArgumentException("User not found with id: $senderId") }
+        // Vérifier que l'utilisateur existe
+        val sender = usersWebChatInterface.getUserBasicInfo(senderId)
+            .getBodyOrThrow("User not found with id: $senderId")
 
-        return messageRepository.findBySender(sender)
+        return messageRepository.findBySenderId(senderId)
             .filter { !it.isDeleted }
             .map { mapToMessageResponse(it) }
     }
@@ -152,11 +159,13 @@ class MessageService(
         }
 
         if (!request.content.isNullOrBlank()) {
-            message.content = request.content
+            // Create a new message with updated content (since Message is a data class)
+            val updatedMessage = message.copy(content = request.content)
+            val saved = messageRepository.save(updatedMessage)
+            return mapToMessageResponse(saved)
         }
 
-        val updatedMessage = messageRepository.save(message)
-        return mapToMessageResponse(updatedMessage)
+        return mapToMessageResponse(message)
     }
 
     /**
@@ -166,9 +175,9 @@ class MessageService(
         val message = messageRepository.findById(messageId)
             .orElseThrow { throw IllegalArgumentException("Message not found with id: $messageId") }
 
-        message.isDeleted = true
-        val deletedMessage = messageRepository.save(message)
-        return mapToMessageResponse(deletedMessage)
+        val deletedMessage = message.copy(isDeleted = true)
+        val saved = messageRepository.save(deletedMessage)
+        return mapToMessageResponse(saved)
     }
 
     /**
@@ -182,9 +191,9 @@ class MessageService(
             throw IllegalStateException("Message is not deleted")
         }
 
-        message.isDeleted = false
-        val restoredMessage = messageRepository.save(message)
-        return mapToMessageResponse(restoredMessage)
+        val restoredMessage = message.copy(isDeleted = false)
+        val saved = messageRepository.save(restoredMessage)
+        return mapToMessageResponse(saved)
     }
 
     /**
@@ -220,107 +229,6 @@ class MessageService(
     }
 
     /**
-     * Map Message entity to MessageResponse DTO
-     */
-    private fun mapToMessageResponse(message: Message): MessageDto.MessageResponse {
-        return MessageDto.MessageResponse(
-            id = message.id,
-            content = message.content,
-            sender = UserDto.UserSimpleResponse(
-                id = message.sender.id,
-                email = message.sender.email
-            ),
-            chatRoomId = message.chatRoom.id,
-            timestamp = message.timeStamp,
-            messageType = message.messageType,
-            isDeleted = message.isDeleted
-        )
-    }
-
-
-    /**
-     * Upload and send a file to a chat room (community)
-     */
-    @Transactional
-    fun sendFileToChatRoom(
-        userId: Long,
-        chatRoomId: Long,
-        file: MultipartFile,
-        description: String = ""
-    ): MessageDto.FileMessageResponse {
-        println("📁 ===== SEND FILE TO CHAT ROOM START =====")
-        println("📁 User ID: $userId")
-        println("📁 Room ID: $chatRoomId")
-        println("📁 File Name: ${file.originalFilename}")
-        println("📁 File Size: ${file.size} bytes")
-
-        // Validate user
-        val user = usersWebChatInterface.getUserById(userId).orElseThrow {
-            println("❌ User $userId not found")
-            throw EntityNotFoundException("User not found with id: $userId")
-        }
-
-        // Validate chat room
-        val chatRoom = chatRoomRepository.findById(chatRoomId).orElseThrow {
-            println("❌ Chat room $chatRoomId not found")
-            throw EntityNotFoundException("Chat room not found with id: $chatRoomId")
-        }
-
-        try {
-            // Upload file to file service
-            println("📤 Uploading file to file service...")
-            val uploadResponse = fileWebChatInterface.uploadFile(file, description)
-
-            if (uploadResponse.statusCode.is2xxSuccessful) {
-                val responseBody = uploadResponse.body ?: emptyMap()
-                val fileName = responseBody["fileName"]?.toString() ?: file.originalFilename
-                val fileId = responseBody["id"]?.toString()?.toLongOrNull()
-
-                println("✅ File uploaded successfully: $fileName")
-
-                // Create message record in database
-                val fileMessage = Message(
-                    id = 0,
-                    content = if (description.isNotBlank()) description else "File: $fileName",
-                    sender = user,
-                    chatRoom = chatRoom,
-                    timeStamp = LocalDateTime.now(),
-                    messageType = if (file.contentType?.startsWith("image/") == true)
-                        MessageType.IMAGE else MessageType.FILE,
-                    isDeleted = false
-                )
-
-                val savedMessage = messageRepository.save(fileMessage)
-                println("✅ File message saved with ID: ${savedMessage.id}")
-
-                return MessageDto.FileMessageResponse(
-                    messageId = savedMessage.id,
-                    fileId = fileId,
-                    fileName = fileName,
-                    originalFileName = file.originalFilename ?: "unknown",
-                    fileType = file.contentType ?: "application/octet-stream",
-                    fileSize = file.size,
-                    description = description,
-                    uploaderId = user.id,
-                    uploaderName = user.email,
-                    chatRoomId = chatRoom.id,
-                    chatRoomName = chatRoom.name,
-                    timestamp = savedMessage.timeStamp,
-                    uploadStatus = FILE_UPLOAD_SUCCESS
-                )
-            } else {
-                println("❌ File upload failed with status: ${uploadResponse.statusCode}")
-                throw IllegalStateException("File upload failed: ${uploadResponse.statusCode}")
-            }
-        } catch (e: Exception) {
-            println("❌ Error uploading file: ${e.message}")
-            throw IllegalStateException("Failed to upload file: ${e.message}", e)
-        } finally {
-            println("📁 ===== SEND FILE TO CHAT ROOM END =====")
-        }
-    }
-
-    /**
      * Get file download URL for a file message
      */
     fun getFileDownloadUrl(fileName: String): String {
@@ -328,10 +236,6 @@ class MessageService(
         return "/api/files/download/$fileName"
     }
 
-
-    /**
-     * Get all files in a chat room
-     */
     /**
      * Alternative method using chat room ID directly
      */
@@ -347,6 +251,10 @@ class MessageService(
         }
 
         return fileMessages.map { message ->
+            // Récupérer les infos de l'uploader
+            val uploader = usersWebChatInterface.getUserBasicInfo(message.senderId)
+                .getBodyOrThrow("User not found with id: ${message.senderId}")
+
             MessageDto.FileMessageResponse(
                 messageId = message.id,
                 fileId = extractFileIdFromContent(message.content),
@@ -355,8 +263,8 @@ class MessageService(
                 fileType = getFileTypeFromMessage(message),
                 fileSize = extractFileSizeFromContent(message.content),
                 description = extractDescriptionFromContent(message.content),
-                uploaderId = message.sender.id,
-                uploaderName = message.sender.email,
+                uploaderId = uploader.id,
+                uploaderName = uploader.email,
                 chatRoomId = chatRoom.id,
                 chatRoomName = chatRoom.name,
                 timestamp = message.timeStamp,
@@ -364,7 +272,6 @@ class MessageService(
             )
         }
     }
-
 
     /**
      * Delete a file message (soft delete)
@@ -378,29 +285,32 @@ class MessageService(
             throw IllegalArgumentException("Message is not a file message")
         }
 
-        message.isDeleted = true
-        val deletedMessage = messageRepository.save(message)
+        val deletedMessage = message.copy(isDeleted = true)
+        val saved = messageRepository.save(deletedMessage)
+
+        // Récupérer les infos de l'uploader
+        val uploader = usersWebChatInterface.getUserBasicInfo(saved.senderId)
+            .getBodyOrThrow("User not found with id: ${saved.senderId}")
 
         // Extract file info from message content
-        val fileName = extractFileNameFromContent(deletedMessage.content)
+        val fileName = extractFileNameFromContent(saved.content)
 
         return MessageDto.FileMessageResponse(
-            messageId = deletedMessage.id,
+            messageId = saved.id,
             fileId = null,
             fileName = fileName,
             originalFileName = fileName,
-            fileType = if (deletedMessage.messageType == MessageType.IMAGE) "image/*" else "application/octet-stream",
+            fileType = if (saved.messageType == MessageType.IMAGE) "image/*" else "application/octet-stream",
             fileSize = 0L,
-            description = "Deleted: ${deletedMessage.content}",
-            uploaderId = deletedMessage.sender.id,
-            uploaderName = deletedMessage.sender.email,
-            chatRoomId = deletedMessage.chatRoom.id,
-            chatRoomName = deletedMessage.chatRoom.name,
-            timestamp = deletedMessage.timeStamp,
+            description = "Deleted: ${saved.content}",
+            uploaderId = uploader.id,
+            uploaderName = uploader.email,
+            chatRoomId = saved.chatRoom.id,
+            chatRoomName = saved.chatRoom.name,
+            timestamp = saved.timeStamp,
             uploadStatus = "Deleted"
         )
     }
-
 
     /**
      * Get file type from message
@@ -422,7 +332,6 @@ class MessageService(
             else -> "text/plain"
         }
     }
-
 
     /**
      * Extract file ID from message content
@@ -476,22 +385,40 @@ class MessageService(
         }
     }
 
+    /**
+     * Map Message entity to MessageResponse DTO
+     */
+    private fun mapToMessageResponse(message: Message): MessageDto.MessageResponse {
+        // Récupérer les infos de l'expéditeur via Feign
+        val sender = usersWebChatInterface.getUserBasicInfo(message.senderId)
+            .getBodyOrThrow("User not found with id: ${message.senderId}")
 
+        return MessageDto.MessageResponse(
+            id = message.id,
+            content = message.content,
+            sender = UserDto.UserSimpleResponse(
+                id = sender.id,
+                email = sender.email
+            ),
+            chatRoomId = message.chatRoom.id,
+            timestamp = message.timeStamp,
+            messageType = message.messageType,
+            isDeleted = message.isDeleted
+        )
+    }
 
     /**
      * Map Message entity to MessageDetailResponse DTO
      */
     private fun mapToMessageDetailResponse(message: Message): MessageDto.MessageDetailResponse {
+        // Récupérer les infos complètes de l'expéditeur via Feign
+        val sender = usersWebChatInterface.getUserBasicInfo(message.senderId)
+            .getBodyOrThrow("User not found with id: ${message.senderId}")
+
         return MessageDto.MessageDetailResponse(
             id = message.id,
             content = message.content,
-            sender = UserDto.UserResponse(
-                id = message.sender.id,
-                email = message.sender.email,
-                role = message.sender.role,
-                isActive = message.sender.isActive,
-                createdAt = message.sender.createdAt
-            ),
+            sender = sender,  // UserDto.UserResponse
             chatRoom = mapToChatRoomResponse(message.chatRoom),
             timeStamp = message.timeStamp,
             messageType = message.messageType,
@@ -508,29 +435,4 @@ class MessageService(
         // Adjust based on your actual ChatRoom entity and DTO structure
         return chatRoom
     }
-
-    private fun createMessageEntity(
-        userId: Long,
-        request: MessageDto.MessageCreateRequest
-    ): Message {
-        // Validate user
-        val user = usersWebChatInterface.getUserById(userId)
-            .orElseThrow { EntityNotFoundException("User not found with id: $userId") }
-
-        // Validate chat room
-        val chatRoom = chatRoomRepository.findById(request.chatRoomId)
-            .orElseThrow { EntityNotFoundException("Chat room not found with id: ${request.chatRoomId}") }
-
-        return Message(
-            id = 0,
-            content = request.content,
-            sender = user,
-            chatRoom = chatRoom,
-            timeStamp = LocalDateTime.now(),
-            messageType = request.messageType,
-            isDeleted = false
-        )
-    }
-
-
 }

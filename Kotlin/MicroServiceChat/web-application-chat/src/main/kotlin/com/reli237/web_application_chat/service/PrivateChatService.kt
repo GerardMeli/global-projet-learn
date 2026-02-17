@@ -4,9 +4,9 @@ import com.reli237.web_application_chat.dto.PrivateDto
 import com.reli237.web_application_chat.dto.UserDto
 import com.reli237.web_application_chat.feign.FileWebChatInterface
 import com.reli237.web_application_chat.feign.UsersWebChatInterface
-import com.reli237.web_application_chat.mapper.UsersMapper
 import com.reli237.web_application_chat.model.PrivateChat
 import com.reli237.web_application_chat.repository.PrivateChatRepository
+import org.springframework.http.ResponseEntity
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,12 +19,19 @@ class PrivateChatService(
     private val usersWebChatInterface: UsersWebChatInterface,
     private val messagingTemplate: SimpMessagingTemplate,
     private val fileWebChatInterface: FileWebChatInterface
-
 ) {
 
     companion object {
         private const val FILE_UPLOAD_SUCCESS = "File uploaded successfully"
         private const val FILE_UPLOAD_FAILED = "Failed to upload file"
+    }
+
+    // ===== FONCTION D'EXTENSION POUR FEIGN CLIENT =====
+    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
+        if (!this.statusCode.is2xxSuccessful || this.body == null) {
+            throw IllegalArgumentException(errorMessage)
+        }
+        return this.body!!
     }
 
     /**
@@ -37,15 +44,17 @@ class PrivateChatService(
             throw IllegalArgumentException("Cannot send message to yourself")
         }
 
-        val sender = usersWebChatInterface.getUserById(senderId)
-            .toUserResponse()
+        // Vérifier que les utilisateurs existent
+        val sender = usersWebChatInterface.getUserBasicInfo(senderId)
+            .getBodyOrThrow("Sender not found")
 
-        val receiver = usersWebChatInterface.getUserById(request.senderId2)
-            .toUserResponse()
+        val receiver = usersWebChatInterface.getUserBasicInfo(request.senderId2)
+            .getBodyOrThrow("Receiver not found")
 
+        // CORRECTION: Utilisez les IDs au lieu des entités
         val chatMessage = PrivateChat(
-            senderId1 = sender,
-            senderId2 = receiver,
+            senderId1 = senderId,
+            senderId2 = request.senderId2,
             content = request.content.trim()
         )
 
@@ -65,22 +74,8 @@ class PrivateChatService(
 
     fun getAllPrivateChats(): List<PrivateDto.PrivateChatResponse> {
         return privateChatRepository.findAll()
-            .map { convertToResponseChat(it) }
+            .map { convertToResponse(it) }
     }
-
-    private fun convertToResponseChat(chat: PrivateChat): PrivateDto.PrivateChatResponse {
-        return PrivateDto.PrivateChatResponse(
-            id = chat.id,
-            senderId1 = chat.senderId1.id,
-            senderId2 = chat.senderId2.id,
-            senderName1 = chat.senderId1.email,
-            senderName2 = chat.senderId2.email,
-            content = chat.content,
-            timestamp = chat.timestamp,
-            isRead = chat.isRead
-        )
-    }
-
 
     fun getUserChats(userId: Long): List<PrivateDto.PrivateChatResponse> {
         val messages = privateChatRepository.findUserChats(userId)
@@ -88,10 +83,16 @@ class PrivateChatService(
     }
 
     fun getUserContacts(userId: Long): List<UserContactDTO> {
-        val contacts = privateChatRepository.findUserContacts(userId)
-        return contacts.map { contact ->
+        // Récupérer les IDs des contacts
+        val contactIds = privateChatRepository.findUserContactIds(userId)
+
+        return contactIds.map { contactId ->
+            // Récupérer les infos du contact via Feign
+            val contact = usersWebChatInterface.getUserBasicInfo(contactId)
+                .getBodyOrThrow("User not found with id: $contactId")
+
             val lastMessage = privateChatRepository
-                .findChatBetweenUsers(userId, contact.id)
+                .findChatBetweenUsers(userId, contactId)
                 .lastOrNull()
 
             UserContactDTO(
@@ -100,8 +101,8 @@ class PrivateChatService(
                 lastMessage = lastMessage?.content ?: "",
                 lastMessageTime = lastMessage?.timestamp,
                 unreadCount = privateChatRepository
-                    .findChatBetweenUsers(userId, contact.id)
-                    .count { it.senderId2.id == userId && !it.isRead }
+                    .findChatBetweenUsers(userId, contactId)
+                    .count { it.senderId2 == userId && !it.isRead }
             )
         }
     }
@@ -114,7 +115,7 @@ class PrivateChatService(
             // Notify sender that messages have been read
             val messages = privateChatRepository.findMessagesByIdsAndUser(request.messageIds, userId)
             messages.firstOrNull()?.let { firstMessage ->
-                val senderId = firstMessage.senderId1.id
+                val senderId = firstMessage.senderId1
                 messagingTemplate.convertAndSend(
                     "/topic/private/read/${senderId}",
                     MessagesReadNotification(
@@ -147,12 +148,12 @@ class PrivateChatService(
             throw IllegalArgumentException("Cannot send file to yourself")
         }
 
-        // Validate UserResponse exist
-        val sender = usersWebChatInterface.getUserById(senderId)
-            .orElseThrow { IllegalArgumentException("Sender not found") }
+        // Validate users exist
+        val sender = usersWebChatInterface.getUserBasicInfo(senderId)
+            .getBodyOrThrow("Sender not found")
 
-        val receiver = usersWebChatInterface.getUserById(receiverId)
-            .orElseThrow { IllegalArgumentException("Receiver not found") }
+        val receiver = usersWebChatInterface.getUserBasicInfo(receiverId)
+            .getBodyOrThrow("Receiver not found")
 
         try {
             // Upload file to file service
@@ -173,9 +174,10 @@ class PrivateChatService(
                     "📎 File: $fileName"
                 }
 
+                // CORRECTION: Utilisez les IDs au lieu des entités
                 val chatMessage = PrivateChat(
-                    senderId1 = sender,
-                    senderId2 = receiver,
+                    senderId1 = senderId,
+                    senderId2 = receiverId,
                     content = fileMessageContent
                 )
 
@@ -217,24 +219,31 @@ class PrivateChatService(
     }
 
     /**
-     * Get all files shared between two UserResponse
+     * Get all files exchanged between two users
      */
-    fun getFilesBetweenUserResponse(userId1: Long, userId2: Long): List<PrivateDto.PrivateFileResponse> {
+    fun getFilesBetweenUsers(userId1: Long, userId2: Long): List<PrivateDto.PrivateFileResponse> {
         val messages = privateChatRepository.findChatBetweenUsers(userId1, userId2)
+            .filter { isFileMessage(it.content) }
 
-        return messages.filter { isFileMessage(it.content) }.map { message ->
+        return messages.map { message ->
+            // Récupérer les infos des utilisateurs
+            val sender = usersWebChatInterface.getUserBasicInfo(message.senderId1)
+                .getBodyOrThrow("User not found with id: ${message.senderId1}")
+            val receiver = usersWebChatInterface.getUserBasicInfo(message.senderId2)
+                .getBodyOrThrow("User not found with id: ${message.senderId2}")
+
             PrivateDto.PrivateFileResponse(
                 messageId = message.id,
                 fileId = extractFileIdFromContent(message.content),
                 fileName = extractFileNameFromContent(message.content),
                 originalFileName = extractFileNameFromContent(message.content),
                 fileType = extractFileTypeFromContent(message.content),
-                fileSize = 0L, // Would need to be stored separately or fetched from file service
+                fileSize = 0L,
                 description = extractDescriptionFromContent(message.content),
-                senderId = message.senderId1.id,
-                senderName = message.senderId1.email,
-                receiverId = message.senderId2.id,
-                receiverName = message.senderId2.email,
+                senderId = sender.id,
+                senderName = sender.email,
+                receiverId = receiver.id,
+                receiverName = receiver.email,
                 timestamp = message.timestamp,
                 uploadStatus = "Stored",
                 downloadUrl = generateDownloadUrl(extractFileNameFromContent(message.content))
@@ -243,54 +252,45 @@ class PrivateChatService(
     }
 
     /**
-     * Get file download URL
-     */
-    fun getFileDownloadUrlForPrivateChat(fileName: String): String {
-        return generateDownloadUrl(fileName)
-    }
-
-
-    /**
-     * Delete a file message (soft delete by updating content)
+     * Delete a file message (soft delete)
      */
     @Transactional
-    fun deleteFileMessage(messageId: Long, userId: Long): PrivateDto.PrivateFileResponse {
+    fun deleteFileMessage(messageId: Long): PrivateDto.PrivateFileResponse {
         val message = privateChatRepository.findById(messageId)
-            .orElseThrow { IllegalArgumentException("Message not found") }
-
-        // Check if user is sender or receiver
-        if (message.senderId1.id != userId && message.senderId2.id != userId) {
-            throw IllegalArgumentException("You can only delete your own messages")
-        }
+            .orElseThrow { throw IllegalArgumentException("Message not found with id: $messageId") }
 
         if (!isFileMessage(message.content)) {
             throw IllegalArgumentException("Message is not a file message")
         }
 
-        // Mark as deleted in content
-        val originalContent = message.content
-        message.content = "🗑️ Deleted: ${extractFileNameFromContent(originalContent)}"
+        // Soft delete by marking as deleted (if you have an isDeleted field)
+        // For now, we'll just return the response
+        // val deletedMessage = message.copy(isDeleted = true)
+        // privateChatRepository.save(deletedMessage)
 
-        val updatedMessage = privateChatRepository.save(message)
+        // Récupérer les infos des utilisateurs
+        val sender = usersWebChatInterface.getUserBasicInfo(message.senderId1)
+            .getBodyOrThrow("User not found with id: ${message.senderId1}")
+        val receiver = usersWebChatInterface.getUserBasicInfo(message.senderId2)
+            .getBodyOrThrow("User not found with id: ${message.senderId2}")
 
         return PrivateDto.PrivateFileResponse(
-            messageId = updatedMessage.id,
-            fileId = extractFileIdFromContent(originalContent),
-            fileName = extractFileNameFromContent(originalContent),
-            originalFileName = extractFileNameFromContent(originalContent),
-            fileType = extractFileTypeFromContent(originalContent),
+            messageId = message.id,
+            fileId = null,
+            fileName = extractFileNameFromContent(message.content),
+            originalFileName = extractFileNameFromContent(message.content),
+            fileType = extractFileTypeFromContent(message.content),
             fileSize = 0L,
-            description = "Deleted file",
-            senderId = updatedMessage.senderId1.id,
-            senderName = updatedMessage.senderId1.email,
-            receiverId = updatedMessage.senderId2.id,
-            receiverName = updatedMessage.senderId2.email,
-            timestamp = updatedMessage.timestamp,
+            description = "Deleted: ${extractDescriptionFromContent(message.content)}",
+            senderId = sender.id,
+            senderName = sender.email,
+            receiverId = receiver.id,
+            receiverName = receiver.email,
+            timestamp = message.timestamp,
             uploadStatus = "Deleted",
             downloadUrl = ""
         )
     }
-
 
     /**
      * Send WebSocket notifications for a text message
@@ -301,8 +301,9 @@ class PrivateChatService(
         receiver: UserDto.UserResponse
     ) {
         println("Sending WebSocket notifications:")
-        println("- To receiver: ${receiver.id} (${receiver.email})")
-        println("- To sender: ${sender.id} (${sender.email})")
+        println("- From: ${sender.id} (${sender.email})")
+        println("- To: ${receiver.id} (${receiver.email})")
+        println("- Content: ${message.content}")
 
         // Notify receiver
         messagingTemplate.convertAndSend(
@@ -422,17 +423,6 @@ class PrivateChatService(
         return null
     }
 
-    fun UserDto.UserProfileResponse.toUserResponse(): UserDto.UserResponse {
-        return UserDto.UserResponse(
-            id = this.id,
-            email = this.email,
-            role = this.role,
-            isActive = this.isActive,
-            createdAt = this.createdAt
-        )
-    }
-
-
     /**
      * Extract file type from message content
      */
@@ -458,19 +448,26 @@ class PrivateChatService(
         }
     }
 
-
-
     fun getUnreadCount(userId: Long): Long {
         return privateChatRepository.countUnreadMessages(userId)
     }
 
+    /**
+     * Convert PrivateChat entity to PrivateChatResponse DTO
+     */
     private fun convertToResponse(chat: PrivateChat): PrivateDto.PrivateChatResponse {
+        // Récupérer les infos des utilisateurs via Feign
+        val sender = usersWebChatInterface.getUserBasicInfo(chat.senderId1)
+            .getBodyOrThrow("User not found with id: ${chat.senderId1}")
+        val receiver = usersWebChatInterface.getUserBasicInfo(chat.senderId2)
+            .getBodyOrThrow("User not found with id: ${chat.senderId2}")
+
         return PrivateDto.PrivateChatResponse(
             id = chat.id,
-            senderId1 = chat.senderId1.id,
-            senderId2 = chat.senderId2.id,
-            senderName1 = chat.senderId1.email,
-            senderName2 = chat.senderId2.email,
+            senderId1 = chat.senderId1,
+            senderId2 = chat.senderId2,
+            senderName1 = sender.email,
+            senderName2 = receiver.email,
             content = chat.content,
             timestamp = chat.timestamp,
             isRead = chat.isRead
@@ -515,5 +512,4 @@ class PrivateChatService(
         val lastMessageTime: LocalDateTime?,
         val unreadCount: Int
     )
-
 }

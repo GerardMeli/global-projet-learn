@@ -8,6 +8,7 @@ import com.reli237.web_application_chat.model.ChatParticipant
 import com.reli237.web_application_chat.model.ParticipantRole
 import com.reli237.web_application_chat.repository.ChatParticipantRepository
 import com.reli237.web_application_chat.repository.ChatRoomRepository
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -24,8 +25,9 @@ class ChatParticipantService(
      * Add a participant to a chat room
      */
     fun addParticipant(request: ChatParticipantDto.ChatParticipantCreateRequest): ChatParticipantDto.ChatParticipantResponse {
-        val user = usersWebChatInterface.getUserById(request.userId)
-            .orElseThrow { throw IllegalArgumentException("User not found with id: ${request.userId}") }
+        // Vérifier que l'utilisateur existe
+        val user = usersWebChatInterface.getUserBasicInfo(request.userId)
+            .getBodyOrThrow("User not found with id: ${request.userId}")
 
         val chatRoom = chatRoomRepository.findById(request.chatRoomId)
             .orElseThrow { throw IllegalArgumentException("Chat room not found with id: ${request.chatRoomId}") }
@@ -36,9 +38,10 @@ class ChatParticipantService(
             throw IllegalArgumentException("User is already a participant in this chat room")
         }
 
+        // CORRECTION ICI - utilisez userId au lieu de user
         val participant = ChatParticipant(
             id = 0,
-            user = user,
+            userId = request.userId,  // ← Changé ici
             chatRoom = chatRoom,
             joinedAt = LocalDateTime.now(),
             role = request.role
@@ -73,8 +76,12 @@ class ChatParticipantService(
      * Get all chat rooms for a user
      */
     fun getChatRoomsForUser(userId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
-        val user = usersWebChatInterface.getUserById(userId)
-            .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
+        // Correction - ResponseEntity n'a pas orElseThrow()
+        val userResponse = usersWebChatInterface.getUserBasicInfo(userId)
+        if (!userResponse.statusCode.is2xxSuccessful || userResponse.body == null) {
+            throw IllegalArgumentException("User not found with id: $userId")
+        }
+        val user = userResponse.body!!
 
         return chatParticipantRepository.findByUserId(userId)
             .map { mapToChatParticipantResponse(it) }
@@ -223,11 +230,15 @@ class ChatParticipantService(
      * Map ChatParticipant entity to ChatParticipantResponse DTO
      */
     private fun mapToChatParticipantResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantResponse {
+        // Récupérer les infos utilisateur via Feign
+        val user = usersWebChatInterface.getUserBasicInfo(participant.userId)
+            .getBodyOrThrow("User not found with id: ${participant.userId}")
+
         return ChatParticipantDto.ChatParticipantResponse(
             id = participant.id,
             user = UserDto.UserSimpleResponse(
-                id = participant.user.id,
-                email = participant.user.email
+                id = user.id,
+                email = user.email
             ),
             chatRoomId = participant.chatRoom.id,
             joinedAt = participant.joinedAt,
@@ -239,15 +250,13 @@ class ChatParticipantService(
      * Map ChatParticipant entity to ChatParticipantDetailResponse DTO
      */
     private fun mapToChatParticipantDetailResponse(participant: ChatParticipant): ChatParticipantDto.ChatParticipantDetailResponse {
+        // Récupérer les infos complètes de l'utilisateur
+        val user = usersWebChatInterface.getUserBasicInfo(participant.userId)
+            .getBodyOrThrow("User not found with id: ${participant.userId}")
+
         return ChatParticipantDto.ChatParticipantDetailResponse(
             id = participant.id,
-            user = UserDto.UserResponse(
-                id = participant.user.id,
-                email = participant.user.email,
-                role = participant.user.role,
-                isActive = participant.user.isActive,
-                createdAt = participant.user.createdAt
-            ),
+            user = user, // UserDto.UserResponse
             chatRoom = ChatRoomDto.ChatRoomResponse(
                 id = participant.chatRoom.id,
                 name = participant.chatRoom.name,
@@ -257,6 +266,14 @@ class ChatParticipantService(
             joinedAt = participant.joinedAt,
             role = participant.role
         )
+    }
+
+    // Ajoutez cette fonction en haut de votre fichier service
+    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
+        if (!this.statusCode.is2xxSuccessful || this.body == null) {
+            throw IllegalArgumentException(errorMessage)
+        }
+        return this.body!!
     }
 
 }

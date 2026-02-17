@@ -24,24 +24,14 @@ interface UsersWebChatInterface {
     @PostMapping("/logout")
     fun logout(@RequestParam userId: Long): ResponseEntity<Void>
 
+    // CORRECTION ICI - Supprimez HttpSession car Feign ne peut pas l'envoyer
     @PostMapping("/login")
-    fun login(
-        @RequestBody request: UserDto.LoginRequest,
-        httpSession: HttpSession
-    ): ResponseEntity<UserDto.ApiResponse<UserDto.LoginResponse>>
+    fun login(@RequestBody request: UserDto.LoginRequest): ResponseEntity<UserDto.ApiResponse<UserDto.LoginResponse>>
 
     @GetMapping("/{userId}")
     fun getUserById(@PathVariable userId: Long): ResponseEntity<UserDto.UserProfileResponse>
 
-    fun UserDto.UserProfileResponse.toUserResponse(): UserDto.UserResponse {
-        return UserDto.UserResponse(
-            id = this.id,
-            email = this.email,
-            role = this.role,
-            isActive = this.isActive,
-            createdAt = this.createdAt
-        )
-    }
-
+    @GetMapping("/{userId}/basic")  // Nouveau endpoint
+    fun getUserBasicInfo(@PathVariable userId: Long): ResponseEntity<UserDto.UserResponse>
 
 }

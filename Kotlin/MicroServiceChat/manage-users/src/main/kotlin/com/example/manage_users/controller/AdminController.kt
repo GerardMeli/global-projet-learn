@@ -2,6 +2,7 @@ package com.example.manage_users.controller
 
 import com.example.manage_users.dto.AdminDto
 import com.example.manage_users.dto.ProfileDto
+import com.example.manage_users.dto.RegistrationDto
 import com.example.manage_users.security.JwtProvider
 import com.example.manage_users.service.interf.UsersService
 import jakarta.servlet.http.HttpServletRequest
@@ -70,11 +71,24 @@ class AdminController (
         return ResponseEntity.ok(users)
     }
 
-
     @GetMapping("/{userId}")
     fun getUserById(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
         return ResponseEntity.ok(response)
+    }
+
+    // Dans le controller du microservice manage-users
+    @GetMapping("/{userId}/basic")
+    fun getUserBasicInfo(@PathVariable userId: Long): ResponseEntity<RegistrationDto.UserResponse> {
+        val profile = userService.getUserById(userId)
+        val basicInfo = RegistrationDto.UserResponse(
+            id = profile.id,
+            email = profile.email,
+            role = profile.role,
+            isActive = profile.isActive,
+            createdAt = profile.createdAt
+        )
+        return ResponseEntity.ok(basicInfo)
     }
 
     @PreAuthorize("hasRole('ADMIN')")

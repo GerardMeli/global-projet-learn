@@ -12,8 +12,8 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
 
     @Query("""
         SELECT pc FROM PrivateChat pc 
-        WHERE (pc.senderId1.id = :userId1 AND pc.senderId2.id = :userId2) 
-           OR (pc.senderId1.id = :userId2 AND pc.senderId2.id = :userId1)
+        WHERE (pc.senderId1 = :userId1 AND pc.senderId2 = :userId2) 
+           OR (pc.senderId1 = :userId2 AND pc.senderId2 = :userId1)
         ORDER BY pc.timestamp ASC
     """)
     fun findChatBetweenUsers(
@@ -21,53 +21,51 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         @Param("userId2") userId2: Long
     ): List<PrivateChat>
 
+    // Trouver toutes les conversations d'un utilisateur
     @Query("""
         SELECT pc FROM PrivateChat pc 
-        WHERE (pc.senderId1.id = :userId OR pc.senderId2.id = :userId)
+        WHERE pc.senderId1 = :userId OR pc.senderId2 = :userId
         ORDER BY pc.timestamp DESC
     """)
     fun findUserChats(@Param("userId") userId: Long): List<PrivateChat>
 
+    // Trouver les IDs des contacts d'un utilisateur (sans jointure sur User)
     @Query("""
-    SELECT DISTINCT u FROM Users u 
-    WHERE u.id IN (
-        SELECT CASE 
-            WHEN pc.senderId1.id = :userId THEN pc.senderId2.id 
-            ELSE pc.senderId1.id 
+        SELECT DISTINCT CASE 
+            WHEN pc.senderId1 = :userId THEN pc.senderId2
+            ELSE pc.senderId1
         END
-        FROM PrivateChat pc 
-        WHERE pc.senderId1.id = :userId OR pc.senderId2.id = :userId
-        )
+        FROM PrivateChat pc
+        WHERE pc.senderId1 = :userId OR pc.senderId2 = :userId
     """)
-    fun findUserContacts(@Param("userId") userId: Long): List<UserDto.UserResponse>
+    fun findUserContactIds(@Param("userId") userId: Long): List<Long>
 
+    // Marquer les messages comme lus - CORRECTION ICI
+    @Modifying
+    @Query("""
+        UPDATE PrivateChat pc 
+        SET pc.isRead = true 
+        WHERE pc.id IN :messageIds AND pc.senderId2 = :userId
+    """)
+    fun markMessagesAsRead(
+        @Param("messageIds") messageIds: List<Long>,
+        @Param("userId") userId: Long
+    ): Int
+
+    // Trouver des messages par IDs et utilisateur - CORRECTION ICI
     @Query("""
         SELECT pc FROM PrivateChat pc 
-        WHERE pc.id IN :messageIds 
-        AND (pc.senderId1.id = :userId OR pc.senderId2.id = :userId)
+        WHERE pc.id IN :messageIds AND pc.senderId2 = :userId
     """)
     fun findMessagesByIdsAndUser(
         @Param("messageIds") messageIds: List<Long>,
         @Param("userId") userId: Long
     ): List<PrivateChat>
 
-    @Modifying
-    @Transactional
-    @Query("""
-        UPDATE PrivateChat pc 
-        SET pc.isRead = true 
-        WHERE pc.id IN :messageIds 
-        AND pc.senderId2.id = :receiverId
-    """)
-    fun markMessagesAsRead(
-        @Param("messageIds") messageIds: List<Long>,
-        @Param("receiverId") userId: Long
-    ): Int
-
+    // Compter les messages non lus pour un utilisateur
     @Query("""
         SELECT COUNT(pc) FROM PrivateChat pc 
-        WHERE pc.senderId2.id = :userId 
-        AND pc.isRead = false
+        WHERE pc.senderId2 = :userId AND pc.isRead = false
     """)
     fun countUnreadMessages(@Param("userId") userId: Long): Long
 }

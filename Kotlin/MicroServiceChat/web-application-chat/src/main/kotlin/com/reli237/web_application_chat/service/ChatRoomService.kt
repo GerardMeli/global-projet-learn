@@ -6,10 +6,13 @@ import com.reli237.web_application_chat.feign.UsersWebChatInterface
 import com.reli237.web_application_chat.model.ChatParticipant
 import com.reli237.web_application_chat.model.ChatRoom
 import com.reli237.web_application_chat.model.ChatRoomType
+import com.reli237.web_application_chat.model.ParticipantRole
 import com.reli237.web_application_chat.repository.ChatParticipantRepository
 import com.reli237.web_application_chat.repository.ChatRoomRepository
+import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 
 
 @Service
@@ -155,6 +158,9 @@ class ChatRoomService(
     /**
      * Add participants to chat room
      */
+    /**
+     * Add participants to chat room
+     */
     fun addParticipants(chatRoomId: Long, userIds: List<Long>): ChatRoomDto.ChatRoomDetailResponse {
         val chatRoom = chatRoomRepository.findById(chatRoomId)
             .orElseThrow { throw IllegalArgumentException("Chat room not found with id: $chatRoomId") }
@@ -164,16 +170,20 @@ class ChatRoomService(
         }
 
         for (userId in userIds) {
-            val user = usersWebChatInterface.getUserById(userId)
-                .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
+            // Vérifier que l'utilisateur existe
+            val user = usersWebChatInterface.getUserBasicInfo(userId)
+                .getBodyOrThrow("User not found with id: $userId")
 
             // Check if participant already exists
             val existingParticipant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             if (existingParticipant.isEmpty) {
+                // CORRECTION ICI - utilisez userId au lieu de user
                 val participant = ChatParticipant(
                     id = 0,
+                    userId = userId,  // ← Changé ici
                     chatRoom = chatRoom,
-                    user = user
+                    joinedAt = LocalDateTime.now(),
+                    role = ParticipantRole.MEMBER
                 )
                 chatParticipantRepository.save(participant)
             }
@@ -185,8 +195,6 @@ class ChatRoomService(
 
         return mapToChatRoomDetailResponse(refreshedChatRoom)
     }
-
-
     /**
      * Remove participant from chat room
      */
@@ -194,8 +202,12 @@ class ChatRoomService(
         val chatRoom = chatRoomRepository.findById(chatRoomId)
             .orElseThrow { throw IllegalArgumentException("Chat room not found with id: $chatRoomId") }
 
-        val user = usersWebChatInterface.getUserById(userId)
-            .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
+        // Correction ici - ResponseEntity n'a pas orElseThrow()
+        val userResponse = usersWebChatInterface.getUserBasicInfo(userId)
+        if (!userResponse.statusCode.is2xxSuccessful || userResponse.body == null) {
+            throw IllegalArgumentException("User not found with id: $userId")
+        }
+        val user = userResponse.body!!
 
         val participant = chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .orElseThrow { throw IllegalArgumentException("Participant not found in this chat room") }
@@ -236,13 +248,13 @@ class ChatRoomService(
     /**
      * Get all chat rooms for a specific user
      */
-    fun getChatRoomsForUser(userId: Long): List<ChatRoomDto.ChatRoomResponse> {
-        val user = usersWebChatInterface.getUserById(userId)
-            .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
-
-        return chatParticipantRepository.findByUserId(userId)
-            .map { mapToChatRoomResponse(it.chatRoom) }
-    }
+//    fun getChatRoomsForUser(userId: Long): List<ChatRoomDto.ChatRoomResponse> {
+//        val user = usersWebChatInterface.getUserBasicInfo(userId)
+//            .orElseThrow { throw IllegalArgumentException("User not found with id: $userId") }
+//
+//        return chatParticipantRepository.findByUserId(userId)
+//            .map { mapToChatRoomResponse(it.chatRoom) }
+//    }
 
     /**
      * Map ChatRoom entity to ChatRoomResponse DTO
@@ -289,6 +301,14 @@ class ChatRoomService(
         // This should properly map Message to MessageDto.MessageResponse
         // For now returning a placeholder
         return message as MessageDto.MessageResponse
+    }
+
+    // Ajoutez cette fonction en haut de votre fichier service
+    private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
+        if (!this.statusCode.is2xxSuccessful || this.body == null) {
+            throw IllegalArgumentException(errorMessage)
+        }
+        return this.body!!
     }
 
 }

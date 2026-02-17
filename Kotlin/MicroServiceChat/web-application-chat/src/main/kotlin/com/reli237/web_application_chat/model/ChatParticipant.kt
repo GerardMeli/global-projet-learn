@@ -1,6 +1,7 @@
 package com.reli237.web_application_chat.model
 
 import com.reli237.web_application_chat.dto.UserDto
+import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -19,9 +20,9 @@ data class ChatParticipant(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "users_id")
-    val user: UserDto.UserResponse,
+    // Stocker uniquement l'ID de l'utilisateur, pas toute l'entité
+    @Column(name = "user_id", nullable = false)
+    val userId: Long,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")

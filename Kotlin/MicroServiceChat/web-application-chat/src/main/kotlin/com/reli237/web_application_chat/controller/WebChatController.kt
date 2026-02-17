@@ -3,21 +3,17 @@ package com.reli237.web_application_chat.controller
 import com.reli237.web_application_chat.dto.MessageDto
 import com.reli237.web_application_chat.dto.PrivateDto
 import com.reli237.web_application_chat.feign.UsersWebChatInterface
-import com.reli237.web_application_chat.service.ChatRoomService
 import com.reli237.web_application_chat.service.MessageService
 import com.reli237.web_application_chat.service.PrivateChatService
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.handler.annotation.DestinationVariable
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
-import org.springframework.messaging.handler.annotation.SendTo
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.messaging.simp.annotation.SendToUser
-import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.stereotype.Controller
 import java.security.Principal
-import java.time.LocalDateTime
 
 @Controller
 class WebChatController(
@@ -377,48 +373,48 @@ class WebChatController(
         )
     }
 
-    @MessageMapping("/private/typing/{senderId}/{receiverId}")
-    fun handleTypingIndicator(
-        @DestinationVariable senderId: Long,
-        @DestinationVariable receiverId: Long,
-        @Payload isTyping: Boolean
-    ) {
-        // Vérifier si l'utilisateur existe
-        val sender = usersWebChatInterface.getUserById(senderId)
-        if (sender == null) {
-            logger.warn("Sender with ID $senderId not found")
-            return
-        }
-
-        // Vérifier si le destinataire existe
-        val receiver = usersWebChatInterface.getUserById(receiverId)
-        if (receiver == null) {
-            logger.warn("Receiver with ID $receiverId not found")
-            return
-        }
-
-        // Créer la notification de frappe
-        val typingNotification = PrivateDto.TypingNotification(
-            senderId = senderId,
-            senderName = sender.email,
-            receiverId = receiverId,
-            isTyping = isTyping,
-            timestamp = LocalDateTime.now()
-        )
-
-        // Envoyer la notification au destinataire uniquement
-        messagingTemplate.convertAndSend(
-            "/topic/private/typing/${receiverId}",
-            typingNotification
-        )
-
-        // Log pour le débogage
-        if (isTyping) {
-            logger.info("User $senderId is typing to $receiverId")
-        } else {
-            logger.info("User $senderId stopped typing to $receiverId")
-        }
-    }
+//    @MessageMapping("/private/typing/{senderId}/{receiverId}")
+//    fun handleTypingIndicator(
+//        @DestinationVariable senderId: Long,
+//        @DestinationVariable receiverId: Long,
+//        @Payload isTyping: Boolean
+//    ) {
+//        // Vérifier si l'utilisateur existe
+//        val sender = usersWebChatInterface.getUserBasicInfo(senderId)
+//        if (sender == null) {
+//            logger.warn("Sender with ID $senderId not found")
+//            return
+//        }
+//
+//        // Vérifier si le destinataire existe
+//        val receiver = usersWebChatInterface.getUserById(receiverId)
+//        if (receiver == null) {
+//            logger.warn("Receiver with ID $receiverId not found")
+//            return
+//        }
+//
+//        // Créer la notification de frappe
+//        val typingNotification = PrivateDto.TypingNotification(
+//            senderId = senderId,
+//            senderName = sender.email,
+//            receiverId = receiverId,
+//            isTyping = isTyping,
+//            timestamp = LocalDateTime.now()
+//        )
+//
+//        // Envoyer la notification au destinataire uniquement
+//        messagingTemplate.convertAndSend(
+//            "/topic/private/typing/${receiverId}",
+//            typingNotification
+//        )
+//
+//        // Log pour le débogage
+//        if (isTyping) {
+//            logger.info("User $senderId is typing to $receiverId")
+//        } else {
+//            logger.info("User $senderId stopped typing to $receiverId")
+//        }
+//    }
 
     @MessageMapping("/private/read/{userId}")
     fun markMessagesAsRead(

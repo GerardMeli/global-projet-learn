@@ -23,9 +23,9 @@ data class Message(
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "senders_id")
-    val sender: UserDto.UserResponse,
+    // CORRECTION: Stocker l'ID au lieu de l'entité
+    @Column(name = "sender_id", nullable = false)
+    val senderId: Long,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id")

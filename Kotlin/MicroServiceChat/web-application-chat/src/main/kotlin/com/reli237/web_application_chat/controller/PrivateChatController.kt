@@ -28,14 +28,14 @@ class PrivateChatController(
         return ResponseEntity.ok(response)
     }
 
-    @GetMapping("/chat/{userId1}/{userId2}")
-    fun getChatBetweenUsers(
-        @PathVariable userId1: Long,
-        @PathVariable userId2: Long
-    ): ResponseEntity<List<PrivateDto.PrivateChatResponse>> {
-        val chat = privateChatService.getChatBetweenUsers(userId1, userId2)
-        return ResponseEntity.ok(chat)
-    }
+//    @GetMapping("/chat/{userId1}/{userId2}")
+//    fun getChatBetweenUsers(
+//        @PathVariable userId1: Long,
+//        @PathVariable userId2: Long
+//    ): ResponseEntity<List<PrivateDto.PrivateChatResponse>> {
+//        val chat = privateChatService.getChatBetweenUsers(userId1, userId2)
+//        return ResponseEntity.ok(chat)
+//    }
 
     @GetMapping("/user/{userId}")
     fun getUserChats(@PathVariable userId: Long): ResponseEntity<List<PrivateDto.PrivateChatResponse>> {

@@ -12,15 +12,12 @@ data class PrivateChat(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id_1", nullable = false)
-    @JsonIgnoreProperties("chatParticipants", "password")  // ✅ Ignore des propriétés spécifiques
-    val senderId1: UserDto.UserResponse,
+    // CORRECTION: Stocker les IDs au lieu des entités UserDto.UserResponse
+    @Column(name = "sender_id_1", nullable = false)
+    val senderId1: Long,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id_2", nullable = false)
-    @JsonIgnoreProperties("chatParticipants", "password")  // ✅ Ignore des propriétés spécifiques
-    val senderId2: UserDto.UserResponse,
+    @Column(name = "sender_id_2", nullable = false)
+    val senderId2: Long,
 
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
