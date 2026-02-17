@@ -62,15 +62,6 @@ class AdminController (
         }
     }
 
-    @GetMapping("/search/{currentUserId}")
-    fun searchUsers(
-        @PathVariable currentUserId: Long,
-        @RequestParam query: String
-    ): ResponseEntity<List<ProfileDto.PrivateUserResponse>?> {
-        val users = userService.searchUsers(currentUserId, query)
-        return ResponseEntity.ok(users)
-    }
-
     @GetMapping("/{userId}")
     fun getUserById(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
