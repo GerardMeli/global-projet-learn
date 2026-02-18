@@ -29,9 +29,6 @@ class EmailPwdDto {
 
         @field:NotBlank
         @field:Size(min = 8, max = 100)
-        @field:Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$"
-        )
         val newPassword: String,
 
         @field:NotBlank

@@ -26,7 +26,6 @@ class RegistrationDto {
         @field:Size(max = 100)
         val lastName: String? = null,
 
-        @field:Pattern(regexp = "^\\+?[0-9\\s\\-()]{7,20}$")
         val phoneNumber: String? = null,
 
         @field:Size(max = 45)

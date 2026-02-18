@@ -201,12 +201,17 @@ class JwtProvider (
      */
     fun validatePasswordResetToken(token: String): Long {
         try {
+            log.debug("Validating password reset token: $token")
             val claims = getAllClaimsFromToken(token)
 
-            // Check token type
+            // Log tous les claims pour debug
+            log.debug("Token claims: ${claims.entries.joinToString { "${it.key}=${it.value}" }}")
+
             val tokenType = claims.get("tokenType", String::class.java)
+            log.debug("Token type found: $tokenType")
+
             if (tokenType != "password_reset") {
-                throw InvalidTokenException("Invalid token type")
+                throw InvalidTokenException("Invalid token type. Expected 'password_reset', got '$tokenType'")
             }
 
             // Check expiration
@@ -366,4 +371,30 @@ class JwtProvider (
             .parseClaimsJws(token)
             .body
     }
+
+
+
+
+
+
+
+
+    fun debugToken(token: String) {
+        try {
+            val claims = getAllClaimsFromToken(token)
+            println("=== TOKEN DEBUG ===")
+            println("Subject: ${claims.subject}")
+            println("Token type: ${claims.get("tokenType")}")
+            println("Email: ${claims.get("email")}")
+            println("UserId: ${claims.get("userId")}")
+            println("Expiration: ${claims.expiration}")
+            println("==================")
+        } catch (e: Exception) {
+            println("Error decoding token: ${e.message}")
+        }
+    }
+
+
+
+
 }

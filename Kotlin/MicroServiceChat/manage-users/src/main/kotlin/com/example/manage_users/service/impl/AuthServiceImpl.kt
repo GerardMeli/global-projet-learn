@@ -20,6 +20,7 @@ import com.example.manage_users.security.JwtProvider
 import com.example.manage_users.service.interf.AuthService
 import com.example.manage_users.service.interf.EmailService
 import com.example.manage_users.service.interf.TokenService
+import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -40,6 +41,8 @@ class AuthServiceImpl(
     private val emailService: EmailService,
     private val tokenService: TokenService
 ) : AuthService {
+
+    private val log = LoggerFactory.getLogger(AuthServiceImpl::class.java)
 
     override fun register(request: RegistrationDto.RegisterRequest): RegistrationDto.RegisterResponse {
         if (usersRepository.existsByEmail(request.email)) {
@@ -150,6 +153,7 @@ class AuthServiceImpl(
 
         // Dans votre service d'envoi d'email
         val token = jwtProvider.createPasswordResetToken(user.id, user.email)
+        log.debug("Generated password reset token with type: ${jwtProvider.getTokenTypeFromToken(token)}")
         emailService.sendPasswordResetEmailWithToken(user.email, token)
     }
 
@@ -177,8 +181,6 @@ class AuthServiceImpl(
         // 5️⃣ Suppression du token
         tokenService.deletePasswordResetToken(request.token)
     }
-
-
 
     override fun logout(userId: Long) {
         SecurityContextHolder.clearContext()

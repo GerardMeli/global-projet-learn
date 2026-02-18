@@ -14,7 +14,6 @@ import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
-import java.nio.charset.StandardCharsets
 
 @Service
 class EmailServiceImpl (
@@ -90,7 +89,7 @@ class EmailServiceImpl (
 
             // 2️⃣ Load HTML template
             val htmlContent = EmailServiceImpl::class.java
-                .getResourceAsStream("/templates/password-reset.html") // new template
+                .getResourceAsStream("/templates/email/password-reset.html") // new template
                 ?.bufferedReader()
                 ?.use { it.readText() }
                 ?: throw IllegalStateException("Password reset email template not found")

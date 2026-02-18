@@ -31,7 +31,6 @@ class ProfileDto {
         @field:Size(max = 100)
         val lastName: String? = null,
 
-        @field:Pattern(regexp = "^\\+?[0-9\\s\\-()]{7,20}$")
         val phoneNumber: String? = null,
 
         @field:Size(max = 45)
@@ -50,10 +49,6 @@ class ProfileDto {
 
         @field:NotBlank
         @field:Size(min = 8, max = 100)
-        @field:Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
-            message = "Password must contain at least one digit, one lowercase, one uppercase, one special character and no spaces"
-        )
         val newPassword: String,
 
         @field:NotBlank

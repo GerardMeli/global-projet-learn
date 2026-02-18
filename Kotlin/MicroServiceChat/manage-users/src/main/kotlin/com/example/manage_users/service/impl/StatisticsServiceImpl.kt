@@ -40,20 +40,18 @@ class StatisticsServiceImpl(
         )
     }
 
-    fun getUserActivity(pageable: Pageable): Page<StatisticsDto.UserActivityResponse> {
-        val users = usersRepository.findAll(pageable)
-        val content = users.content.map { user ->
+    // Dans le service
+    fun getUserActivity(): List<StatisticsDto.UserActivityResponse> {
+        return usersRepository.findAll().map { user ->
             StatisticsDto.UserActivityResponse(
                 userId = user.id,
                 email = user.email,
-                lastLoginAt = null, // No lastLoginAt field available
+                lastLoginAt = null,
                 failedLoginAttempts = user.failedLoginAttempts,
                 status = user.status,
                 isActive = user.isActive
             )
         }
-
-        return PageImpl(content, pageable, users.totalElements)
     }
 
     private fun getUserCountsByRole(): Map<UserRole, Long> {

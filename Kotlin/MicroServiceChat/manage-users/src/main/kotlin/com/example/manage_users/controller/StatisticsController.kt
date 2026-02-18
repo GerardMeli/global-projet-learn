@@ -25,11 +25,10 @@ class StatisticsController (
         return ResponseEntity.ok(response)
     }
 
+    // Dans le contrôleur
     @GetMapping("/activity")
-    fun getUserActivity(
-        @PageableDefault(size = 20, sort = ["id"], direction = Sort.Direction.DESC) pageable: Pageable
-    ): ResponseEntity<Page<StatisticsDto.UserActivityResponse>> {
-        val response = statisticsServiceImpl.getUserActivity(pageable)
+    fun getUserActivity(): ResponseEntity<List<StatisticsDto.UserActivityResponse>> {
+        val response = statisticsServiceImpl.getUserActivity()
         return ResponseEntity.ok(response)
     }
 }
