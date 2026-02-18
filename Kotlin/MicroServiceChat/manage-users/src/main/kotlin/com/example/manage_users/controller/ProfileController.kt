@@ -73,8 +73,6 @@ class ProfileController (
         return ResponseEntity.ok(response)
     }
 
-
-
     @GetMapping("/except/{currentUserId}")
     fun getAllUsersExceptCurrentUser(@PathVariable currentUserId: Long): ResponseEntity<List<ProfileDto.PrivateUserResponse>?> {
         val users = userService.getAllUsersExceptCurrentUser(currentUserId)

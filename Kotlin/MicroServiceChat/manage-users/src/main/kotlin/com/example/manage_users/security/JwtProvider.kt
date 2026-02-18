@@ -372,29 +372,4 @@ class JwtProvider (
             .body
     }
 
-
-
-
-
-
-
-
-    fun debugToken(token: String) {
-        try {
-            val claims = getAllClaimsFromToken(token)
-            println("=== TOKEN DEBUG ===")
-            println("Subject: ${claims.subject}")
-            println("Token type: ${claims.get("tokenType")}")
-            println("Email: ${claims.get("email")}")
-            println("UserId: ${claims.get("userId")}")
-            println("Expiration: ${claims.expiration}")
-            println("==================")
-        } catch (e: Exception) {
-            println("Error decoding token: ${e.message}")
-        }
-    }
-
-
-
-
 }
