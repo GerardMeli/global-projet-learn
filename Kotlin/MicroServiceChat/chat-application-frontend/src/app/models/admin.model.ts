@@ -2,11 +2,11 @@ import { UserRole, UserStatus, Language, Theme } from './enums.model';
 
 /**
  * Mirrors AdminDto.kt
+ * Refined with insights from UserServiceImpl.kt
  */
 
 // ─── Responses ───────────────────────────────────────────────────────────────
 
-/** Full admin view of a user — mirrors AdminUserResponse */
 export interface AdminUserResponse {
   id: number;
   email: string;
@@ -17,27 +17,16 @@ export interface AdminUserResponse {
   isActive: boolean;
   emailVerified: boolean;
   failedLoginAttempts: number;
-  createdAt: string;           // LocalDateTime → ISO string
-  lastLoginAt: string | null;  // LocalDateTime → ISO string
+  createdAt: string;
+  lastLoginAt: string | null;  // Not in Users entity — likely always null
   phoneNumber: string | null;
   address: string | null;
   language: Language;
   theme: Theme;
 }
 
-/** Paginated list response — mirrors PaginatedUsersResponse */
-export interface PaginatedUsersResponse {
-  content: AdminUserResponse[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
-}
-
 // ─── Update Requests ─────────────────────────────────────────────────────────
 
-/** PUT /api/admin/users/{id} — mirrors AdminUserUpdateRequest (all fields optional) */
 export interface AdminUserUpdateRequest {
   firstName?: string;
   lastName?: string;
@@ -53,21 +42,18 @@ export interface AdminUserUpdateRequest {
   emailNotifications?: boolean;
 }
 
-/** PATCH /api/admin/users/{id}/status — mirrors UserStatusUpdateRequest */
 export interface UserStatusUpdateRequest {
-  status: UserStatus;          // @NotNull
-  reason?: string;             // @Size(max=500)
+  status: UserStatus;   // @NotNull
+  reason?: string;      // @Size(max=500) — sent in status-change.html email
 }
 
-/** PATCH /api/admin/users/{id}/role — mirrors UserRoleUpdateRequest */
 export interface UserRoleUpdateRequest {
-  role: UserRole;              // @NotNull
-  reason?: string;             // @Size(max=500)
+  role: UserRole;       // @NotNull
+  reason?: string;      // @Size(max=500) — sent in role-change.html email
 }
 
-// ─── Search / Filter ─────────────────────────────────────────────────────────
+// ─── Search ──────────────────────────────────────────────────────────────────
 
-/** Query params for user search — mirrors UserSearchCriteria */
 export interface UserSearchCriteria {
   email?: string;
   firstName?: string;
@@ -75,9 +61,25 @@ export interface UserSearchCriteria {
   role?: UserRole;
 }
 
-/** Combined pagination + search params for GET /api/admin/users */
+/**
+ * NOTE: AdminController.getAllUsers() returns ALL users with no pagination.
+ * UserListParams kept here for potential future use but pagination is not
+ * currently implemented in UserServiceImpl.getAllUsers().
+ */
 export interface UserListParams extends UserSearchCriteria {
-  page?: number;               // 0-based
+  page?: number;
   size?: number;
-  sort?: string;               // e.g. "createdAt,desc"
+  sort?: string;
 }
+
+// ─── Soft vs Hard Delete clarification ───────────────────────────────────────
+/**
+ * UserServiceImpl.deleteUser() calls usersRepository.deleteById()
+ * This is a HARD DELETE — the record is permanently removed from the database.
+ *
+ * The UserStatus.DELETED enum exists but is NOT used by deleteUser().
+ * It may be used elsewhere or kept for future soft-delete implementation.
+ *
+ * Frontend implication: after deleteUser(), the user record no longer exists.
+ * Do NOT try to fetch it again. Remove it from local state immediately.
+ */
