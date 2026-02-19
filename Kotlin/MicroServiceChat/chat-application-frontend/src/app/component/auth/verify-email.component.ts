@@ -8,9 +8,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { ErrorHandlerService } from '../../core/services/users/error-handler.service';
+import { AuthService } from '../../core/services/users/auth.service';
 
-import { AuthService } from '../../service/auth.service';
-import { ErrorHandlerService } from '../../service/error handler.service';
 
 @Component({
   selector: 'app-verify-email',

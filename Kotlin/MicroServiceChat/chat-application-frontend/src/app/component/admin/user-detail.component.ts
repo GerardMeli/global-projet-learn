@@ -1,894 +1,931 @@
-import { Component, OnInit, Inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
-
-// Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDialog, MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
 import { FormsModule } from '@angular/forms';
-
-import { AuthService } from '../../core/services/auth.service';
-import { UserProfileResponse } from '../../models/profile.model';
-import { UserRole, UserStatus } from '../../models/enums.model';
-import { ErrorHandlerService } from '../../service/error handler.service';
-import { AdminService } from '../../service/admin.service';
-
-// Confirmation Dialog Component
-@Component({
-  selector: 'app-delete-confirm-dialog',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatDialogModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule
-  ],
-  template: `
-    <h2 mat-dialog-title>Delete user permanently?</h2>
-    <mat-dialog-content>
-      <p>This is a <strong>hard delete</strong>. The user record will be permanently removed from the database and cannot be recovered.</p>
-      <p>User: <strong>{{ data.email }}</strong></p>
-      
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Type user email to confirm</mat-label>
-        <input matInput [(ngModel)]="confirmEmail" placeholder="Enter email">
-      </mat-form-field>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-flat-button color="warn" 
-              [disabled]="confirmEmail !== data.email"
-              [mat-dialog-close]="true">
-        Delete permanently
-      </button>
-    </mat-dialog-actions>
-  `,
-  styles: [`
-    .full-width { width: 100%; margin-top: 16px; }
-  `]
-})
-export class DeleteConfirmDialogComponent {
-  confirmEmail = '';
-  constructor(
-    public dialogRef: MatDialogRef<DeleteConfirmDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { email: string }
-  ) {}
-}
+import { ActivatedRoute, Router } from '@angular/router'; 
+import { UserProfileResponse } from '../../core/models/users/profile.model';
+import { AdminUserUpdateRequest, UserStatusUpdateRequest, UserRoleUpdateRequest, AdminUserResponse } from '../../core/models/users/admin.model';
+import { UserStatus, UserRole } from '../../core/models/users/enums.model';
+import { AdminService } from '../../core/services/users/admin.service';
+import { TokenService } from '../../core/services/users/token.service';
 
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [
-    CommonModule, 
-    RouterModule, 
-    ReactiveFormsModule,
-    FormsModule,
-    // Material
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatChipsModule,
-    MatDividerModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-    MatDialogModule,
-    MatSidenavModule,
-    MatListModule,
-    // DeleteConfirmDialogComponent
-  ],
+  imports: [CommonModule, FormsModule],
   template: `
-<div class="admin-container">
-  <!-- Sidebar -->
-  <mat-drawer-container class="sidenav-container">
-    <mat-drawer mode="side" opened class="sidenav">
-      <div class="sidenav-header">
-        <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
-        <span class="logo-text">FlowManage</span>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-content">
-        <a mat-list-item routerLink="/admin" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>dashboard</mat-icon>
-          <span matListItemTitle>Dashboard</span>
-        </a>
-        <a mat-list-item routerLink="/admin/users" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact:true}">
-          <mat-icon matListItemIcon>people</mat-icon>
-          <span matListItemTitle>Users</span>
-        </a>
-        <a mat-list-item routerLink="/admin/statistics" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>bar_chart</mat-icon>
-          <span matListItemTitle>Statistics</span>
-        </a>
-        <a mat-list-item routerLink="/profile" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>person</mat-icon>
-          <span matListItemTitle>My Profile</span>
-        </a>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-footer">
-        <button mat-button class="logout-btn" (click)="logout()">
-          <mat-icon>exit_to_app</mat-icon>
-          Sign out
+    <div class="user-detail-container">
+      <!-- Header -->
+      <div class="detail-header">
+        <button class="back-btn" (click)="goBack()">
+          <span class="material-icons">arrow_back</span>
+          Back to Users
         </button>
-      </div>
-    </mat-drawer>
-
-    <!-- Main Content -->
-    <mat-drawer-content class="main-content">
-      <!-- Breadcrumb -->
-      <div class="breadcrumb">
-        <a mat-button routerLink="/admin/users" class="back-link">
-          <mat-icon>arrow_back</mat-icon>
-          Back to users
-        </a>
+        <h1>User Details</h1>
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="loading" class="loading-state">
-        <mat-spinner diameter="48"></mat-spinner>
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
         <p>Loading user details...</p>
       </div>
 
       <!-- Error State -->
-      <div *ngIf="error && !loading" class="alert error-alert">
-        <mat-icon>error</mat-icon>
-        <span>{{ error }}</span>
-        <button mat-button color="primary" routerLink="/admin/users">Return to users list</button>
+      <div class="error-state" *ngIf="error">
+        <span class="material-icons">error</span>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadUser()">Retry</button>
+      </div>
+
+      <!-- Success Message -->
+      <div class="success-message" *ngIf="successMessage">
+        <span class="material-icons">check_circle</span>
+        <p>{{ successMessage }}</p>
+        <button class="close-btn" (click)="successMessage = ''">×</button>
       </div>
 
       <!-- User Details -->
-      <ng-container *ngIf="user && !loading">
-        <!-- User Header -->
-        <div class="user-header">
-          <div class="user-avatar-large">
-            {{ userInitial }}
-          </div>
-          
-          <div class="user-info">
-            <h1 class="user-name">{{ user.firstName }} {{ user.lastName }}</h1>
-            <p class="user-email">{{ user.email }}</p>
-            
-            <div class="user-badges">
-              <mat-chip-set>
-                <mat-chip [class]="'role-chip role-' + user.role.toLowerCase()">
+      <div class="user-content" *ngIf="user && !loading">
+        <!-- User Profile Card -->
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="profile-avatar">
+              {{ getInitials() }}
+            </div>
+            <div class="profile-info">
+              <h2>{{ getFullName() }}</h2>
+              <p class="profile-email">{{ user.email }}</p>
+              <div class="profile-badges">
+                <span class="role-badge" [class]="'role-' + user.role.toLowerCase()">
                   {{ user.role }}
-                </mat-chip>
-                <mat-chip [class]="'status-chip status-' + user.status.toLowerCase()">
+                </span>
+                <span class="status-badge" [class]="'status-' + user.status.toLowerCase()">
                   {{ user.status }}
-                </mat-chip>
-                <mat-chip *ngIf="!user.isActive" class="inactive-chip" color="warn">
-                  Inactive
-                </mat-chip>
-                <mat-chip *ngIf="user.emailVerified" class="verified-chip" color="primary">
-                  <mat-icon>check_circle</mat-icon>
-                  Email verified
-                </mat-chip>
-              </mat-chip-set>
+                </span>
+                <span class="active-badge" [class.active]="user.isActive">
+                  {{ user.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Detail Grid -->
-        <div class="detail-grid">
-          <!-- Account Details Card -->
-          <mat-card class="detail-card">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>account_box</mat-icon>
-                Account Details
-              </mat-card-title>
-            </mat-card-header>
-            
-            <mat-card-content>
-              <div class="detail-item">
-                <span class="detail-label">User ID</span>
-                <span class="detail-value">#{{ user.id }}</span>
+        <!-- Edit Form -->
+        <div class="edit-form">
+          <div class="form-section">
+            <h3>Personal Information</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>First Name</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="editData.firstName"
+                  [placeholder]="user.firstName || 'Not provided'"
+                >
               </div>
               
-              <div class="detail-item">
-                <span class="detail-label">Phone</span>
-                <span class="detail-value">{{ user.phoneNumber || '—' }}</span>
+              <div class="form-group">
+                <label>Last Name</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="editData.lastName"
+                  [placeholder]="user.lastName || 'Not provided'"
+                >
               </div>
               
-              <div class="detail-item">
-                <span class="detail-label">Address</span>
-                <span class="detail-value">{{ user.address || '—' }}</span>
+              <div class="form-group full-width">
+                <label>Phone Number</label>
+                <input 
+                  type="tel" 
+                  [(ngModel)]="editData.phoneNumber"
+                  [placeholder]="user.phoneNumber || 'Not provided'"
+                >
               </div>
               
-              <div class="detail-item">
-                <span class="detail-label">Language</span>
-                <span class="detail-value">{{ getLanguageFlag(user.language) }} {{ user.language }}</span>
+              <div class="form-group full-width">
+                <label>Address</label>
+                <textarea 
+                  [(ngModel)]="editData.address"
+                  [placeholder]="user.address || 'Not provided'"
+                  rows="3"
+                ></textarea>
               </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Theme</span>
-                <span class="detail-value">{{ getThemeIcon(user.theme) }} {{ user.theme }}</span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Notifications</span>
-                <span class="detail-value">
-                  <mat-icon class="notif-icon" [class.active]="user.emailNotifications">
-                    {{ user.emailNotifications ? 'notifications_active' : 'notifications_off' }}
-                  </mat-icon>
-                  {{ user.emailNotifications ? 'On' : 'Off' }}
-                </span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Joined</span>
-                <span class="detail-value">{{ user.createdAt | date:'dd MMM yyyy, HH:mm' }}</span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Failed logins</span>
-                <span class="detail-value" [class.warning]="user.failedLoginAttempts >= 3"
-                                          [class.danger]="user.failedLoginAttempts >= 5">
-                  {{ user.failedLoginAttempts }}/5
-                  <mat-icon *ngIf="user.failedLoginAttempts >= 5" class="lock-icon">lock</mat-icon>
-                </span>
-              </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </div>
 
-          <!-- Update Status Card -->
-          <mat-card class="detail-card" [formGroup]="statusForm">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>update</mat-icon>
-                Update Status
-              </mat-card-title>
-              <mat-card-subtitle>
-                Changing status sends a notification email to the user
-              </mat-card-subtitle>
-            </mat-card-header>
-            
-            <mat-card-content>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>New status</mat-label>
-                <mat-select formControlName="status">
-                  <mat-option *ngFor="let s of statuses" [value]="s">
-                    {{ s }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Reason (optional)</mat-label>
-                <input matInput formControlName="reason" placeholder="Admin note" maxlength="500">
-                <mat-hint>Max 500 characters</mat-hint>
-              </mat-form-field>
-              
-              <div *ngIf="statusError" class="alert error-alert compact">
-                <mat-icon>error</mat-icon>
-                <span>{{ statusError }}</span>
+          <div class="form-section">
+            <h3>Account Settings</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Language</label>
+                <select [(ngModel)]="editData.language">
+                  <option value="EN">English</option>
+                  <option value="FR">French</option>
+                  <option value="ES">Spanish</option>
+                  <option value="DE">German</option>
+                  <option value="IT">Italian</option>
+                </select>
               </div>
               
-              <div *ngIf="statusSuccess" class="alert success-alert compact">
-                <mat-icon>check_circle</mat-icon>
-                <span>Status updated. Email sent.</span>
+              <div class="form-group">
+                <label>Theme</label>
+                <select [(ngModel)]="editData.theme">
+                  <option value="LIGHT">Light</option>
+                  <option value="DARK">Dark</option>
+                  <option value="SYSTEM">System</option>
+                </select>
               </div>
               
-              <div class="form-actions">
-                <button mat-flat-button color="primary" 
-                        [disabled]="savingStatus || statusForm.pristine"
-                        (click)="saveStatus()">
-                  <mat-spinner diameter="20" *ngIf="savingStatus" class="button-spinner"></mat-spinner>
-                  <span>{{ savingStatus ? 'Updating...' : 'Update status' }}</span>
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="emailNotifications">
+                  Email Notifications
+                </label>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="editData.isActive">
+                  Account Active
+                </label>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <label>
+                  <input type="checkbox" [(ngModel)]="editData.emailVerified">
+                  Email Verified
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Status Management</h3>
+            <div class="status-management">
+              <div class="status-controls">
+                <div class="form-group">
+                  <label>Update Status</label>
+                  <select [(ngModel)]="statusUpdate.status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="SUSPENDED">Suspended</option>
+                    <option value="BLOCKED">Blocked</option>
+                    <option value="DELETED">Deleted</option>
+                  </select>
+                </div>
+                
+                <div class="form-group full-width">
+                  <label>Reason (optional)</label>
+                  <textarea 
+                    [(ngModel)]="statusUpdate.reason"
+                    placeholder="Reason for status change (will be emailed to user)"
+                    rows="2"
+                    maxlength="500"
+                  ></textarea>
+                </div>
+                
+                <button 
+                  class="update-btn status" 
+                  (click)="updateStatus()"
+                  [disabled]="!statusUpdate.status || updating"
+                >
+                  <span class="material-icons" *ngIf="!updating">update</span>
+                  <span class="spinner-small" *ngIf="updating"></span>
+                  {{ updating ? 'Updating...' : 'Update Status' }}
                 </button>
               </div>
-            </mat-card-content>
-          </mat-card>
 
-          <!-- Update Role Card -->
-          <mat-card class="detail-card" [formGroup]="roleForm">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon>admin_panel_settings</mat-icon>
-                Update Role
-              </mat-card-title>
-              <mat-card-subtitle>
-                Changing role sends a notification email to the user
-              </mat-card-subtitle>
-            </mat-card-header>
-            
-            <mat-card-content>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>New role</mat-label>
-                <mat-select formControlName="role">
-                  <mat-option *ngFor="let r of roles" [value]="r">
-                    {{ r }}
-                  </mat-option>
-                </mat-select>
-              </mat-form-field>
-              
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Reason (optional)</mat-label>
-                <input matInput formControlName="reason" placeholder="Admin note" maxlength="500">
-                <mat-hint>Max 500 characters</mat-hint>
-              </mat-form-field>
-              
-              <div *ngIf="roleError" class="alert error-alert compact">
-                <mat-icon>error</mat-icon>
-                <span>{{ roleError }}</span>
-              </div>
-              
-              <div *ngIf="roleSuccess" class="alert success-alert compact">
-                <mat-icon>check_circle</mat-icon>
-                <span>Role updated. Email sent.</span>
-              </div>
-              
-              <div class="form-actions">
-                <button mat-flat-button color="primary" 
-                        [disabled]="savingRole || roleForm.pristine"
-                        (click)="saveRole()">
-                  <mat-spinner diameter="20" *ngIf="savingRole" class="button-spinner"></mat-spinner>
-                  <span>{{ savingRole ? 'Updating...' : 'Update role' }}</span>
+              <div class="status-controls">
+                <div class="form-group">
+                  <label>Update Role</label>
+                  <select [(ngModel)]="roleUpdate.role">
+                    <option value="USER">User</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="SUPPORT">Support</option>
+                  </select>
+                </div>
+                
+                <div class="form-group full-width">
+                  <label>Reason (optional)</label>
+                  <textarea 
+                    [(ngModel)]="roleUpdate.reason"
+                    placeholder="Reason for role change (will be emailed to user)"
+                    rows="2"
+                    maxlength="500"
+                  ></textarea>
+                </div>
+                
+                <button 
+                  class="update-btn role" 
+                  (click)="updateRole()"
+                  [disabled]="!roleUpdate.role || updating"
+                >
+                  <span class="material-icons" *ngIf="!updating">admin_panel_settings</span>
+                  <span class="spinner-small" *ngIf="updating"></span>
+                  {{ updating ? 'Updating...' : 'Update Role' }}
                 </button>
               </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </div>
 
-          <!-- Danger Zone Card -->
-          <mat-card class="detail-card danger-zone">
-            <mat-card-header>
-              <mat-card-title>
-                <mat-icon color="warn">warning</mat-icon>
-                Danger Zone
-              </mat-card-title>
-              <mat-card-subtitle>
-                This is a <strong>hard delete</strong>. The user record will be permanently removed.
-              </mat-card-subtitle>
-            </mat-card-header>
-            
-            <mat-card-content>
-              <button mat-flat-button color="warn" class="delete-btn" (click)="openDeleteDialog()">
-                <mat-icon>delete_forever</mat-icon>
-                Delete this user permanently
-              </button>
-            </mat-card-content>
-          </mat-card>
+          <div class="form-section">
+            <h3>Account Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>User ID</label>
+                <span>{{ user.id }}</span>
+              </div>
+              <div class="info-item">
+                <label>Created At</label>
+                <span>{{ user.createdAt | date:'medium' }}</span>
+              </div>
+              <div class="info-item">
+                <label>Email Verified</label>
+                <span class="status-indicator" [class.verified]="user.emailVerified">
+                  {{ user.emailVerified ? 'Yes' : 'No' }}
+                </span>
+              </div>
+              <div class="info-item">
+                <label>Failed Login Attempts</label>
+                <span [class.warning]="user.failedLoginAttempts >= 3" 
+                      [class.danger]="user.failedLoginAttempts >= 5">
+                  {{ user.failedLoginAttempts }}
+                </span>
+              </div>
+              <div class="info-item">
+                <label>Last Login</label>
+                <span class="never-login">Never</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="form-actions">
+            <button class="save-btn" (click)="saveChanges()" [disabled]="saving">
+              <span class="material-icons" *ngIf="!saving">save</span>
+              <span class="spinner-small" *ngIf="saving"></span>
+              {{ saving ? 'Saving...' : 'Save Changes' }}
+            </button>
+            <button class="cancel-btn" (click)="resetForm()" [disabled]="saving">
+              <span class="material-icons">undo</span>
+              Reset
+            </button>
+          </div>
         </div>
-      </ng-container>
-    </mat-drawer-content>
-  </mat-drawer-container>
-</div>
+      </div>
+    </div>
   `,
   styles: [`
-    :host {
-      --primary-color: #3f51b5;
-      --success-color: #4caf50;
-      --warning-color: #ff9800;
-      --error-color: #f44336;
-      --text-primary: #2c3e50;
-      --text-secondary: #7f8c8d;
-      --bg-light: #f5f7fa;
-      --danger-color: #f44336;
-      --danger-light: #ffebee;
+    .user-detail-container {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .admin-container {
-      height: 100vh;
+    .detail-header {
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
 
-    .sidenav-container {
-      height: 100%;
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.3s;
     }
 
-    .sidenav {
-      width: 260px;
-      background: #1e293b;
-      color: white;
-      border: none;
+    .back-btn:hover {
+      background: #f7fafc;
+      border-color: #667eea;
+      color: #667eea;
     }
 
-    .sidenav-header {
-      padding: 24px 16px;
+    .detail-header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #2d3748;
+    }
+
+    /* Success Message */
+    .success-message {
+      background: #c6f6d5;
+      border: 1px solid #9ae6b4;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
       display: flex;
       align-items: center;
       gap: 12px;
+      position: relative;
     }
 
-    .logo-icon {
-      color: var(--primary-color);
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
+    .success-message .material-icons {
+      color: #38a169;
+      font-size: 24px;
     }
 
-    .logo-text {
-      font-size: 18px;
-      font-weight: 600;
+    .success-message p {
+      margin: 0;
+      color: #22543d;
+      flex: 1;
     }
 
-    .sidenav-content {
-      padding: 16px 8px;
-    }
-
-    .sidenav-content a {
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 4px;
-      border-radius: 8px;
-    }
-
-    .sidenav-content a:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    .sidenav-content a.active-link {
-      background: rgba(63, 81, 181, 0.2);
-      color: var(--primary-color);
-    }
-
-    .sidenav-footer {
-      padding: 16px;
-    }
-
-    .logout-btn {
-      width: 100%;
-      color: rgba(255, 255, 255, 0.7);
-      justify-content: flex-start;
-    }
-
-    .logout-btn:hover {
-      background: rgba(220, 53, 69, 0.2);
-      color: #f87171;
-    }
-
-    .main-content {
-      padding: 24px;
-      background: var(--bg-light);
-    }
-
-    /* Breadcrumb */
-    .breadcrumb {
-      margin-bottom: 24px;
-    }
-
-    .back-link {
-      color: var(--text-secondary);
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .back-link:hover {
-      color: var(--primary-color);
+    .success-message .close-btn {
+      background: none;
+      border: none;
+      color: #38a169;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0 8px;
     }
 
     /* Loading State */
     .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 80px;
-      color: var(--text-secondary);
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
     }
 
-    /* Alert */
-    .alert {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
     }
 
-    .alert.compact {
-      padding: 12px;
+    .spinner-small {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .error-state .material-icons {
+      font-size: 48px;
+      color: #e53e3e;
       margin-bottom: 16px;
     }
 
-    .error-alert {
-      background: #ffebee;
-      color: #c62828;
+    .retry-btn {
+      padding: 8px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 16px;
     }
 
-    .success-alert {
-      background: #e8f5e9;
-      color: #2e7d32;
+    /* Profile Card */
+    .profile-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      color: white;
     }
 
-    /* User Header */
-    .user-header {
+    .profile-header {
       display: flex;
       align-items: center;
       gap: 24px;
-      margin-bottom: 32px;
-      background: white;
-      padding: 24px;
-      border-radius: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    .user-avatar-large {
-      width: 80px;
-      height: 80px;
+    .profile-avatar {
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary-color), #7986cb);
-      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
+      font-size: 36px;
       font-weight: 600;
+      border: 3px solid white;
     }
 
-    .user-info {
-      flex: 1;
+    .profile-info h2 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
     }
 
-    .user-name {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 4px 0;
+    .profile-email {
+      margin: 0 0 16px 0;
+      opacity: 0.9;
+      font-size: 16px;
     }
 
-    .user-email {
-      color: var(--text-secondary);
-      margin: 0 0 12px 0;
-    }
-
-    .user-badges {
+    .profile-badges {
       display: flex;
-      gap: 8px;
+      gap: 12px;
     }
 
-    .role-chip { min-height: 24px; }
-    .role-chip.role-admin { background: #ff9800 !important; color: white !important; }
-    .role-chip.role-user { background: #2196f3 !important; color: white !important; }
-    .role-chip.role-moderator { background: #9c27b0 !important; color: white !important; }
-
-    .status-chip { min-height: 24px; }
-    .status-chip.status-active { background: #4caf50 !important; color: white !important; }
-    .status-chip.status-inactive { background: #9e9e9e !important; color: white !important; }
-    .status-chip.status-pending { background: #ff9800 !important; color: white !important; }
-    .status-chip.status-blocked { background: #f44336 !important; color: white !important; }
-    .status-chip.status-suspended { background: #ff5722 !important; color: white !important; }
-
-    .inactive-chip { background: #f44336 !important; color: white !important; }
-    .verified-chip { background: #4caf50 !important; color: white !important; }
-    .verified-chip mat-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      margin-right: 4px;
+    /* Edit Form */
+    .edit-form {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
     }
 
-    /* Detail Grid */
-    .detail-grid {
+    .form-section {
+      margin-bottom: 32px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .form-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .form-section h3 {
+      margin: 0 0 20px 0;
+      color: #2d3748;
+      font-size: 18px;
+    }
+
+    .form-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
 
-    .detail-card {
-      border-radius: 16px !important;
+    .full-width {
+      grid-column: 1 / -1;
     }
 
-    .detail-card .mat-mdc-card-header {
-      padding: 20px 20px 0;
-    }
-
-    .detail-card .mat-mdc-card-header mat-icon {
-      margin-right: 8px;
-      font-size: 20px;
-    }
-
-    .detail-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    .detail-item {
+    .form-group {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #f0f0f0;
+      flex-direction: column;
+      gap: 8px;
     }
 
-    .detail-item:last-child {
-      border-bottom: none;
-    }
-
-    .detail-label {
-      color: var(--text-secondary);
+    .form-group label {
       font-size: 14px;
+      font-weight: 500;
+      color: #4a5568;
     }
 
-    .detail-value {
-      font-weight: 500;
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.3s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .checkbox-group {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .checkbox-group label {
       display: flex;
       align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* Status Management */
+    .status-management {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .status-controls {
+      background: #f7fafc;
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .update-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .update-btn.status {
+      background: #667eea;
+      color: white;
+    }
+
+    .update-btn.status:hover:not(:disabled) {
+      background: #5a67d8;
+    }
+
+    .update-btn.role {
+      background: #48bb78;
+      color: white;
+    }
+
+    .update-btn.role:hover:not(:disabled) {
+      background: #38a169;
+    }
+
+    .update-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Info Grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
       gap: 4px;
     }
 
-    .notif-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: var(--text-secondary);
+    .info-item label {
+      font-size: 12px;
+      color: #718096;
     }
 
-    .notif-icon.active {
-      color: var(--success-color);
-    }
-
-    .warning {
-      color: var(--warning-color);
+    .info-item span {
+      font-size: 14px;
       font-weight: 500;
+      color: #2d3748;
     }
 
-    .danger {
-      color: var(--error-color);
+    .info-item span.warning {
+      color: #ed8936;
       font-weight: 600;
     }
 
-    .lock-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
-      margin-left: 4px;
+    .info-item span.danger {
+      color: #e53e3e;
+      font-weight: 600;
     }
 
-    .full-width {
-      width: 100%;
-      margin-bottom: 16px;
+    .status-indicator {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #f7fafc;
+      display: inline-block;
+      width: fit-content;
     }
 
+    .status-indicator.verified {
+      background: #9ae6b4;
+      color: #22543d;
+    }
+
+    .never-login {
+      color: #a0aec0;
+      font-style: italic;
+    }
+
+    /* Form Actions */
     .form-actions {
       display: flex;
       justify-content: flex-end;
-      margin-top: 8px;
+      gap: 16px;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid #e2e8f0;
     }
 
-    .button-spinner {
-      display: inline-block;
-      margin-right: 8px;
+    .save-btn, .cancel-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
     }
 
-    /* Danger Zone */
-    .danger-zone {
-      border: 1px solid var(--danger-color) !important;
-      background: var(--danger-light);
+    .save-btn {
+      background: #667eea;
+      color: white;
     }
 
-    .delete-btn {
-      width: 100%;
-      background: var(--danger-color) !important;
-      color: white !important;
+    .save-btn:hover:not(:disabled) {
+      background: #5a67d8;
     }
 
-    /* Material Overrides */
-    ::ng-deep .mat-mdc-form-field-flex {
-      height: 56px !important;
+    .cancel-btn {
+      background: #f7fafc;
+      color: #4a5568;
     }
 
-    ::ng-deep .mat-mdc-text-field-wrapper {
-      background-color: #f8fafc !important;
+    .cancel-btn:hover:not(:disabled) {
+      background: #edf2f7;
+    }
+
+    .save-btn:disabled, .cancel-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Badge Styles */
+    .role-badge, .status-badge, .active-badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .role-admin {
+      background: rgba(254, 178, 178, 0.2);
+      color: #feb2b2;
+    }
+
+    .role-user {
+      background: rgba(154, 230, 180, 0.2);
+      color: #9ae6b4;
+    }
+
+    .role-support {
+      background: rgba(251, 211, 141, 0.2);
+      color: #fbd38d;
+    }
+
+    .status-active {
+      background: rgba(154, 230, 180, 0.2);
+      color: #9ae6b4;
+    }
+
+    .status-pending {
+      background: rgba(254, 252, 191, 0.2);
+      color: #fefcbf;
+    }
+
+    .status-suspended {
+      background: rgba(251, 211, 141, 0.2);
+      color: #fbd38d;
+    }
+
+    .status-blocked {
+      background: rgba(254, 178, 178, 0.2);
+      color: #feb2b2;
+    }
+
+    .status-deleted {
+      background: rgba(203, 213, 224, 0.2);
+      color: #cbd5e0;
+    }
+
+    .active-badge {
+      background: rgba(154, 230, 180, 0.2);
+      color: #9ae6b4;
     }
 
     /* Responsive */
-    @media (max-width: 1024px) {
-      .detail-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
     @media (max-width: 768px) {
-      .user-header {
+      .profile-header {
         flex-direction: column;
         text-align: center;
       }
-
-      .user-badges {
+      
+      .profile-badges {
+        justify-content: center;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .status-management {
+        grid-template-columns: 1fr;
+      }
+      
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .save-btn, .cancel-btn {
+        width: 100%;
         justify-content: center;
       }
     }
   `]
 })
 export class UserDetailComponent implements OnInit {
+  userId!: number;
   user: UserProfileResponse | null = null;
   loading = true;
   error = '';
-  userInitial = '';
+  successMessage = '';
+  saving = false;
+  updating = false;
 
-  statuses = Object.values(UserStatus);
-  roles = Object.values(UserRole);
-
-  statusForm: FormGroup;
-  savingStatus = false;
-  statusError = '';
-  statusSuccess = false;
-
-  roleForm: FormGroup;
-  savingRole = false;
-  roleError = '';
-  roleSuccess = false;
+  editData: Partial<AdminUserUpdateRequest> = {};
+  statusUpdate: UserStatusUpdateRequest = { status: UserStatus.ACTIVE };
+  roleUpdate: UserRoleUpdateRequest = { role: UserRole.USER };
+  
+  // Separate from editData for better control
+  emailNotifications = true;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private adminService: AdminService,
-    private errorHandler: ErrorHandlerService,
-    private authService: AuthService,
-    private fb: FormBuilder,
-    private snackBar: MatSnackBar,
-    private dialog: MatDialog
-  ) {
-    this.statusForm = this.fb.group({ 
-      status: [''], 
-      reason: ['', Validators.maxLength(500)] 
-    });
-    this.roleForm = this.fb.group({ 
-      role: [''], 
-      reason: ['', Validators.maxLength(500)] 
-    });
-  }
+    private tokenService: TokenService
+  ) {}
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.loadUser(id);
+    this.userId = Number(this.route.snapshot.paramMap.get('id'));
+    this.loadUser();
   }
 
-  loadUser(id: number): void {
+  loadUser(): void {
     this.loading = true;
-    this.adminService.getUserById(id).subscribe({
-      next: (u) => {
-        this.user = u;
-        this.userInitial = (u.firstName?.charAt(0) ?? u.email.charAt(0)).toUpperCase();
-        this.statusForm.patchValue({ status: u.status });
-        this.roleForm.patchValue({ role: u.role });
+    this.error = '';
+    
+    this.adminService.getUserById(this.userId).subscribe({
+      next: (user: UserProfileResponse) => {
+        this.user = user;
+        this.resetForm();
         this.loading = false;
       },
-      error: (e: HttpErrorResponse) => {
-        this.error = this.errorHandler.handle(e).userMessage;
+      error: (error) => {
+        this.error = 'Failed to load user details';
         this.loading = false;
-        this.snackBar.open('Error loading user details', 'Close', { duration: 5000 });
+        console.error('Error loading user:', error);
       }
     });
   }
 
-  getLanguageFlag(lang: string): string {
-    const flags: Record<string, string> = {
-      'FR': '🇫🇷', 'EN': '🇬🇧', 'ES': '🇪🇸', 'DE': '🇩🇪', 'IT': '🇮🇹'
+  getFullName(): string {
+    if (!this.user) return '';
+    const parts = [this.user.firstName, this.user.lastName].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : 'Unknown';
+  }
+
+  getInitials(): string {
+    if (!this.user) return 'U';
+    const first = this.user.firstName ? this.user.firstName.charAt(0) : '';
+    const last = this.user.lastName ? this.user.lastName.charAt(0) : '';
+    return (first + last).toUpperCase() || 'U';
+  }
+
+  resetForm(): void {
+    if (!this.user) return;
+    
+    this.editData = {
+      firstName: this.user.firstName || '',
+      lastName: this.user.lastName || '',
+      phoneNumber: this.user.phoneNumber || '',
+      address: this.user.address || '',
+      language: this.user.language,
+      theme: this.user.theme,
+      isActive: this.user.isActive,
+      emailVerified: this.user.emailVerified
     };
-    return flags[lang] || '🌐';
+    
+    this.emailNotifications = true; // Default value
+    this.statusUpdate = { status: this.user.status };
+    this.roleUpdate = { role: this.user.role };
   }
 
-  getThemeIcon(theme: string): string {
-    const icons: Record<string, string> = {
-      'LIGHT': '☀️', 'DARK': '🌙', 'SYSTEM': '🖥'
+  saveChanges(): void {
+    if (!this.user) return;
+    
+    this.saving = true;
+    this.error = '';
+    this.successMessage = '';
+    
+    // Add emailNotifications to editData if needed
+    const updateData = {
+      ...this.editData,
+      emailNotifications: this.emailNotifications
     };
-    return icons[theme] || '☀️';
-  }
-
-  saveStatus(): void {
-    if (!this.user) return;
     
-    this.savingStatus = true;
-    this.statusError = '';
-    this.statusSuccess = false;
-
-    const { status, reason } = this.statusForm.value;
-    
-    this.adminService.updateUserStatus(this.user.id, { 
-      status, 
-      reason: reason || undefined 
-    }).subscribe({
-      next: (updated) => {
-        this.user!.status = updated.status;
-        this.statusSuccess = true;
-        this.savingStatus = false;
-        this.statusForm.markAsPristine();
+    this.adminService.updateUser(this.user.id, updateData).subscribe({
+      next: (updatedUser: AdminUserResponse) => {
+        this.successMessage = 'User updated successfully';
+        this.loadUser(); // Reload to get fresh data
+        this.saving = false;
         
-        this.snackBar.open('Status updated successfully', 'Close', { 
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        
-        setTimeout(() => this.statusSuccess = false, 4000);
+        // Auto-hide success message after 3 seconds
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
       },
-      error: (e: HttpErrorResponse) => {
-        this.statusError = this.errorHandler.handle(e).userMessage;
-        this.savingStatus = false;
+      error: (error) => {
+        this.error = 'Failed to update user';
+        this.saving = false;
+        console.error('Error updating user:', error);
       }
     });
   }
 
-  saveRole(): void {
+  updateStatus(): void {
     if (!this.user) return;
     
-    this.savingRole = true;
-    this.roleError = '';
-    this.roleSuccess = false;
-
-    const { role, reason } = this.roleForm.value;
+    this.updating = true;
+    this.error = '';
+    this.successMessage = '';
     
-    this.adminService.updateUserRole(this.user.id, { 
-      role, 
-      reason: reason || undefined 
-    }).subscribe({
-      next: (updated) => {
-        this.user!.role = updated.role;
-        this.roleSuccess = true;
-        this.savingRole = false;
-        this.roleForm.markAsPristine();
+    this.adminService.updateUserStatus(this.user.id, this.statusUpdate).subscribe({
+      next: (updatedUser: AdminUserResponse) => {
+        this.successMessage = 'User status updated successfully';
+        this.loadUser(); // Reload to get updated data
+        this.statusUpdate.reason = '';
+        this.updating = false;
         
-        this.snackBar.open('Role updated successfully', 'Close', { 
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
+      },
+      error: (error) => {
+        this.error = 'Failed to update status';
+        this.updating = false;
+        console.error('Error updating status:', error);
+      }
+    });
+  }
+
+  updateRole(): void {
+    if (!this.user) return;
+    
+    this.updating = true;
+    this.error = '';
+    this.successMessage = '';
+    
+    this.adminService.updateUserRole(this.user.id, this.roleUpdate).subscribe({
+      next: (updatedUser: AdminUserResponse) => {
+        this.successMessage = 'User role updated successfully';
+        this.loadUser(); // Reload to get updated data
+        this.roleUpdate.reason = '';
+        this.updating = false;
         
-        setTimeout(() => this.roleSuccess = false, 4000);
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
       },
-      error: (e: HttpErrorResponse) => {
-        this.roleError = this.errorHandler.handle(e).userMessage;
-        this.savingRole = false;
+      error: (error) => {
+        this.error = 'Failed to update role';
+        this.updating = false;
+        console.error('Error updating role:', error);
       }
     });
   }
 
-  openDeleteDialog(): void {
-    if (!this.user) return;
-
-    const dialogRef = this.dialog.open(DeleteConfirmDialogComponent, {
-      width: '450px',
-      data: { email: this.user.email }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && this.user) {
-        this.deleteUser();
-      }
-    });
-  }
-
-  deleteUser(): void {
-    if (!this.user) return;
-
-    this.adminService.deleteUser(this.user.id).subscribe({
-      next: () => {
-        this.snackBar.open('User deleted successfully', 'Close', { duration: 3000 });
-        this.router.navigate(['/admin/users']);
-      },
-      error: (e: HttpErrorResponse) => {
-        const error = this.errorHandler.handle(e);
-        this.snackBar.open(error.userMessage, 'Close', { duration: 5000 });
-      }
-    });
-  }
-
-  logout(): void { 
-    this.authService.logout(); 
+  goBack(): void {
+    this.router.navigate(['/admin/users']);
   }
 }

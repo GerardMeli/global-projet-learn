@@ -9,8 +9,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
-import { ErrorHandlerService } from '../../service/error handler.service';
-import { ProfileService } from '../../service/profile.service';
+import { ProfileService } from '../../core/services/users/profile.service';
+import { ErrorHandlerService } from '../../core/services/users/error-handler.service';
 
 @Component({
   selector: 'app-email-change-confirm',

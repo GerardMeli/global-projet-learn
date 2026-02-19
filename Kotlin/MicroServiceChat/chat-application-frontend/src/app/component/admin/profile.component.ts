@@ -1,1051 +1,969 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms'; 
-import { HttpErrorResponse } from '@angular/common/http';
-
-// Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-
-import { MatChipsModule } from '@angular/material/chips'; // AJOUTER CECI
-import { MatToolbarModule } from '@angular/material/toolbar'; // AJOUTER CECI
-import { MatMenuModule } from '@angular/material/menu'; // AJOUTER CECI
-
-import { AuthService } from '../../core/services/auth.service';
-import { TokenService } from '../../core/services/token.service';
-import { UserProfileResponse } from '../../models/profile.model';
-import { ProfileService } from '../../service/profile.service';
-import { ErrorHandlerService } from '../../service/error handler.service';
-import { Language, Theme } from '../../models/enums.model';
-import { STRONG_PASSWORD_PATTERN } from '../../models/email pwd.model';
-
-function pwdMatch(c: AbstractControl) {
-  return c.get('newPassword')?.value === c.get('confirmPassword')?.value ? null : { mismatch: true };
-}
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router'; 
+import { UserProfileResponse, UserProfileUpdateRequest, UserPreferencesUpdateRequest, PasswordChangeRequest, EmailUpdateRequest } from '../../core/models/users/profile.model';
+import { AuthService } from '../../core/services/users/auth.service';
+import { ProfileService } from '../../core/services/users/profile.service';
+import { TokenService } from '../../core/services/users/token.service';
+import { Language, Theme } from '../../core/models/users/enums.model';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [
-    CommonModule, 
-    RouterModule, 
-    ReactiveFormsModule,
-    // Material
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatSelectModule,
-    MatSlideToggleModule,
-    MatTabsModule,
-    MatDividerModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-    MatTooltipModule,
-    MatChipsModule,      // ← AJOUTÉ
-    MatToolbarModule,    // ← AJOUTÉ
-    MatMenuModule   
-  ],
+  imports: [CommonModule, FormsModule],
   template: `
-<div class="profile-container">
-  <!-- Top App Bar -->
-  <mat-toolbar color="primary" class="app-bar">
-    <div class="toolbar-left">
-      <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
-      <span class="app-title">FlowManage</span>
-    </div>
-    
-    <div class="toolbar-right">
-      <button *ngIf="isAdmin" mat-stroked-button routerLink="/admin" class="admin-btn">
-        <mat-icon>dashboard</mat-icon>
-        Admin Dashboard
-      </button>
-      
-      <div class="user-menu" *ngIf="profile">
-        <div class="user-avatar" [matTooltip]="profile.email">
-          {{ initials }}
-        </div>
-        <span class="user-name">{{ profile.firstName || profile.email }}</span>
+    <div class="profile-container">
+      <div class="profile-header">
+        <h1>My Profile</h1>
+        <button class="logout-btn" (click)="logout()">
+          <span class="material-icons">logout</span>
+          Logout
+        </button>
       </div>
-      
-      <button mat-icon-button [matMenuTriggerFor]="menu" class="more-btn">
-        <mat-icon>more_vert</mat-icon>
-      </button>
-      <mat-menu #menu="matMenu">
-        <button mat-menu-item (click)="logout()">
-          <mat-icon>exit_to_app</mat-icon>
-          <span>Sign out</span>
-        </button>
-      </mat-menu>
-    </div>
-  </mat-toolbar>
 
-  <!-- Main Content -->
-  <div class="profile-content" *ngIf="profile; else loadingBlock">
-    <!-- Profile Sidebar -->
-    <mat-card class="profile-sidebar" appearance="outlined">
-      <div class="sidebar-header">
-        <div class="profile-avatar-large">{{ initials }}</div>
-        <h2 class="profile-name">{{ profile.firstName }} {{ profile.lastName }}</h2>
-        <div class="profile-email">{{ profile.email }}</div>
-        
-        <div class="badge-container">
-          <mat-chip-set>
-            <mat-chip [class]="'role-chip ' + profile.role.toLowerCase()" [disableRipple]="true">
-              {{ profile.role }}
-            </mat-chip>
-            <mat-chip [class]="'status-chip ' + profile.status.toLowerCase()" [disableRipple]="true">
-              {{ profile.status }}
-            </mat-chip>
-          </mat-chip-set>
-        </div>
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading profile...</p>
       </div>
-      
-      <mat-divider></mat-divider>
-      
-      <!-- Navigation Tabs (vertical) -->
-      <nav class="profile-nav">
-        <button mat-button 
-                [class.active]="tab === 'info'" 
-                (click)="tab='info'"
-                class="nav-button">
-          <mat-icon>person</mat-icon>
-          Personal info
-        </button>
-        <button mat-button 
-                [class.active]="tab === 'prefs'" 
-                (click)="tab='prefs'"
-                class="nav-button">
-          <mat-icon>settings</mat-icon>
-          Preferences
-        </button>
-        <button mat-button 
-                [class.active]="tab === 'password'" 
-                (click)="tab='password'"
-                class="nav-button">
-          <mat-icon>lock</mat-icon>
-          Password
-        </button>
-        <button mat-button 
-                [class.active]="tab === 'email'" 
-                (click)="tab='email'"
-                class="nav-button">
-          <mat-icon>email</mat-icon>
-          Change email
-        </button>
-      </nav>
-    </mat-card>
 
-    <!-- Main Panel -->
-    <mat-card class="profile-main" appearance="outlined">
-      <!-- Personal Info Tab -->
-      <div *ngIf="tab === 'info'" class="tab-panel">
-        <h2 class="tab-title">Personal information</h2>
-        <p class="tab-description">Update your personal details</p>
-        
-        <form [formGroup]="infoForm" (ngSubmit)="saveInfo()" class="profile-form">
-          <div class="form-row">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>First name</mat-label>
-              <input matInput formControlName="firstName" placeholder="John">
-              <mat-icon matSuffix>badge</mat-icon>
-            </mat-form-field>
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <span class="material-icons">error</span>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadProfile()">Retry</button>
+      </div>
+
+      <!-- Success Message -->
+      <div class="success-message" *ngIf="successMessage">
+        <span class="material-icons">check_circle</span>
+        <p>{{ successMessage }}</p>
+        <button class="close-btn" (click)="successMessage = ''">×</button>
+      </div>
+
+      <!-- Profile Content -->
+      <div class="profile-content" *ngIf="profile && !loading">
+        <!-- Profile Card -->
+        <div class="profile-card">
+          <div class="profile-avatar">
+            {{ getInitials() }}
+          </div>
+          <div class="profile-info">
+            <h2>{{ getFullName() }}</h2>
+            <p class="profile-email">{{ profile.email }}</p>
+            <div class="profile-badges">
+              <span class="role-badge" [class]="'role-' + profile.role.toLowerCase()">
+                {{ profile.role }}
+              </span>
+              <span class="status-badge" [class]="'status-' + profile.status.toLowerCase()">
+                {{ profile.status }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Tabs -->
+        <div class="profile-tabs">
+          <button class="tab-btn" [class.active]="activeTab === 'personal'" (click)="activeTab = 'personal'">
+            <span class="material-icons">person</span>
+            Personal Info
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'preferences'" (click)="activeTab = 'preferences'">
+            <span class="material-icons">settings</span>
+            Preferences
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'security'" (click)="activeTab = 'security'">
+            <span class="material-icons">security</span>
+            Security
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'email'" (click)="activeTab = 'email'">
+            <span class="material-icons">email</span>
+            Email
+          </button>
+        </div>
+
+        <!-- Personal Info Tab -->
+        <div class="tab-content" *ngIf="activeTab === 'personal'">
+          <h3>Personal Information</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>First Name</label>
+              <input 
+                type="text" 
+                [(ngModel)]="personalInfo.firstName"
+                [placeholder]="profile.firstName || 'Enter first name'"
+              >
+            </div>
             
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Last name</mat-label>
-              <input matInput formControlName="lastName" placeholder="Doe">
-              <mat-icon matSuffix>badge</mat-icon>
-            </mat-form-field>
-          </div>
-          
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Phone number</mat-label>
-            <span matTextPrefix>+237 &nbsp;</span>
-            <input matInput formControlName="phoneNumber" placeholder="698 520 147">
-            <mat-icon matSuffix>phone</mat-icon>
-            <mat-hint>Cameroonian format: +237 6XX XXX XXX</mat-hint>
-          </mat-form-field>
-          
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Address</mat-label>
-            <input matInput formControlName="address" placeholder="Your address">
-            <mat-icon matSuffix>home</mat-icon>
-          </mat-form-field>
-          
-          <!-- Alerts -->
-          <div *ngIf="infoError" class="alert error-alert">
-            <mat-icon>error</mat-icon>
-            <span>{{ infoError }}</span>
-          </div>
-          
-          <div *ngIf="infoSuccess" class="alert success-alert">
-            <mat-icon>check_circle</mat-icon>
-            <span>Profile updated successfully.</span>
+            <div class="form-group">
+              <label>Last Name</label>
+              <input 
+                type="text" 
+                [(ngModel)]="personalInfo.lastName"
+                [placeholder]="profile.lastName || 'Enter last name'"
+              >
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Phone Number</label>
+              <input 
+                type="tel" 
+                [(ngModel)]="personalInfo.phoneNumber"
+                [placeholder]="profile.phoneNumber || 'Enter phone number'"
+              >
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Address</label>
+              <textarea 
+                [(ngModel)]="personalInfo.address"
+                [placeholder]="profile.address || 'Enter address'"
+                rows="3"
+              ></textarea>
+            </div>
           </div>
           
           <div class="form-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="savingInfo || infoForm.pristine">
-              <mat-spinner diameter="20" *ngIf="savingInfo" class="button-spinner"></mat-spinner>
-              <span>{{ savingInfo ? 'Saving...' : 'Save changes' }}</span>
+            <button class="save-btn" (click)="updatePersonalInfo()" [disabled]="saving">
+              <span class="material-icons" *ngIf="!saving">save</span>
+              <span class="spinner-small" *ngIf="saving"></span>
+              {{ saving ? 'Saving...' : 'Save Changes' }}
             </button>
+            <button class="cancel-btn" (click)="resetPersonalInfo()">Reset</button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <!-- Preferences Tab -->
-      <div *ngIf="tab === 'prefs'" class="tab-panel">
-        <h2 class="tab-title">Preferences</h2>
-        <p class="tab-description">Customize your experience</p>
-        
-        <form [formGroup]="prefsForm" (ngSubmit)="savePrefs()" class="profile-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Language</mat-label>
-            <mat-select formControlName="language">
-              <mat-option *ngFor="let lang of languages" [value]="lang.value">
-                <span class="language-option">{{ lang.flag }} {{ lang.label }}</span>
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Theme</mat-label>
-            <mat-select formControlName="theme">
-              <mat-option *ngFor="let theme of themes" [value]="theme.value">
-                <span class="theme-option">{{ theme.icon }} {{ theme.label }}</span>
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-          
-          <div class="toggle-container">
-            <div class="toggle-info">
-              <div class="toggle-label">Email notifications</div>
-              <div class="toggle-hint">Receive account and system notifications</div>
+        <!-- Preferences Tab -->
+        <div class="tab-content" *ngIf="activeTab === 'preferences'">
+          <h3>Preferences</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Language</label>
+              <select [(ngModel)]="preferences.language">
+                <option value="EN">English</option>
+                <option value="FR">French</option>
+                <option value="ES">Spanish</option>
+                <option value="DE">German</option>
+                <option value="IT">Italian</option>
+              </select>
             </div>
-            <mat-slide-toggle formControlName="emailNotifications" color="primary">
-              {{ prefsForm.get('emailNotifications')?.value ? 'On' : 'Off' }}
-            </mat-slide-toggle>
-          </div>
-          
-          <!-- Alerts -->
-          <div *ngIf="prefsError" class="alert error-alert">
-            <mat-icon>error</mat-icon>
-            <span>{{ prefsError }}</span>
-          </div>
-          
-          <div *ngIf="prefsSuccess" class="alert success-alert">
-            <mat-icon>check_circle</mat-icon>
-            <span>Preferences saved.</span>
+            
+            <div class="form-group">
+              <label>Theme</label>
+              <select [(ngModel)]="preferences.theme">
+                <option value="LIGHT">Light</option>
+                <option value="DARK">Dark</option>
+                <option value="SYSTEM">System</option>
+              </select>
+            </div>
+            
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" [(ngModel)]="preferences.emailNotifications">
+                Email Notifications
+              </label>
+            </div>
           </div>
           
           <div class="form-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="savingPrefs || prefsForm.pristine">
-              <mat-spinner diameter="20" *ngIf="savingPrefs" class="button-spinner"></mat-spinner>
-              <span>{{ savingPrefs ? 'Saving...' : 'Save preferences' }}</span>
+            <button class="save-btn" (click)="updatePreferences()" [disabled]="saving">
+              <span class="material-icons" *ngIf="!saving">save</span>
+              <span class="spinner-small" *ngIf="saving"></span>
+              {{ saving ? 'Saving...' : 'Save Preferences' }}
             </button>
+            <button class="cancel-btn" (click)="resetPreferences()">Reset</button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <!-- Password Tab -->
-      <div *ngIf="tab === 'password'" class="tab-panel">
-        <h2 class="tab-title">Change password</h2>
-        <p class="tab-description">
-          Your new password must include uppercase, lowercase, a number, and a special character.
-        </p>
-        
-        <form [formGroup]="pwdForm" (ngSubmit)="savePassword()" class="profile-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Current password</mat-label>
-            <input matInput [type]="hideCurrent ? 'password' : 'text'" formControlName="currentPassword">
-            <button mat-icon-button matSuffix type="button" (click)="hideCurrent = !hideCurrent">
-              <mat-icon>{{ hideCurrent ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-error *ngIf="pwdForm.get('currentPassword')?.touched && pwdForm.get('currentPassword')?.hasError('required')">
-              Current password is required
-            </mat-error>
-          </mat-form-field>
-          
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>New password</mat-label>
-            <input matInput [type]="hideNew ? 'password' : 'text'" formControlName="newPassword" placeholder="Min. 8 characters">
-            <button mat-icon-button matSuffix type="button" (click)="hideNew = !hideNew">
-              <mat-icon>{{ hideNew ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-error *ngIf="pwdForm.get('newPassword')?.touched && pwdForm.get('newPassword')?.hasError('pattern')">
-              Must contain uppercase, lowercase, number, and special character
-            </mat-error>
-          </mat-form-field>
-          
-          <!-- Password Strength -->
-          <div class="password-strength" *ngIf="pwdForm.get('newPassword')?.value">
-            <div class="strength-bar">
-              <div class="strength-fill" 
-                   [style.width.%]="getPasswordStrength()"
-                   [class.weak]="getPasswordStrength() < 40"
-                   [class.medium]="getPasswordStrength() >= 40 && getPasswordStrength() < 70"
-                   [class.strong]="getPasswordStrength() >= 70">
-              </div>
+        <!-- Security Tab -->
+        <div class="tab-content" *ngIf="activeTab === 'security'">
+          <h3>Change Password</h3>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Current Password</label>
+              <input 
+                type="password" 
+                [(ngModel)]="passwordData.currentPassword"
+                placeholder="Enter current password"
+              >
             </div>
-            <span class="strength-label">{{ getPasswordStrengthText() }}</span>
+            
+            <div class="form-group">
+              <label>New Password</label>
+              <input 
+                type="password" 
+                [(ngModel)]="passwordData.newPassword"
+                placeholder="Enter new password"
+              >
+            </div>
+            
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input 
+                type="password" 
+                [(ngModel)]="passwordData.confirmPassword"
+                placeholder="Confirm new password"
+              >
+            </div>
           </div>
           
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Confirm new password</mat-label>
-            <input matInput [type]="hideConfirm ? 'password' : 'text'" formControlName="confirmPassword">
-            <button mat-icon-button matSuffix type="button" (click)="hideConfirm = !hideConfirm">
-              <mat-icon>{{ hideConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-error *ngIf="pwdForm.hasError('mismatch') && pwdForm.get('confirmPassword')?.touched">
-              Passwords do not match
-            </mat-error>
-          </mat-form-field>
-          
-          <!-- Requirements Checklist -->
-          <mat-card class="requirements-card" appearance="outlined">
-            <div class="requirement" [class.valid]="hasMinLength">
-              <mat-icon class="req-icon">{{ hasMinLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span>At least 8 characters</span>
-            </div>
-            <div class="requirement" [class.valid]="hasUpperCase">
-              <mat-icon class="req-icon">{{ hasUpperCase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span>Uppercase letter</span>
-            </div>
-            <div class="requirement" [class.valid]="hasLowerCase">
-              <mat-icon class="req-icon">{{ hasLowerCase ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span>Lowercase letter</span>
-            </div>
-            <div class="requirement" [class.valid]="hasNumber">
-              <mat-icon class="req-icon">{{ hasNumber ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span>Number</span>
-            </div>
-            <div class="requirement" [class.valid]="hasSpecialChar">
-              <mat-icon class="req-icon">{{ hasSpecialChar ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              <span>Special character (@#$%^&+=)</span>
-            </div>
-          </mat-card>
-          
-          <!-- Alerts -->
-          <div *ngIf="pwdError" class="alert error-alert">
-            <mat-icon>error</mat-icon>
-            <span>{{ pwdError }}</span>
-          </div>
-          
-          <div *ngIf="pwdSuccess" class="alert success-alert">
-            <mat-icon>check_circle</mat-icon>
-            <span>Password changed successfully.</span>
+          <div class="password-requirements">
+            <p><strong>Password requirements:</strong></p>
+            <ul>
+              <li [class.valid]="passwordData.newPassword.length >= 8">
+                At least 8 characters
+              </li>
+              <li [class.valid]="/[A-Z]/.test(passwordData.newPassword)">
+                At least one uppercase letter
+              </li>
+              <li [class.valid]="/[a-z]/.test(passwordData.newPassword)">
+                At least one lowercase letter
+              </li>
+              <li [class.valid]="/[0-9]/.test(passwordData.newPassword)">
+                At least one number
+              </li>
+              <li [class.valid]="passwordData.newPassword === passwordData.confirmPassword && passwordData.newPassword.length > 0">
+                Passwords match
+              </li>
+            </ul>
           </div>
           
           <div class="form-actions">
-            <button mat-flat-button color="primary" type="submit" [disabled]="savingPwd || pwdForm.invalid || pwdForm.pristine">
-              <mat-spinner diameter="20" *ngIf="savingPwd" class="button-spinner"></mat-spinner>
-              <span>{{ savingPwd ? 'Updating...' : 'Change password' }}</span>
+            <button class="save-btn" (click)="changePassword()" [disabled]="!isPasswordValid() || saving">
+              <span class="material-icons" *ngIf="!saving">lock</span>
+              <span class="spinner-small" *ngIf="saving"></span>
+              {{ saving ? 'Updating...' : 'Update Password' }}
             </button>
+            <button class="cancel-btn" (click)="resetPasswordForm()">Clear</button>
           </div>
-        </form>
-      </div>
+        </div>
 
-      <!-- Email Change Tab -->
-      <div *ngIf="tab === 'email'" class="tab-panel">
-        <h2 class="tab-title">Change email address</h2>
-        <p class="tab-description">
-          A confirmation link will be sent to your <strong>new email address</strong>. 
-          You must click it to complete the change.
-        </p>
-        
-        <form [formGroup]="emailForm" (ngSubmit)="requestEmailChange()" class="profile-form">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>New email address</mat-label>
-            <input matInput type="email" formControlName="newEmail" placeholder="new@example.com">
-            <mat-icon matSuffix>email</mat-icon>
-            <mat-error *ngIf="emailForm.get('newEmail')?.touched && emailForm.get('newEmail')?.hasError('required')">
-              Email is required
-            </mat-error>
-            <mat-error *ngIf="emailForm.get('newEmail')?.touched && emailForm.get('newEmail')?.hasError('email')">
-              Enter a valid email address
-            </mat-error>
-          </mat-form-field>
-          
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Current password</mat-label>
-            <input matInput [type]="hideEmailPwd ? 'password' : 'text'" formControlName="password">
-            <button mat-icon-button matSuffix type="button" (click)="hideEmailPwd = !hideEmailPwd">
-              <mat-icon>{{ hideEmailPwd ? 'visibility_off' : 'visibility' }}</mat-icon>
-            </button>
-            <mat-hint>Required to confirm your identity</mat-hint>
-            <mat-error *ngIf="emailForm.get('password')?.touched && emailForm.get('password')?.hasError('required')">
-              Password is required
-            </mat-error>
-          </mat-form-field>
-          
-          <!-- Alerts -->
-          <div *ngIf="emailError" class="alert error-alert">
-            <mat-icon>error</mat-icon>
-            <span>{{ emailError }}</span>
+        <!-- Email Tab -->
+        <div class="tab-content" *ngIf="activeTab === 'email'">
+          <h3>Change Email Address</h3>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Current Email</label>
+              <input 
+                type="email" 
+                [value]="profile.email" 
+                disabled
+                class="disabled-input"
+              >
+            </div>
+            
+            <div class="form-group full-width">
+              <label>New Email</label>
+              <input 
+                type="email" 
+                [(ngModel)]="emailData.newEmail"
+                placeholder="Enter new email address"
+              >
+            </div>
+            
+            <div class="form-group full-width">
+              <label>Password</label>
+              <input 
+                type="password" 
+                [(ngModel)]="emailData.password"
+                placeholder="Enter your password to confirm"
+              >
+            </div>
           </div>
           
-          <div *ngIf="emailSent" class="alert success-alert">
-            <mat-icon>mark_email_read</mat-icon>
-            <span>Confirmation email sent to <strong>{{ emailForm.value.newEmail }}</strong>. Check your inbox!</span>
+          <div class="info-box">
+            <span class="material-icons">info</span>
+            <p>After requesting an email change, you'll receive a confirmation link at your new email address. The change will take effect after you click the link.</p>
           </div>
           
           <div class="form-actions">
-            <button mat-flat-button color="primary" type="submit" 
-                    [disabled]="sendingEmail || emailSent || emailForm.invalid || emailForm.pristine">
-              <mat-spinner diameter="20" *ngIf="sendingEmail" class="button-spinner"></mat-spinner>
-              <span>{{ sendingEmail ? 'Sending...' : emailSent ? 'Email sent ✓' : 'Send confirmation email' }}</span>
+            <button class="save-btn" (click)="requestEmailChange()" [disabled]="!emailData.newEmail || !emailData.password || saving">
+              <span class="material-icons" *ngIf="!saving">email</span>
+              <span class="spinner-small" *ngIf="saving"></span>
+              {{ saving ? 'Sending...' : 'Request Email Change' }}
             </button>
           </div>
-        </form>
+        </div>
       </div>
-    </mat-card>
-  </div>
-
-  <!-- Loading State -->
-  <ng-template #loadingBlock>
-    <div class="loading-container">
-      <mat-spinner diameter="48" color="primary"></mat-spinner>
-      <p>Loading profile...</p>
     </div>
-  </ng-template>
-</div>
   `,
   styles: [`
-    :host {
-      --primary-color: #3f51b5;
-      --success-color: #4caf50;
-      --error-color: #f44336;
-      --warning-color: #ff9800;
-      --text-primary: #2c3e50;
-      --text-secondary: #7f8c8d;
-      --bg-light: #f5f7fa;
-      --weak-color: #f44336;
-      --medium-color: #ff9800;
-      --strong-color: #4caf50;
-    }
-
     .profile-container {
-      min-height: 100vh;
-      background: var(--bg-light);
-    }
-
-    /* App Bar */
-    .app-bar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: white !important;
-      color: var(--text-primary) !important;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .toolbar-left, .toolbar-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .logo-icon {
-      color: var(--primary-color);
-      margin-right: 4px;
-    }
-
-    .app-title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .admin-btn {
-      border-color: var(--primary-color) !important;
-      color: var(--primary-color) !important;
-    }
-
-    .user-menu {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--primary-color);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .user-name {
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .more-btn {
-      color: var(--text-secondary);
-    }
-
-    /* Main Content */
-    .profile-content {
-      max-width: 1200px;
-      margin: 32px auto;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 24px;
-    }
-
-    /* Sidebar */
-    .profile-sidebar {
       padding: 24px;
-      height: fit-content;
-      border-radius: 16px !important;
-      background: white;
+      max-width: 800px;
+      margin: 0 auto;
     }
 
-    .sidebar-header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .profile-avatar-large {
-      width: 96px;
-      height: 96px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary-color), #7986cb);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-      font-weight: 600;
-      margin: 0 auto 16px;
-    }
-
-    .profile-name {
-      font-size: 20px;
-      font-weight: 600;
-      margin: 0 0 4px 0;
-    }
-
-    .profile-email {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin-bottom: 12px;
-    }
-
-    .badge-container {
-      display: flex;
-      justify-content: center;
-    }
-
-    .role-chip, .status-chip {
-      min-height: 24px;
-      font-size: 12px;
-    }
-
-    .role-chip.admin { background: #ff9800 !important; color: white !important; }
-    .role-chip.user { background: #2196f3 !important; color: white !important; }
-    .role-chip.moderator { background: #9c27b0 !important; color: white !important; }
-    
-    .status-chip.active { background: #4caf50 !important; color: white !important; }
-    .status-chip.inactive { background: #9e9e9e !important; color: white !important; }
-    .status-chip.pending { background: #ff9800 !important; color: white !important; }
-    .status-chip.blocked { background: #f44336 !important; color: white !important; }
-    .status-chip.suspended { background: #ff5722 !important; color: white !important; }
-
-    .profile-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-top: 16px;
-    }
-
-    .nav-button {
-      justify-content: flex-start !important;
-      text-align: left;
-      color: var(--text-secondary);
-      border-radius: 8px !important;
-      padding: 8px 16px !important;
-    }
-
-    .nav-button.active {
-      background: #e8eaf6;
-      color: var(--primary-color);
-    }
-
-    .nav-button mat-icon {
-      margin-right: 12px;
-    }
-
-    /* Main Panel */
-    .profile-main {
-      padding: 32px;
-      border-radius: 16px !important;
-      background: white;
-    }
-
-    .tab-title {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 0 0 8px 0;
-    }
-
-    .tab-description {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin-bottom: 24px;
-    }
-
-    .profile-form {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .full-width {
-      width: 100%;
-    }
-
-    /* Toggle Container */
-    .toggle-container {
+    .profile-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
-      background: #f8f9fa;
+      margin-bottom: 24px;
+    }
+
+    .profile-header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #2d3748;
+    }
+
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #e53e3e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .logout-btn:hover {
+      background: #c53030;
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .spinner-small {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .error-state .material-icons {
+      font-size: 48px;
+      color: #e53e3e;
+      margin-bottom: 16px;
+    }
+
+    .retry-btn {
+      padding: 8px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+
+    /* Success Message */
+    .success-message {
+      background: #c6f6d5;
+      border: 1px solid #9ae6b4;
       border-radius: 8px;
-      margin: 8px 0;
-    }
-
-    .toggle-info {
-      flex: 1;
-    }
-
-    .toggle-label {
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .toggle-hint {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    /* Alerts */
-    .alert {
+      padding: 16px 20px;
+      margin-bottom: 24px;
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 16px;
-      border-radius: 8px;
+      position: relative;
+    }
+
+    .success-message .material-icons {
+      color: #38a169;
+      font-size: 24px;
+    }
+
+    .success-message p {
+      margin: 0;
+      color: #22543d;
+      flex: 1;
+    }
+
+    .success-message .close-btn {
+      background: none;
+      border: none;
+      color: #38a169;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 0 8px;
+    }
+
+    /* Profile Card */
+    .profile-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 600;
+      border: 3px solid white;
+    }
+
+    .profile-info h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+    }
+
+    .profile-email {
+      margin: 0 0 12px 0;
+      opacity: 0.9;
       font-size: 14px;
     }
 
-    .error-alert {
-      background: #ffebee;
-      color: #c62828;
+    .profile-badges {
+      display: flex;
+      gap: 8px;
     }
 
-    .success-alert {
-      background: #e8f5e9;
-      color: #2e7d32;
+    /* Tabs */
+    .profile-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: white;
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      border: none;
+      background: none;
+      border-radius: 8px;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+      background: #f7fafc;
+      color: #4a5568;
+    }
+
+    .tab-btn.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .tab-btn .material-icons {
+      font-size: 18px;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .tab-content h3 {
+      margin: 0 0 24px 0;
+      color: #2d3748;
+      font-size: 18px;
+    }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #4a5568;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.3s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .disabled-input {
+      background: #f7fafc;
+      color: #a0aec0;
+      cursor: not-allowed;
+    }
+
+    .checkbox-group {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* Password Requirements */
+    .password-requirements {
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .password-requirements p {
+      margin: 0 0 8px 0;
+      color: #4a5568;
+    }
+
+    .password-requirements ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .password-requirements li {
+      color: #a0aec0;
+      margin: 4px 0;
+      transition: color 0.3s;
+    }
+
+    .password-requirements li.valid {
+      color: #48bb78;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .info-box .material-icons {
+      color: #3182ce;
+    }
+
+    .info-box p {
+      margin: 0;
+      color: #2c5282;
+      font-size: 14px;
     }
 
     /* Form Actions */
     .form-actions {
       display: flex;
       justify-content: flex-end;
-      margin-top: 8px;
-    }
-
-    .button-spinner {
-      display: inline-block;
-      margin-right: 8px;
-    }
-
-    /* Password Strength */
-    .password-strength {
-      margin-top: -8px;
-      margin-bottom: 8px;
-    }
-
-    .strength-bar {
-      height: 4px;
-      background: #e0e0e0;
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .strength-fill {
-      height: 100%;
-      transition: width 0.3s ease;
-    }
-
-    .strength-fill.weak { background: var(--weak-color); }
-    .strength-fill.medium { background: var(--medium-color); }
-    .strength-fill.strong { background: var(--strong-color); }
-
-    .strength-label {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    /* Requirements Card */
-    .requirements-card {
-      padding: 16px;
-      background: #f8f9fa;
-      border: none !important;
-    }
-
-    .requirement {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 0;
-      font-size: 13px;
-      color: var(--text-secondary);
-    }
-
-    .requirement.valid {
-      color: var(--success-color);
-    }
-
-    .req-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-
-    /* Language Options */
-    .language-option, .theme-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Loading State */
-    .loading-container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       gap: 16px;
-      color: var(--text-secondary);
     }
 
-    /* Material Overrides */
-    ::ng-deep .mat-mdc-form-field-flex {
-      height: 56px !important;
+    .save-btn, .cancel-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
     }
 
-    ::ng-deep .mat-mdc-text-field-wrapper {
-      background-color: #f8fafc !important;
+    .save-btn {
+      background: #667eea;
+      color: white;
     }
 
-    ::ng-deep .mdc-button {
-      letter-spacing: 0 !important;
+    .save-btn:hover:not(:disabled) {
+      background: #5a67d8;
+    }
+
+    .cancel-btn {
+      background: #f7fafc;
+      color: #4a5568;
+    }
+
+    .cancel-btn:hover:not(:disabled) {
+      background: #edf2f7;
+    }
+
+    .save-btn:disabled, .cancel-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Badge Styles */
+    .role-badge, .status-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .role-admin {
+      background: rgba(254, 178, 178, 0.2);
+      color: #feb2b2;
+    }
+
+    .role-user {
+      background: rgba(154, 230, 180, 0.2);
+      color: #9ae6b4;
+    }
+
+    .role-support {
+      background: rgba(251, 211, 141, 0.2);
+      color: #fbd38d;
+    }
+
+    .status-active {
+      background: rgba(154, 230, 180, 0.2);
+      color: #9ae6b4;
+    }
+
+    .status-pending {
+      background: rgba(254, 252, 191, 0.2);
+      color: #fefcbf;
+    }
+
+    .status-suspended {
+      background: rgba(251, 211, 141, 0.2);
+      color: #fbd38d;
+    }
+
+    .status-blocked {
+      background: rgba(254, 178, 178, 0.2);
+      color: #feb2b2;
+    }
+
+    .status-deleted {
+      background: rgba(203, 213, 224, 0.2);
+      color: #cbd5e0;
     }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .profile-content {
+      .profile-card {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .profile-tabs {
+        flex-wrap: wrap;
+      }
+      
+      .tab-btn {
+        flex: 1 1 calc(50% - 4px);
+      }
+      
+      .form-grid {
         grid-template-columns: 1fr;
       }
-
-      .form-row {
-        grid-template-columns: 1fr;
+      
+      .form-actions {
+        flex-direction: column;
       }
-
-      .user-name {
-        display: none;
-      }
-
-      .admin-btn span {
-        display: none;
+      
+      .save-btn, .cancel-btn {
+        width: 100%;
+        justify-content: center;
       }
     }
   `]
 })
 export class ProfileComponent implements OnInit {
   profile: UserProfileResponse | null = null;
-  userId = 0;
-  isAdmin = false;
-  initials = '';
-  tab: 'info' | 'prefs' | 'password' | 'email' = 'info';
-
-  // Forms
-  infoForm: FormGroup;
-  prefsForm: FormGroup;
-  pwdForm: FormGroup;
-  emailForm: FormGroup;
-
-  // States
-  savingInfo = false; infoError = ''; infoSuccess = false;
-  savingPrefs = false; prefsError = ''; prefsSuccess = false;
-  savingPwd = false; pwdError = ''; pwdSuccess = false;
-  sendingEmail = false; emailError = ''; emailSent = false;
-
-  // Password visibility
-  hideCurrent = true;
-  hideNew = true;
-  hideConfirm = true;
-  hideEmailPwd = true;
-
-  // Data
-  languages = [
-    { value: Language.FR, label: 'Français', flag: '🇫🇷' },
-    { value: Language.EN, label: 'English', flag: '🇬🇧' },
-    { value: Language.ES, label: 'Español', flag: '🇪🇸' },
-    { value: Language.DE, label: 'Deutsch', flag: '🇩🇪' },
-    { value: Language.IT, label: 'Italiano', flag: '🇮🇹' }
-  ];
-
-  themes = [
-    { value: Theme.LIGHT, label: 'Light', icon: '☀️' },
-    { value: Theme.DARK, label: 'Dark', icon: '🌙' },
-    { value: Theme.SYSTEM, label: 'System default', icon: '🖥' }
-  ];
+  loading = true;
+  error = '';
+  successMessage = '';
+  saving = false;
+  
+  activeTab: 'personal' | 'preferences' | 'security' | 'email' = 'personal';
+  
+  // Form data
+  personalInfo: Partial<UserProfileUpdateRequest> = {};
+  preferences: UserPreferencesUpdateRequest = {
+    language: Language.EN,
+    theme: Theme.SYSTEM,
+    emailNotifications: true
+  };
+  passwordData: PasswordChangeRequest & { confirmPassword: string } = {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
+  emailData: EmailUpdateRequest = {
+    newEmail: '',
+    password: ''
+  };
 
   constructor(
-    private fb: FormBuilder,
     private profileService: ProfileService,
-    private authService: AuthService,
     private tokenService: TokenService,
-    private errorHandler: ErrorHandlerService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {
-    this.infoForm = this.fb.group({
-      firstName: [''],
-      lastName: [''],
-      phoneNumber: [''],
-      address: ['']
-    });
-
-    this.prefsForm = this.fb.group({
-      language: [Language.FR],
-      theme: [Theme.LIGHT],
-      emailNotifications: [true]
-    });
-
-    this.pwdForm = this.fb.group({
-      currentPassword: ['', Validators.required],
-      newPassword: ['', [Validators.required, Validators.minLength(8), Validators.pattern(STRONG_PASSWORD_PATTERN)]],
-      confirmPassword: ['', Validators.required]
-    }, { validators: pwdMatch });
-
-    this.emailForm = this.fb.group({
-      newEmail: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
-    });
-  }
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.userId = this.tokenService.getCurrentUserId()!;
-    this.isAdmin = this.tokenService.isAdmin();
-    
-    this.profileService.getUserProfile(this.userId).subscribe({
-      next: (p) => {
-        this.profile = p;
-        this.initials = ((p.firstName?.charAt(0) ?? '') + (p.lastName?.charAt(0) ?? '') || p.email.charAt(0)).toUpperCase();
-        this.infoForm.patchValue({ 
-          firstName: p.firstName, 
-          lastName: p.lastName, 
-          phoneNumber: p.phoneNumber, 
-          address: p.address 
-        });
-        this.prefsForm.patchValue({ 
-          language: p.language, 
-          theme: p.theme, 
-          emailNotifications: p.emailNotifications 
-        });
-      },
-      error: (err) => {
-        this.snackBar.open('Failed to load profile', 'Close', { duration: 5000 });
-      }
-    });
+    this.loadProfile();
   }
 
-  // Password validation getters
-  get hasMinLength(): boolean {
-    return this.pwdForm.get('newPassword')?.value?.length >= 8;
-  }
-
-  get hasUpperCase(): boolean {
-    return /[A-Z]/.test(this.pwdForm.get('newPassword')?.value);
-  }
-
-  get hasLowerCase(): boolean {
-    return /[a-z]/.test(this.pwdForm.get('newPassword')?.value);
-  }
-
-  get hasNumber(): boolean {
-    return /[0-9]/.test(this.pwdForm.get('newPassword')?.value);
-  }
-
-  get hasSpecialChar(): boolean {
-    return /[@#$%^&+=]/.test(this.pwdForm.get('newPassword')?.value);
-  }
-
-  getPasswordStrength(): number {
-    const pwd = this.pwdForm.get('newPassword')?.value || '';
-    let strength = 0;
-    
-    if (pwd.length >= 8) strength += 20;
-    if (pwd.length >= 10) strength += 10;
-    if (/[a-z]/.test(pwd)) strength += 15;
-    if (/[A-Z]/.test(pwd)) strength += 15;
-    if (/[0-9]/.test(pwd)) strength += 20;
-    if (/[@#$%^&+=]/.test(pwd)) strength += 20;
-    
-    return Math.min(strength, 100);
-  }
-
-  getPasswordStrengthText(): string {
-    const strength = this.getPasswordStrength();
-    if (strength < 40) return 'Weak';
-    if (strength < 70) return 'Medium';
-    return 'Strong';
-  }
-
-  saveInfo(): void {
-    this.savingInfo = true;
-    this.infoError = '';
-    this.infoSuccess = false;
-
-    this.profileService.updateUserProfile(this.userId, this.infoForm.value).subscribe({
-      next: (p) => {
-        this.profile = p;
-        this.infoSuccess = true;
-        this.savingInfo = false;
-        this.infoForm.markAsPristine();
-        
-        this.snackBar.open('Profile updated successfully', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        
-        setTimeout(() => this.infoSuccess = false, 4000);
-      },
-      error: (e: HttpErrorResponse) => {
-        this.infoError = this.errorHandler.handle(e).userMessage;
-        this.savingInfo = false;
-      }
-    });
-  }
-
-  savePrefs(): void {
-    this.savingPrefs = true;
-    this.prefsError = '';
-    this.prefsSuccess = false;
-
-    this.profileService.updateUserPreferences(this.userId, this.prefsForm.value).subscribe({
-      next: (p) => {
-        this.profile = p;
-        this.prefsSuccess = true;
-        this.savingPrefs = false;
-        this.prefsForm.markAsPristine();
-        
-        this.snackBar.open('Preferences saved', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        
-        setTimeout(() => this.prefsSuccess = false, 4000);
-      },
-      error: (e: HttpErrorResponse) => {
-        this.prefsError = this.errorHandler.handle(e).userMessage;
-        this.savingPrefs = false;
-      }
-    });
-  }
-
-  savePassword(): void {
-    if (this.pwdForm.invalid) { 
-      this.pwdForm.markAllAsTouched(); 
-      return; 
+  loadProfile(): void {
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId) {
+      this.router.navigate(['/auth/login']);
+      return;
     }
 
-    this.savingPwd = true;
-    this.pwdError = '';
-    this.pwdSuccess = false;
-
-    const { currentPassword, newPassword, confirmPassword } = this.pwdForm.value;
+    this.loading = true;
+    this.error = '';
     
-    this.profileService.changePassword(this.userId, { currentPassword, newPassword, confirmPassword }).subscribe({
-      next: () => {
-        this.pwdSuccess = true;
-        this.savingPwd = false;
-        this.pwdForm.reset();
-        
-        this.snackBar.open('Password changed successfully', 'Close', {
-          duration: 3000,
-          panelClass: ['success-snackbar']
-        });
-        
-        setTimeout(() => this.pwdSuccess = false, 5000);
+    this.profileService.getUserProfile(userId).subscribe({
+      next: (profile) => {
+        this.profile = profile;
+        this.resetPersonalInfo();
+        this.resetPreferences();
+        this.loading = false;
       },
-      error: (e: HttpErrorResponse) => {
-        this.pwdError = this.errorHandler.handle(e).userMessage;
-        this.savingPwd = false;
+      error: (error) => {
+        this.error = 'Failed to load profile';
+        this.loading = false;
+        console.error('Error loading profile:', error);
+      }
+    });
+  }
+
+  getFullName(): string {
+    if (!this.profile) return '';
+    const parts = [this.profile.firstName, this.profile.lastName].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : 'Unknown';
+  }
+
+  getInitials(): string {
+    if (!this.profile) return 'U';
+    const first = this.profile.firstName ? this.profile.firstName.charAt(0) : '';
+    const last = this.profile.lastName ? this.profile.lastName.charAt(0) : '';
+    return (first + last).toUpperCase() || 'U';
+  }
+
+  resetPersonalInfo(): void {
+    if (!this.profile) return;
+    this.personalInfo = {
+      firstName: this.profile.firstName || '',
+      lastName: this.profile.lastName || '',
+      phoneNumber: this.profile.phoneNumber || '',
+      address: this.profile.address || ''
+    };
+  }
+
+  resetPreferences(): void {
+    if (!this.profile) return;
+    this.preferences = {
+      language: this.profile.language,
+      theme: this.profile.theme,
+      emailNotifications: true // Default value
+    };
+  }
+
+  resetPasswordForm(): void {
+    this.passwordData = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    };
+  }
+
+  updatePersonalInfo(): void {
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId || !this.profile) return;
+
+    this.saving = true;
+    this.error = '';
+    this.successMessage = '';
+
+    this.profileService.updateUserProfile(userId, this.personalInfo).subscribe({
+      next: (updatedProfile) => {
+        this.profile = updatedProfile;
+        this.successMessage = 'Personal information updated successfully';
+        this.saving = false;
+        
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
+      },
+      error: (error) => {
+        this.error = 'Failed to update personal information';
+        this.saving = false;
+        console.error('Error updating profile:', error);
+      }
+    });
+  }
+
+  updatePreferences(): void {
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId || !this.profile) return;
+
+    this.saving = true;
+    this.error = '';
+    this.successMessage = '';
+
+    this.profileService.updateUserPreferences(userId, this.preferences).subscribe({
+      next: (updatedProfile) => {
+        this.profile = updatedProfile;
+        this.successMessage = 'Preferences updated successfully';
+        this.saving = false;
+        
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
+      },
+      error: (error) => {
+        this.error = 'Failed to update preferences';
+        this.saving = false;
+        console.error('Error updating preferences:', error);
+      }
+    });
+  }
+
+  isPasswordValid(): boolean {
+    const pwd = this.passwordData;
+    return pwd.newPassword.length >= 8 &&
+           /[A-Z]/.test(pwd.newPassword) &&
+           /[a-z]/.test(pwd.newPassword) &&
+           /[0-9]/.test(pwd.newPassword) &&
+           pwd.newPassword === pwd.confirmPassword;
+  }
+
+  changePassword(): void {
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId || !this.isPasswordValid()) return;
+
+    this.saving = true;
+    this.error = '';
+    this.successMessage = '';
+
+    // Create the exact PasswordChangeRequest object expected by the service
+    const passwordRequest: PasswordChangeRequest = {
+      currentPassword: this.passwordData.currentPassword,
+      newPassword: this.passwordData.newPassword,
+      confirmPassword: this.passwordData.confirmPassword
+    };
+
+    this.profileService.changePassword(userId, passwordRequest).subscribe({
+      next: () => {
+        this.successMessage = 'Password changed successfully';
+        this.resetPasswordForm();
+        this.saving = false;
+        
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 3000);
+      },
+      error: (error) => {
+        this.error = 'Failed to change password';
+        this.saving = false;
+        console.error('Error changing password:', error);
       }
     });
   }
 
   requestEmailChange(): void {
-    if (this.emailForm.invalid) { 
-      this.emailForm.markAllAsTouched(); 
-      return; 
-    }
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId || !this.emailData.newEmail || !this.emailData.password) return;
 
-    this.sendingEmail = true;
-    this.emailError = '';
-    this.emailSent = false;
+    this.saving = true;
+    this.error = '';
+    this.successMessage = '';
 
-    const { newEmail, password } = this.emailForm.value;
-    
-    this.profileService.requestEmailChange(this.userId, { newEmail, password }).subscribe({
+    this.profileService.requestEmailChange(userId, this.emailData).subscribe({
       next: () => {
-        this.emailSent = true;
-        this.sendingEmail = false;
-        this.emailForm.markAsPristine();
+        this.successMessage = 'Email change request sent. Please check your new email for confirmation.';
+        this.emailData = { newEmail: '', password: '' };
+        this.saving = false;
         
-        this.snackBar.open(`Confirmation email sent to ${newEmail}`, 'Close', {
-          duration: 5000,
-          panelClass: ['success-snackbar']
-        });
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 5000);
       },
-      error: (e: HttpErrorResponse) => {
-        this.emailError = this.errorHandler.handle(e).userMessage;
-        this.sendingEmail = false;
+      error: (error) => {
+        this.error = 'Failed to request email change';
+        this.saving = false;
+        console.error('Error requesting email change:', error);
       }
     });
   }
 
-  logout(): void { 
-    this.authService.logout(); 
+  logout(): void {
+    this.authService.logout();
   }
 }

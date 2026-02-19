@@ -14,11 +14,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-
-import { Language } from '../../models/enums.model';
-import { AuthService } from '../../service/auth.service';
-import { ErrorHandlerService } from '../../service/error handler.service';
-
+ 
+import { AuthService } from '../../core/services/users/auth.service';
+import { ErrorHandlerService } from '../../core/services/users/error-handler.service';
+import { Language } from '../../core/models/users/enums.model';
 // Custom validator for Cameroonian phone number
 export function cameroonPhoneValidator(control: AbstractControl): ValidationErrors | null {
   const phoneRegex = /^\+237\s6\d{2}\s\d{3}\s\d{3}$/;

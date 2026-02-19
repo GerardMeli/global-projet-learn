@@ -5,7 +5,7 @@ import {
   RouterStateSnapshot,
   Router
 } from '@angular/router';
-import { TokenService } from '../services/token.service';
+import { TokenService } from '../services/users/token.service';
 
 /**
  * Guards routes that require a specific role.

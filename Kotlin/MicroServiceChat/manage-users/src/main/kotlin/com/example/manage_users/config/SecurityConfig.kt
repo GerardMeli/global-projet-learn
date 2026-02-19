@@ -143,11 +143,6 @@ class SecurityConfig(
         return authenticationConfiguration.authenticationManager
     }
 
-//    @Bean
-//    fun passwordEncoder(): PasswordEncoder {
-//        return BCryptPasswordEncoder()
-//    }
-
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val corsConfig = CorsConfiguration().apply {

@@ -1,967 +1,1093 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router'; 
-
-// Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSidenavModule } from '@angular/material/sidenav'; // AJOUTER
-import { MatListModule } from '@angular/material/list'; // AJOUTER
-
-import { AuthService } from '../../core/services/auth.service';
-import { TokenService } from '../../core/services/token.service'; 
-import { UserStatisticsResponse } from '../../models/statistics.model';
-import { StatisticsService } from '../../service/statistics.service';
+import { FormsModule } from '@angular/forms';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { TokenService } from '../../core/services/users/token.service';
+import { AuthService } from '../../core/services/users/auth.service';
+import { MatTooltipModule } from '@angular/material/tooltip'; // Add this import
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
-    RouterModule,
-    // Material
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatDividerModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatGridListModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    MatSidenavModule,  // ← AJOUTÉ
-    MatListModule       // ← AJOUTÉ
+    CommonModule,
+    RouterModule, 
+    MatTooltipModule, // Add MatTooltipModule here],
+    FormsModule
   ],
   template: `
-<div class="dashboard-container">
-  <!-- Sidebar -->
-  <mat-drawer-container class="sidenav-container">
-    <mat-drawer mode="side" opened class="sidenav">
-      <div class="sidenav-header">
-        <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
-        <span class="logo-text">FlowManage</span>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-content">
-        <a mat-list-item routerLink="/admin" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact:true}">
-          <mat-icon matListItemIcon>dashboard</mat-icon>
-          <span matListItemTitle>Dashboard</span>
-        </a>
-        <a mat-list-item routerLink="/admin/users" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>people</mat-icon>
-          <span matListItemTitle>Users</span>
-        </a>
-        <a mat-list-item routerLink="/admin/statistics" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>bar_chart</mat-icon>
-          <span matListItemTitle>Statistics</span>
-        </a>
-        <a mat-list-item routerLink="/profile" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>person</mat-icon>
-          <span matListItemTitle>My Profile</span>
-        </a>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-footer">
-        <div class="admin-info">
-          <div class="admin-avatar">{{ adminInitial }}</div>
-          <div class="admin-details">
-            <div class="admin-email">{{ adminEmail }}</div>
-            <div class="admin-role">Administrator</div>
+    <div class="admin-dashboard" [class.sidebar-collapsed]="sidebarCollapsed">
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" *ngIf="isMobile">
+        <span class="material-icons">{{ mobileMenuOpen ? 'close' : 'menu' }}</span>
+      </button>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" [class.mobile-open]="mobileMenuOpen" [class.collapsed]="sidebarCollapsed">
+        <div class="sidebar-header">
+          <div class="logo-area">
+            <span class="logo-icon">⚡</span>
+            <h2 *ngIf="!sidebarCollapsed">Admin Panel</h2>
           </div>
-        </div>
-        
-        <button mat-button class="logout-btn" (click)="logout()" matTooltip="Sign out">
-          <mat-icon>exit_to_app</mat-icon>
-          Sign out
-        </button>
-      </div>
-    </mat-drawer>
-
-    <!-- Main Content -->
-    <mat-drawer-content class="main-content">
-      <!-- Header -->
-      <div class="content-header">
-        <div>
-          <h1 class="page-title">Dashboard</h1>
-          <p class="page-subtitle">Overview of all users and activity</p>
-        </div>
-        
-        <button mat-flat-button color="primary" routerLink="/admin/users" class="manage-btn">
-          <mat-icon>group_add</mat-icon>
-          Manage Users
-        </button>
-      </div>
-
-      <!-- Stats Grid -->
-      <div class="stats-grid" *ngIf="stats; else loadingStats">
-        <!-- Total Users Card -->
-        <mat-card class="stat-card stat-card--total">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">Total Users</div>
-              <mat-icon class="stat-icon">people</mat-icon>
-            </div>
-            <div class="stat-value">{{ stats.totalUsers }}</div>
-            <div class="stat-footer">All registered accounts</div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Active Users Card -->
-        <mat-card class="stat-card stat-card--active">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">Active</div>
-              <mat-icon class="stat-icon">check_circle</mat-icon>
-            </div>
-            <div class="stat-value">{{ stats.activeUsers }}</div>
-            <div class="stat-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" 
-                     [style.width.%]="pct(stats.activeUsers, stats.totalUsers)">
-                </div>
-              </div>
-              <span class="progress-label">
-                {{ pct(stats.activeUsers, stats.totalUsers) }}% of total
-              </span>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Pending Verification Card -->
-        <mat-card class="stat-card stat-card--pending">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">Pending Verification</div>
-              <mat-icon class="stat-icon">hourglass_empty</mat-icon>
-            </div>
-            <div class="stat-value">{{ stats.pendingVerification }}</div>
-            <div class="stat-footer">Unverified email</div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Blocked Users Card -->
-        <mat-card class="stat-card stat-card--blocked">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">Blocked</div>
-              <mat-icon class="stat-icon">block</mat-icon>
-            </div>
-            <div class="stat-value">{{ stats.blockedUsers }}</div>
-            <div class="stat-footer">After 5 failed logins</div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- Suspended Users Card -->
-        <mat-card class="stat-card stat-card--suspended">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">Suspended</div>
-              <mat-icon class="stat-icon">warning</mat-icon>
-            </div>
-            <div class="stat-value">{{ stats.suspendedUsers }}</div>
-          </mat-card-content>
-        </mat-card>
-
-        <!-- New Users Card -->
-        <mat-card class="stat-card stat-card--new">
-          <mat-card-content>
-            <div class="stat-header">
-              <div class="stat-title">New Users</div>
-              <mat-icon class="stat-icon">trending_up</mat-icon>
-            </div>
-            <div class="stat-value">+{{ stats.newUsersLast7Days }}</div>
-            <div class="stat-period">Last 7 days</div>
-            <div class="stat-trend">+{{ stats.newUsersLast30Days }} last 30 days</div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <!-- Loading State -->
-      <ng-template #loadingStats>
-        <div class="stats-grid">
-          <mat-card class="stat-card skeleton" *ngFor="let i of [1,2,3,4,5,6]">
-            <mat-card-content>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line"></div>
-            </mat-card-content>
-          </mat-card>
-        </div>
-      </ng-template>
-
-      <!-- Charts Row -->
-      <div class="charts-row" *ngIf="stats">
-        <!-- Role Distribution -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>admin_panel_settings</mat-icon>
-              Users by Role
-            </mat-card-title>
-          </mat-card-header>
           
-          <mat-card-content>
-            <div class="distribution-list">
-              <div class="distribution-item" *ngFor="let entry of roleEntries">
-                <div class="distribution-header">
-                  <mat-chip class="role-chip" [class]="'role-' + entry.key.toLowerCase()">
-                    {{ entry.key }}
-                  </mat-chip>
-                  <span class="distribution-count">{{ entry.value }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div class="progress-bar-fill" 
-                       [style.width.%]="pct(entry.value, stats.totalUsers)"
-                       [style.background]="getRoleColor(entry.key)">
-                  </div>
-                </div>
-                <div class="distribution-footer">
-                  <span class="distribution-percent">
-                    {{ pct(entry.value, stats.totalUsers) }}%
-                  </span>
-                  <button mat-icon-button class="view-btn" 
-                          [routerLink]="['/admin/users']" 
-                          [queryParams]="{role: entry.key}"
-                          matTooltip="View {{ entry.key }} users">
-                    <mat-icon>arrow_forward</mat-icon>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </mat-card-content>
-        </mat-card>
+          <!-- Collapse Toggle (Desktop) -->
+          <button class="collapse-toggle" (click)="toggleSidebar()" *ngIf="!isMobile">
+            <span class="material-icons">{{ sidebarCollapsed ? 'chevron_right' : 'chevron_left' }}</span>
+          </button>
+        </div>
 
-        <!-- Language Distribution -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>
-              <mat-icon>language</mat-icon>
-              Users by Language
-            </mat-card-title>
-          </mat-card-header>
+        <!-- User Info -->
+        <div class="user-info" *ngIf="!sidebarCollapsed">
+          <div class="user-avatar">
+            {{ getInitials() }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ getUserName() }}</span>
+            <span class="user-email">{{ userEmail }}</span>
+            <span class="user-role-badge">Administrator</span>
+          </div>
+        </div>
+
+        <!-- Compact User Info for Collapsed Sidebar -->
+        <div class="user-info-compact" *ngIf="sidebarCollapsed" [matTooltip]="userEmail || ''" matTooltipPosition="right">
+          <div class="user-avatar small">
+            {{ getInitials() }}
+          </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+          <a routerLink="/admin/users" routerLinkActive="active" class="nav-item" [routerLinkActiveOptions]="{exact: true}" (click)="closeMobileMenu()">
+            <span class="material-icons">people</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Users Management</span>
+          </a>
           
-          <mat-card-content>
-            <div class="distribution-list">
-              <div class="distribution-item" *ngFor="let entry of langEntries">
-                <div class="distribution-header">
-                  <span class="language-label">
-                    {{ langFlag(entry.key) }} {{ entry.key }}
-                  </span>
-                  <span class="distribution-count">{{ entry.value }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div class="progress-bar-fill language-fill" 
-                       [style.width.%]="pct(entry.value, stats.totalUsers)">
-                  </div>
-                </div>
-                <div class="distribution-footer">
-                  <span class="distribution-percent">
-                    {{ pct(entry.value, stats.totalUsers) }}%
-                  </span>
-                </div>
+          <a routerLink="/admin/statistics" routerLinkActive="active" class="nav-item" (click)="closeMobileMenu()">
+            <span class="material-icons">insights</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Statistics</span>
+          </a>
+          
+          <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item" (click)="closeMobileMenu()">
+            <span class="material-icons">settings</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Settings</span>
+          </a>
+          
+          <a routerLink="/admin/profile" routerLinkActive="active" class="nav-item" (click)="closeMobileMenu()">
+            <span class="material-icons">person</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">My Profile</span>
+          </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+          <button class="logout-btn" (click)="confirmLogout()">
+            <span class="material-icons">logout</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Logout</span>
+          </button>
+          
+          <!-- Theme Toggle (Optional) -->
+          <button class="theme-toggle" (click)="toggleTheme()" *ngIf="!sidebarCollapsed">
+            <span class="material-icons">{{ isDarkTheme ? 'light_mode' : 'dark_mode' }}</span>
+            <span class="nav-label">{{ isDarkTheme ? 'Light Mode' : 'Dark Mode' }}</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content" [class.expanded]="sidebarCollapsed">
+        <header class="content-header">
+          <div class="header-left">
+            <h1>{{ currentPage }}</h1>
+            <span class="page-indicator" *ngIf="!isMobile">{{ getPageDescription() }}</span>
+          </div>
+          
+          <div class="header-actions">
+            <!-- Search (optional) -->
+            <div class="search-box" *ngIf="showSearch && !isMobile">
+              <span class="material-icons">search</span>
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                [(ngModel)]="searchQuery"
+                (keyup.enter)="onSearch()"
+              >
+            </div>
+            
+            <!-- Notifications -->
+            <div class="notification-icon" (click)="toggleNotifications()">
+              <span class="material-icons">notifications</span>
+              <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+            </div>
+            
+            <!-- User Menu -->
+            <div class="user-menu" (click)="toggleUserMenu()" #userMenu>
+              <div class="user-avatar small">
+                {{ getInitials() }}
+              </div>
+              <span class="material-icons" *ngIf="!isMobile">arrow_drop_down</span>
+              
+              <!-- Dropdown Menu -->
+              <div class="dropdown-menu" *ngIf="userMenuOpen">
+                <a routerLink="/admin/profile" (click)="userMenuOpen = false">
+                  <span class="material-icons">person</span>
+                  My Profile
+                </a>
+                <a routerLink="/admin/settings" (click)="userMenuOpen = false">
+                  <span class="material-icons">settings</span>
+                  Settings
+                </a>
+                <div class="dropdown-divider"></div>
+                <button (click)="confirmLogout()">
+                  <span class="material-icons">logout</span>
+                  Logout
+                </button>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </header>
+        
+        <!-- Breadcrumb -->
+        <div class="breadcrumb" *ngIf="!isMobile">
+          <span class="material-icons">home</span>
+          <span>Admin</span>
+          <span class="material-icons">chevron_right</span>
+          <span class="current">{{ currentPage }}</span>
+        </div>
+        
+        <div class="content-body">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+
+      <!-- Logout Confirmation Modal -->
+      <div class="modal-overlay" *ngIf="showLogoutModal" (click)="cancelLogout()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Confirm Logout</h3>
+            <button class="close-btn" (click)="cancelLogout()">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <span class="material-icons">logout</span>
+            <p>Are you sure you want to logout?</p>
+          </div>
+          <div class="modal-footer">
+            <button class="cancel-btn" (click)="cancelLogout()">Cancel</button>
+            <button class="logout-confirm-btn" (click)="logout()">
+              <span class="material-icons">logout</span>
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
 
-      <!-- Quick Actions -->
-      <mat-card class="quick-actions-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>bolt</mat-icon>
-            Quick Actions
-          </mat-card-title>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="actions-grid">
-            <button mat-stroked-button class="action-btn" routerLink="/admin/users">
-              <mat-icon>people</mat-icon>
-              <span>View all users</span>
-            </button>
-            
-            <button mat-stroked-button class="action-btn" routerLink="/admin/statistics">
-              <mat-icon>bar_chart</mat-icon>
-              <span>Activity report</span>
-            </button>
-            
-            <button mat-stroked-button class="action-btn" 
-                    routerLink="/admin/users" 
-                    [queryParams]="{status:'PENDING'}">
-              <mat-icon>hourglass_empty</mat-icon>
-              <span>Pending users</span>
-              <mat-chip *ngIf="stats?.pendingVerification" class="badge-chip" highlighted>
-                {{ stats?.pendingVerification }}
-              </mat-chip>
-            </button>
-            
-            <button mat-stroked-button class="action-btn" 
-                    routerLink="/admin/users" 
-                    [queryParams]="{status:'BLOCKED'}">
-              <mat-icon>block</mat-icon>
-              <span>Blocked accounts</span>
-              <mat-chip *ngIf="stats?.blockedUsers" class="badge-chip" highlighted>
-                {{ stats?.blockedUsers }}
-              </mat-chip>
-            </button>
-            
-            <button mat-stroked-button class="action-btn" 
-                    routerLink="/admin/users" 
-                    [queryParams]="{active:'false'}">
-              <mat-icon>radio_button_unchecked</mat-icon>
-              <span>Inactive users</span>
-            </button>
-            
-            <button mat-stroked-button class="action-btn" (click)="refreshDashboard()">
-              <mat-icon>refresh</mat-icon>
-              <span>Refresh data</span>
-            </button>
-          </div>
-        </mat-card-content>
-      </mat-card>
-
-      <!-- System Health Card -->
-      <mat-card class="health-card">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>monitor_heart</mat-icon>
-            System Health
-          </mat-card-title>
-        </mat-card-header>
-        
-        <mat-card-content>
-          <div class="health-grid">
-            <div class="health-item">
-              <div class="health-label">
-                <mat-icon>check_circle</mat-icon>
-                System Status
-              </div>
-              <mat-chip class="health-chip" highlighted color="primary">Operational</mat-chip>
+      <!-- Notifications Panel -->
+      <div class="notifications-panel" *ngIf="showNotifications" (clickOutside)="closeNotifications()">
+        <div class="notifications-header">
+          <h3>Notifications</h3>
+          <button class="mark-read" (click)="markAllAsRead()">Mark all as read</button>
+        </div>
+        <div class="notifications-list">
+          <div class="notification-item unread" *ngFor="let notif of notifications">
+            <div class="notification-icon">
+              <span class="material-icons">{{ notif.icon }}</span>
             </div>
-            
-            <div class="health-item">
-              <div class="health-label">
-                <mat-icon>schedule</mat-icon>
-                Response Time
-              </div>
-              <span class="health-value">< 200ms</span>
-            </div>
-            
-            <div class="health-item">
-              <div class="health-label">
-                <mat-icon>cloud</mat-icon>
-                API Status
-              </div>
-              <mat-chip class="health-chip" highlighted color="primary">Connected</mat-chip>
-            </div>
-            
-            <div class="health-item">
-              <div class="health-label">
-                <mat-icon>storage</mat-icon>
-                Database
-              </div>
-              <mat-chip class="health-chip" highlighted color="primary">Healthy</mat-chip>
+            <div class="notification-content">
+              <p>{{ notif.message }}</p>
+              <span class="notification-time">{{ notif.time }}</span>
             </div>
           </div>
-        </mat-card-content>
-      </mat-card>
-    </mat-drawer-content>
-  </mat-drawer-container>
-</div>
+          <div class="no-notifications" *ngIf="notifications.length === 0">
+            <span class="material-icons">notifications_off</span>
+            <p>No notifications</p>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
-    :host {
-      --primary-color: #3f51b5;
-      --success-color: #4caf50;
-      --warning-color: #ff9800;
-      --error-color: #f44336;
-      --info-color: #2196f3;
-      --text-primary: #2c3e50;
-      --text-secondary: #7f8c8d;
-      --bg-light: #f5f7fa;
-      --skeleton-color: #e0e0e0;
+    .admin-dashboard {
+      display: flex;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+      transition: all 0.3s ease;
     }
 
-    .dashboard-container {
-      height: 100vh;
-    }
-
-    .sidenav-container {
-      height: 100%;
-    }
-
-    .sidenav {
-      width: 280px;
-      background: #1e293b;
-      color: white;
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1100;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: white;
       border: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
     }
 
-    .sidenav-header {
-      padding: 24px 16px;
+    .mobile-menu-toggle:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Sidebar Styles */
+    .sidebar {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .sidebar.collapsed {
+      width: 80px;
+    }
+
+    .sidebar.mobile-open {
+      transform: translateX(0);
+    }
+
+    .sidebar-header {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .logo-area {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
     .logo-icon {
-      color: var(--primary-color);
-      font-size: 32px;
+      font-size: 24px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      white-space: nowrap;
+    }
+
+    .collapse-toggle {
       width: 32px;
       height: 32px;
-    }
-
-    .logo-text {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .sidenav-content {
-      padding: 16px 8px;
-    }
-
-    .sidenav-content a {
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 4px;
       border-radius: 8px;
-    }
-
-    .sidenav-content a:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    .sidenav-content a.active-link {
-      background: rgba(63, 81, 181, 0.2);
-      color: var(--primary-color);
-    }
-
-    .sidenav-footer {
-      padding: 16px;
-    }
-
-    .admin-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-    }
-
-    .admin-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--primary-color);
-      color: white;
+      border: none;
+      background: #f7fafc;
+      color: #4a5568;
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .collapse-toggle:hover {
+      background: #edf2f7;
+      color: #667eea;
+    }
+
+    /* User Info */
+    .user-info {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .user-info-compact {
+      padding: 16px 0;
+      display: flex;
+      justify-content: center;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .user-avatar {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
       font-weight: 600;
+      font-size: 20px;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .user-avatar.small {
+      width: 40px;
+      height: 40px;
       font-size: 16px;
     }
 
-    .admin-details {
-      overflow: hidden;
-    }
-
-    .admin-email {
-      color: white;
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 160px;
-    }
-
-    .admin-role {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 11px;
-    }
-
-    .logout-btn {
-      width: 100%;
-      color: rgba(255, 255, 255, 0.7);
-      justify-content: flex-start;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .logout-btn:hover {
-      background: rgba(220, 53, 69, 0.2);
-      color: #f87171;
-    }
-
-    .main-content {
-      padding: 24px;
-      background: var(--bg-light);
-    }
-
-    .content-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-
-    .page-title {
-      font-size: 28px;
-      font-weight: 600;
-      margin: 0 0 4px 0;
-      color: var(--text-primary);
-    }
-
-    .page-subtitle {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin: 0;
-    }
-
-    .manage-btn {
-      border-radius: 24px !important;
-      padding: 0 24px !important;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      border-radius: 16px !important;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1) !important;
-    }
-
-    .stat-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    .stat-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .stat-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-secondary);
-    }
-
-    .stat-icon {
-      font-size: 24px;
-      width: 24px;
-      height: 24px;
-      opacity: 0.7;
-    }
-
-    .stat-value {
-      font-size: 36px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .stat-footer, .stat-period, .stat-trend {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-
-    .stat-trend {
-      margin-top: 4px;
-    }
-
-    /* Card Colors */
-    .stat-card--total { background: linear-gradient(135deg, #1a237e, #283593); color: white; }
-    .stat-card--total .stat-title,
-    .stat-card--total .stat-footer,
-    .stat-card--total .stat-period,
-    .stat-card--total .stat-trend { color: rgba(255,255,255,0.7); }
-
-    .stat-card--active { background: #e8f5e9; }
-    .stat-card--active .stat-value { color: #2e7d32; }
-
-    .stat-card--pending { background: #fff3e0; }
-    .stat-card--pending .stat-value { color: #e65100; }
-
-    .stat-card--blocked { background: #ffebee; }
-    .stat-card--blocked .stat-value { color: #c62828; }
-
-    .stat-card--suspended { background: #fff8e1; }
-    .stat-card--suspended .stat-value { color: #856404; }
-
-    .stat-card--new { background: #e3f2fd; }
-    .stat-card--new .stat-value { color: #0d47a1; }
-
-    /* Progress Bar */
-    .stat-progress {
-      margin-top: 8px;
-    }
-
-    .progress-bar {
-      height: 4px;
-      background: rgba(0,0,0,0.1);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--primary-color);
-      border-radius: 2px;
-      transition: width 0.8s ease;
-    }
-
-    .progress-label {
-      font-size: 11px;
-      color: var(--text-secondary);
-    }
-
-    /* Skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-
-    .skeleton-line {
-      height: 16px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 4px;
-      margin-bottom: 12px;
-    }
-
-    @keyframes shimmer {
-      to { background-position: -200% 0; }
-    }
-
-    /* Charts Row */
-    .charts-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-
-    .chart-card {
-      border-radius: 16px !important;
-    }
-
-    .chart-card .mat-mdc-card-header {
-      padding: 20px 20px 0;
-    }
-
-    .chart-card .mat-mdc-card-header mat-icon {
-      margin-right: 8px;
-      font-size: 20px;
-    }
-
-    .chart-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    /* Distribution Lists */
-    .distribution-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .distribution-item {
+    .user-details {
       display: flex;
       flex-direction: column;
       gap: 4px;
     }
 
-    .distribution-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .role-chip {
-      min-height: 24px;
-      font-size: 11px;
-    }
-
-    .role-chip.role-admin { background: #ff9800 !important; color: white !important; }
-    .role-chip.role-user { background: #2196f3 !important; color: white !important; }
-    .role-chip.role-moderator { background: #9c27b0 !important; color: white !important; }
-
-    .language-label {
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .distribution-count {
+    .user-name {
       font-weight: 600;
+      color: #2d3748;
+      font-size: 14px;
     }
 
-    .progress-bar-container {
-      height: 6px;
-      background: #f0f0f0;
-      border-radius: 3px;
-      overflow: hidden;
+    .user-email {
+      font-size: 12px;
+      color: #718096;
     }
 
-    .progress-bar-fill {
-      height: 100%;
-      transition: width 0.8s ease;
-    }
-
-    .language-fill {
-      background: var(--info-color);
-    }
-
-    .distribution-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .distribution-percent {
+    .user-role-badge {
       font-size: 11px;
-      color: var(--text-secondary);
+      color: #667eea;
+      background: #ebf4ff;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      width: fit-content;
     }
 
-    .view-btn {
-      opacity: 0.5;
-      transition: opacity 0.2s ease;
+    /* Sidebar Navigation */
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
     }
 
-    .view-btn:hover {
-      opacity: 1;
-    }
-
-    /* Quick Actions */
-    .quick-actions-card {
-      border-radius: 16px !important;
-      margin-bottom: 20px;
-    }
-
-    .quick-actions-card .mat-mdc-card-header {
-      padding: 20px 20px 0;
-    }
-
-    .quick-actions-card .mat-mdc-card-header mat-icon {
-      margin-right: 8px;
-    }
-
-    .quick-actions-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    .actions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-    }
-
-    .action-btn {
+    .nav-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px !important;
-      height: auto !important;
-      border: 1px dashed #ccc !important;
-      border-radius: 12px !important;
-      transition: all 0.2s ease;
-    }
-
-    .action-btn:hover {
-      background: var(--primary-color) !important;
-      color: white !important;
-      border-color: var(--primary-color) !important;
-    }
-
-    .action-btn .mat-icon {
-      margin-right: 4px;
-    }
-
-    .badge-chip {
-      margin-left: auto;
-      background: var(--primary-color) !important;
-      color: white !important;
-      font-size: 11px;
-      min-height: 20px;
-    }
-
-    /* Health Card */
-    .health-card {
-      border-radius: 16px !important;
-      background: linear-gradient(135deg, #f5f5f5, #ffffff);
-    }
-
-    .health-card .mat-mdc-card-header {
-      padding: 20px 20px 0;
-    }
-
-    .health-card .mat-mdc-card-header mat-icon {
-      margin-right: 8px;
-    }
-
-    .health-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    .health-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
+      padding: 12px 24px;
+      color: #4a5568;
+      text-decoration: none;
+      transition: all 0.3s;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+      margin: 4px 12px;
+      border-radius: 8px;
     }
 
-    .health-item {
+    .nav-item:hover {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      color: #667eea;
+      transform: translateX(4px);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .nav-item.active::before {
+      content: '';
+      position: absolute;
+      left: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 70%;
+      background: white;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .nav-item .material-icons {
+      font-size: 20px;
+    }
+
+    .nav-label {
+      white-space: nowrap;
+      transition: opacity 0.3s;
+    }
+
+    .sidebar.collapsed .nav-label {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      padding: 16px 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 12px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
-    .health-label {
+    .logout-btn, .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 12px;
+      border: none;
+      background: none;
+      color: #4a5568;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.3s;
+      width: 100%;
+    }
+
+    .logout-btn:hover {
+      background: #fff5f5;
+      color: #e53e3e;
+    }
+
+    .theme-toggle:hover {
+      background: #f7fafc;
+      color: #667eea;
+    }
+
+    .logout-btn .material-icons,
+    .theme-toggle .material-icons {
+      font-size: 20px;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      margin-left: 280px;
+      min-height: 100vh;
+      background: #f7fafc;
+      transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .main-content.expanded {
+      margin-left: 80px;
+    }
+
+    /* Content Header */
+    .content-header {
+      background: white;
+      padding: 20px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .page-indicator {
+      font-size: 14px;
+      color: #a0aec0;
+      margin-left: 12px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Search Box */
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: #f7fafc;
+      border-radius: 8px;
+      padding: 8px 16px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s;
+    }
+
+    .search-box:focus-within {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-box .material-icons {
+      color: #a0aec0;
+      margin-right: 8px;
+    }
+
+    .search-box input {
+      border: none;
+      background: none;
+      outline: none;
+      font-size: 14px;
+      color: #4a5568;
+      width: 200px;
+    }
+
+    .search-box input::placeholder {
+      color: #a0aec0;
+    }
+
+    /* Notification Icon */
+    .notification-icon {
+      position: relative;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.3s;
+    }
+
+    .notification-icon:hover {
+      background: #f7fafc;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: #e53e3e;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* User Menu */
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: background 0.3s;
+      position: relative;
+    }
+
+    .user-menu:hover {
+      background: #f7fafc;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 8px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      min-width: 200px;
+      z-index: 1000;
+      animation: slideDown 0.2s;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-menu a,
+    .dropdown-menu button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: #4a5568;
+      text-decoration: none;
+      transition: background 0.3s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .dropdown-menu a:hover,
+    .dropdown-menu button:hover {
+      background: #f7fafc;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 8px 0;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      padding: 16px 32px;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
-      color: var(--text-secondary);
+      color: #718096;
+      font-size: 14px;
     }
 
-    .health-label mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
+    .breadcrumb .material-icons {
+      font-size: 18px;
     }
 
-    .health-value {
-      font-size: 16px;
+    .breadcrumb .current {
+      color: #2d3748;
       font-weight: 500;
-      color: var(--text-primary);
     }
 
-    .health-chip {
-      width: fit-content;
-      background: var(--primary-color) !important;
-      color: white !important;
-      font-size: 11px;
-      min-height: 24px;
+    /* Content Body */
+    .content-body {
+      padding: 32px;
+      animation: fadeIn 0.3s;
     }
 
-    /* Responsive */
-    @media (max-width: 1200px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    @media (max-width: 1024px) {
-      .charts-row { grid-template-columns: 1fr; }
-      .health-grid { grid-template-columns: repeat(2, 1fr); }
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.2s;
     }
 
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      animation: slideUp 0.3s;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #2d3748;
+      font-size: 18px;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #a0aec0;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+    }
+
+    .close-btn:hover {
+      color: #718096;
+    }
+
+    .modal-body {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .modal-body .material-icons {
+      font-size: 48px;
+      color: #e53e3e;
+      margin-bottom: 16px;
+    }
+
+    .modal-body p {
+      margin: 0;
+      color: #4a5568;
+      font-size: 16px;
+    }
+
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .cancel-btn, .logout-confirm-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cancel-btn {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #4a5568;
+    }
+
+    .cancel-btn:hover {
+      background: #f7fafc;
+    }
+
+    .logout-confirm-btn {
+      background: #e53e3e;
+      border: none;
+      color: white;
+    }
+
+    .logout-confirm-btn:hover {
+      background: #c53030;
+    }
+
+    /* Notifications Panel */
+    .notifications-panel {
+      position: fixed;
+      top: 80px;
+      right: 32px;
+      width: 360px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .notifications-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notifications-header h3 {
+      margin: 0;
+      color: #2d3748;
+      font-size: 16px;
+    }
+
+    .mark-read {
+      background: none;
+      border: none;
+      color: #667eea;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .notifications-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .notification-item {
+      padding: 16px 20px;
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid #f7fafc;
+      transition: background 0.3s;
+    }
+
+    .notification-item:hover {
+      background: #f7fafc;
+    }
+
+    .notification-item.unread {
+      background: #ebf8ff;
+    }
+
+    .notification-icon .material-icons {
+      color: #667eea;
+    }
+
+    .notification-content {
+      flex: 1;
+    }
+
+    .notification-content p {
+      margin: 0 0 4px 0;
+      color: #2d3748;
+      font-size: 14px;
+    }
+
+    .notification-time {
+      font-size: 12px;
+      color: #a0aec0;
+    }
+
+    .no-notifications {
+      padding: 40px 20px;
+      text-align: center;
+      color: #a0aec0;
+    }
+
+    .no-notifications .material-icons {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    /* Responsive Design */
     @media (max-width: 768px) {
-      .sidenav { width: 0; }
-      .stats-grid { grid-template-columns: 1fr; }
-      .actions-grid { grid-template-columns: 1fr; }
-      .health-grid { grid-template-columns: 1fr; }
+      .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+      }
+      
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .main-content.expanded {
+        margin-left: 0;
+      }
+      
+      .content-header {
+        padding: 16px 20px;
+      }
+      
+      .content-body {
+        padding: 16px;
+      }
+      
+      .notifications-panel {
+        width: 90%;
+        right: 5%;
+        top: 70px;
+      }
     }
   `]
 })
 export class AdminDashboardComponent implements OnInit {
-  stats: UserStatisticsResponse | null = null;
-  adminEmail = '';
-  adminInitial = '';
+  userEmail: string | null = '';
+  currentPage = 'Users Management';
+  sidebarCollapsed = false;
+  mobileMenuOpen = false;
+  isMobile = window.innerWidth <= 768;
+  showLogoutModal = false;
+  showNotifications = false;
+  userMenuOpen = false;
+  isDarkTheme = false;
+  showSearch = true;
+  searchQuery = '';
+  
+  // Mock notifications - replace with real data
+  notificationCount = 3;
+  notifications = [
+    { icon: 'person_add', message: 'New user registered', time: '5 min ago' },
+    { icon: 'warning', message: 'Failed login attempts detected', time: '1 hour ago' },
+    { icon: 'update', message: 'System update completed', time: '2 hours ago' }
+  ];
 
   constructor(
-    private statisticsService: StatisticsService,
-    private authService: AuthService,
     private tokenService: TokenService,
-    private router: Router,
-    private snackBar: MatSnackBar
-  ) {}
-
-  ngOnInit(): void {
-    this.adminEmail = this.tokenService.getEmail() ?? '';
-    this.adminInitial = this.adminEmail.charAt(0).toUpperCase();
-    this.loadStatistics();
-  }
-
-  loadStatistics(): void {
-    this.statisticsService.getUserStatistics().subscribe({
-      next: (s) => {
-        this.stats = s;
-      },
-      error: (err) => {
-        this.snackBar.open('Error loading statistics', 'Close', { duration: 5000 });
+    private authService: AuthService,
+    private router: Router
+  ) {
+    // Update current page based on route
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        this.updateCurrentPage(event.url);
       }
     });
   }
 
-  refreshDashboard(): void {
-    this.snackBar.open('Refreshing dashboard...', 'Close', { duration: 2000 });
-    this.loadStatistics();
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile = window.innerWidth <= 768;
+    if (!this.isMobile) {
+      this.mobileMenuOpen = false;
+    }
   }
 
-  get roleEntries() {
-    if (!this.stats) return [];
-    return Object.entries(this.stats.usersByRole)
-      .map(([key, value]) => ({ key, value }))
-      .sort((a, b) => b.value - a.value);
+  ngOnInit(): void {
+    this.userEmail = this.tokenService.getCurrentUserEmail();
+    this.updateCurrentPage(this.router.url);
+    this.loadThemePreference();
   }
 
-  get langEntries() {
-    if (!this.stats) return [];
-    return Object.entries(this.stats.usersByLanguage)
-      .map(([key, value]) => ({ key, value }))
-      .sort((a, b) => b.value - a.value);
+  updateCurrentPage(url: string): void {
+    if (url.includes('/users')) {
+      this.currentPage = 'Users Management';
+    } else if (url.includes('/statistics')) {
+      this.currentPage = 'Statistics';
+    } else if (url.includes('/settings')) {
+      this.currentPage = 'Settings';
+    } else if (url.includes('/profile')) {
+      this.currentPage = 'My Profile';
+    } else {
+      this.currentPage = 'Dashboard';
+    }
   }
 
-  pct(value: number, total: number): number {
-    return total ? Math.round((value / total) * 100) : 0;
+  getPageDescription(): string {
+    switch(this.currentPage) {
+      case 'Users Management':
+        return 'Manage system users and permissions';
+      case 'Statistics':
+        return 'View platform analytics and metrics';
+      case 'Settings':
+        return 'Configure system preferences';
+      case 'My Profile':
+        return 'Edit your personal information';
+      default:
+        return 'Admin dashboard overview';
+    }
   }
 
-  getRoleColor(role: string): string {
-    const colors: Record<string, string> = {
-      'ADMIN': '#ff9800',
-      'USER': '#2196f3',
-      'MODERATOR': '#9c27b0'
-    };
-    return colors[role] || '#757575';
+  getUserName(): string {
+    // Extract name from email or use stored name
+    return this.userEmail ? this.userEmail.split('@')[0] : 'Admin User';
   }
 
-  langFlag(lang: string): string {
-    const flags: Record<string, string> = {
-      'FR': '🇫🇷', 'EN': '🇬🇧', 'ES': '🇪🇸', 'DE': '🇩🇪', 'IT': '🇮🇹'
-    };
-    return flags[lang] ?? '🌐';
+  getInitials(): string {
+    if (!this.userEmail) return 'A';
+    const name = this.getUserName();
+    return name.charAt(0).toUpperCase();
+  }
+
+  toggleSidebar(): void {
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    if (this.isMobile) {
+      this.mobileMenuOpen = false;
+    }
+  }
+
+  toggleTheme(): void {
+    this.isDarkTheme = !this.isDarkTheme;
+    document.body.classList.toggle('dark-theme', this.isDarkTheme);
+    localStorage.setItem('theme', this.isDarkTheme ? 'dark' : 'light');
+  }
+
+  loadThemePreference(): void {
+    const savedTheme = localStorage.getItem('theme');
+    this.isDarkTheme = savedTheme === 'dark';
+    document.body.classList.toggle('dark-theme', this.isDarkTheme);
+  }
+
+  toggleNotifications(): void {
+    this.showNotifications = !this.showNotifications;
+    if (this.showNotifications) {
+      this.userMenuOpen = false;
+    }
+  }
+
+  closeNotifications(): void {
+    this.showNotifications = false;
+  }
+
+  markAllAsRead(): void {
+    this.notificationCount = 0;
+    // Implement actual mark as read logic
+  }
+
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
+    if (this.userMenuOpen) {
+      this.showNotifications = false;
+    }
+  }
+
+  onSearch(): void {
+    console.log('Searching for:', this.searchQuery);
+    // Implement search logic
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal = true;
+    this.userMenuOpen = false;
+  }
+
+  cancelLogout(): void {
+    this.showLogoutModal = false;
   }
 
   logout(): void {
+    this.showLogoutModal = false;
     this.authService.logout();
   }
 }

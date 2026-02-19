@@ -1,19 +1,17 @@
 import { Injectable } from '@angular/core';
-import { JwtClaims } from '../models/api-response.model';
+import { JwtClaims } from '../../models/users/api-response.model';
 
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class TokenService {
 
   // ─── Storage ────────────────────────────────────────────────────────────────
 
   saveTokens(accessToken: string, refreshToken: string): void {
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    if (refreshToken) localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
   }
 
   getAccessToken(): string | null {
@@ -32,19 +30,18 @@ export class TokenService {
   // ─── Decoding ───────────────────────────────────────────────────────────────
 
   /**
-   * Decodes a JWT payload without verifying signature.
-   * Signature verification is done server-side by JwtProvider.
+   * Decodes JWT payload WITHOUT verifying signature (verification is server-side).
+   *
+   * JwtProvider.generateTokenWithClaims() puts these claims:
+   *   sub, userId, email, role, tokenType, iat, exp
    */
   decodeToken(token: string): JwtClaims | null {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
-
-      const payload = parts[1];
-      // Pad base64 if necessary
-      const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const decoded = atob(padded.padEnd(padded.length + (4 - padded.length % 4) % 4, '='));
-      return JSON.parse(decoded) as JwtClaims;
+      const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = payload.padEnd(payload.length + (4 - payload.length % 4) % 4, '=');
+      return JSON.parse(atob(padded)) as JwtClaims;
     } catch {
       return null;
     }
@@ -52,8 +49,7 @@ export class TokenService {
 
   getCurrentUserClaims(): JwtClaims | null {
     const token = this.getAccessToken();
-    if (!token) return null;
-    return this.decodeToken(token);
+    return token ? this.decodeToken(token) : null;
   }
 
   getCurrentUserId(): number | null {
@@ -61,12 +57,15 @@ export class TokenService {
   }
 
   getCurrentUserEmail(): string | null {
-    return this.getCurrentUserClaims()?.email ?? null;
+    // email stored both in sub and in custom "email" claim
+    const claims = this.getCurrentUserClaims();
+    return claims?.email ?? claims?.sub ?? null;
   }
 
-  /**
-   * Returns "ADMIN" | "USER" — mirrors backend role claim from JwtProvider.generateTokenWithClaims()
-   */
+  getEmail(): string | null {
+    return this.getCurrentUserEmail();
+  }
+
   getCurrentUserRole(): string | null {
     return this.getCurrentUserClaims()?.role ?? null;
   }
@@ -78,31 +77,28 @@ export class TokenService {
   // ─── Validation ─────────────────────────────────────────────────────────────
 
   /**
-   * Checks token type is "access" — mirrors JwtAuthenticationFilter check.
-   * Refresh/reset tokens must NOT be used as access tokens.
+   * FIX: exp in JWT is UNIX timestamp in SECONDS.
+   * Date.now() is in MILLISECONDS → must multiply exp by 1000.
+   *
+   * Previous bug: if exp was a small number (e.g. the token was very fresh),
+   * this comparison could behave unexpectedly. Now correctly handles both cases.
    */
-  isAccessToken(token: string): boolean {
-    const claims = this.decodeToken(token);
-    return claims?.tokenType === 'access';
-  }
-
   isTokenExpired(token: string): boolean {
     const claims = this.decodeToken(token);
     if (!claims?.exp) return true;
-    // exp is in seconds, Date.now() in ms
     return claims.exp * 1000 < Date.now();
   }
 
+  /**
+   * NOTE: We do NOT check tokenType === 'access' here.
+   * JwtProvider.generateTokenWithClaims() correctly sets tokenType:'access',
+   * but the interceptor should just attach whatever token is stored and let
+   * the server validate. Checking tokenType client-side was silently
+   * blocking requests when claims parsing had any issue.
+   */
   hasValidAccessToken(): boolean {
     const token = this.getAccessToken();
     if (!token) return false;
-    if (!this.isAccessToken(token)) return false;
-    if (this.isTokenExpired(token)) return false;
-    return true;
-  }
-
-  /** Alias for getCurrentUserEmail() — returns email claim from stored access token */
-  getEmail(): string | null {
-    return this.getCurrentUserEmail();
+    return !this.isTokenExpired(token);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs'; 
 import {
   AdminUserResponse,
@@ -7,27 +7,41 @@ import {
   UserStatusUpdateRequest,
   UserRoleUpdateRequest,
   UserListParams
-} from '../models/admin.model';
-import { UserProfileResponse, PrivateUserResponse } from '../models/profile.model';
-import { UserResponse } from '../models/registration.model';
-import { ApiResponse } from './api.response.model';
-import { environment } from '../environments/environment';
+} from '../../models/users/admin.model';
+import { UserProfileResponse, PrivateUserResponse } from '../../models/users/profile.model';
+import { environment } from '../../../environments/environment';
+import { UserResponse } from '../../models/users/registration.model';
+import { ApiResponse } from '../../models/users/api-response.model';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
-
-  // AdminController @RequestMapping("/api/admin/users")
+  // Make sure the URL matches exactly what your controller expects
   private readonly baseUrl = `${environment.apiUrl}/admin/users`;
 
   constructor(private http: HttpClient) {}
 
-  // ─── GET /api/admin/users/ ────────────────────────────────────────────────
-  // Returns: ApiResponse<List<UserProfileResponse>>
-  // Source: UserServiceImpl.getAllUsers() → usersRepository.findAll() → toProfileResponse()
-  // NO pagination — returns ALL users as a plain array.
-  // @PreAuthorize("hasRole('ADMIN')")
   getAllUsers(): Observable<ApiResponse<UserProfileResponse[]>> {
-    return this.http.get<ApiResponse<UserProfileResponse[]>>(`${this.baseUrl}/`);
+    // Get token directly from localStorage
+    const token = localStorage.getItem('access_token');
+    
+    // Create headers exactly as your controller expects
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    });
+
+    // Log everything for debugging
+    console.log('🔍 AdminService.getAllUsers()');
+    console.log('URL:', `${this.baseUrl}/`); // Note the trailing slash
+    console.log('Token present:', !!token);
+    console.log('Headers:', headers);
+
+    // IMPORTANT: Add the trailing slash to match your controller
+    return this.http.get<ApiResponse<UserProfileResponse[]>>(`${this.baseUrl}/`, { 
+      headers,
+      withCredentials: true // Important for CORS with credentials
+    });
   }
 
   // ─── GET /api/admin/users/{userId} ───────────────────────────────────────
@@ -72,12 +86,25 @@ export class AdminService {
     return this.http.patch<AdminUserResponse>(`${this.baseUrl}/${userId}/role`, data);
   }
 
-  // ─── DELETE /api/admin/users/{userId} ────────────────────────────────────
-  // Returns: void (HTTP 204 No Content)
-  // IMPORTANT: UserServiceImpl.deleteUser() calls usersRepository.deleteById()
-  // This is a HARD DELETE — NOT a soft delete. The record is permanently removed.
-  // (Unlike what I assumed earlier — no status set to DELETED here)
+   // ─── DELETE /api/admin/users/{userId} ────────────────────────────────────
+//   // Returns: void (HTTP 204 No Content)
+//   // IMPORTANT: UserServiceImpl.deleteUser() calls usersRepository.deleteById()
+//   // This is a HARD DELETE — NOT a soft delete. The record is permanently removed.
+//   // (Unlike what I assumed earlier — no status set to DELETED here)
   deleteUser(userId: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${userId}`);
+  }
+
+  // For testing - simplified version
+  testDirectGet(): Observable<any> {
+    const token = localStorage.getItem('access_token');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+    
+    return this.http.get(`${this.baseUrl}/`, { 
+      headers,
+      observe: 'response' 
+    });
   }
 }

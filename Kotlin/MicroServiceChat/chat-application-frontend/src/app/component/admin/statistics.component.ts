@@ -1,913 +1,951 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-
-// Material Imports
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSidenavModule } from '@angular/material/sidenav'; // AJOUTER CECI
-import { MatListModule } from '@angular/material/list'; // AJOUTER CECI
-
-import { AuthService } from '../../core/services/auth.service';
-import { HttpErrorResponse } from '@angular/common/http';
-import { UserStatisticsResponse, UserActivityResponse } from '../../models/statistics.model';
-import { ErrorHandlerService } from '../../service/error handler.service';
-import { StatisticsService } from '../../service/statistics.service';
+import { FormsModule } from '@angular/forms';
+import { StatisticsService } from '../../core/services/users/statistics.service';
+import { TokenService } from '../../core/services/users/token.service';
+import {
+  UserStatisticsResponse,
+  UserActivityResponse,
+  ChartDataPoint,
+  roleStatsToChartData,
+  languageStatsToChartData,
+  getStatusBreakdown
+} from '../../core/models/users/statistics.model';
 
 @Component({
   selector: 'app-statistics',
   standalone: true,
-  imports: [
-    CommonModule, 
-    RouterModule,
-    // Material
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
-    MatChipsModule,
-    MatTooltipModule,
-    MatDividerModule,
-    MatMenuModule,
-    MatSnackBarModule,
-    MatSidenavModule,   // ← AJOUTÉ
-    MatListModule       // ← AJOUTÉ
-  ],
+  imports: [CommonModule, FormsModule],
   template: `
-<div class="admin-container">
-  <!-- Sidebar -->
-  <mat-drawer-container class="sidenav-container">
-    <mat-drawer mode="side" opened class="sidenav">
-      <div class="sidenav-header">
-        <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
-        <span class="logo-text">FlowManage</span>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-content">
-        <a mat-list-item routerLink="/admin" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>dashboard</mat-icon>
-          <span matListItemTitle>Dashboard</span>
-        </a>
-        <a mat-list-item routerLink="/admin/users" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>people</mat-icon>
-          <span matListItemTitle>Users</span>
-        </a>
-        <a mat-list-item routerLink="/admin/statistics" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact:true}">
-          <mat-icon matListItemIcon>bar_chart</mat-icon>
-          <span matListItemTitle>Statistics</span>
-        </a>
-        <a mat-list-item routerLink="/profile" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>person</mat-icon>
-          <span matListItemTitle>My Profile</span>
-        </a>
-      </div>
-      
-      <mat-divider></mat-divider>
-      
-      <div class="sidenav-footer">
-        <button mat-button class="logout-btn" (click)="logout()">
-          <mat-icon>exit_to_app</mat-icon>
-          Sign out
-        </button>
-      </div>
-    </mat-drawer>
-
-    <!-- Main Content -->
-    <mat-drawer-content class="main-content">
-      <!-- Header -->
-      <div class="content-header">
-        <div>
-          <h1 class="page-title">Statistics & Activity</h1>
-          <p class="page-subtitle">User behavior and platform health metrics</p>
+    <div class="statistics-container">
+      <div class="statistics-header">
+        <h1>User Statistics</h1>
+        <div class="header-actions">
+          <button class="refresh-btn" (click)="loadStatistics()">
+            <span class="material-icons">refresh</span>
+            Refresh
+          </button>
         </div>
-        
-        <button mat-stroked-button (click)="refresh()" [disabled]="loadingStats" class="refresh-btn">
-          <mat-icon>refresh</mat-icon>
-          Refresh
-        </button>
       </div>
 
-      <!-- Error Alert -->
-      <div *ngIf="error" class="alert error-alert">
-        <mat-icon>error</mat-icon>
-        <span>{{ error }}</span>
-      </div>
-
-      <!-- Summary Cards -->
-      <div class="stats-grid" *ngIf="stats; else loadingStats">
-        <mat-card class="stat-card stat-card--total">
-          <mat-card-content>
-            <div class="stat-label">Total Users</div>
-            <div class="stat-value">{{ stats.totalUsers }}</div>
-            <div class="stat-trend">+{{ stats.newUsersLast30Days }} this month</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card stat-card--active">
-          <mat-card-content>
-            <div class="stat-label">Active</div>
-            <div class="stat-value">{{ stats.activeUsers }}</div>
-            <div class="stat-percentage">{{ (stats.activeUsers / stats.totalUsers * 100).toFixed(1) }}%</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card stat-card--pending">
-          <mat-card-content>
-            <div class="stat-label">Pending</div>
-            <div class="stat-value">{{ stats.pendingVerification }}</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card stat-card--blocked">
-          <mat-card-content>
-            <div class="stat-label">Blocked</div>
-            <div class="stat-value">{{ stats.blockedUsers }}</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card stat-card--suspended">
-          <mat-card-content>
-            <div class="stat-label">Suspended</div>
-            <div class="stat-value">{{ stats.suspendedUsers }}</div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card class="stat-card stat-card--new">
-          <mat-card-content>
-            <div class="stat-label">New Users</div>
-            <div class="stat-value">+{{ stats.newUsersLast7Days }}</div>
-            <div class="stat-period">Last 7 days</div>
-          </mat-card-content>
-        </mat-card>
-      </div>
-
-      <ng-template #loadingStats>
-        <div class="stats-grid">
-          <mat-card class="stat-card skeleton" *ngFor="let i of [1,2,3,4,5,6]">
-            <mat-card-content>
-              <div class="skeleton-line"></div>
-              <div class="skeleton-line"></div>
-            </mat-card-content>
-          </mat-card>
+      <!-- Debug Info - Will be removed once working -->
+      <div class="debug-info" *ngIf="showDebug">
+        <div class="debug-section">
+          <h4>Debug Info</h4>
+          <p><strong>Token Present:</strong> {{ hasToken ? '✅' : '❌' }}</p>
+          <p><strong>Token Valid:</strong> {{ tokenValid ? '✅' : '❌' }}</p>
+          <p><strong>Is Admin:</strong> {{ isAdmin ? '✅' : '❌' }}</p>
+          <p><strong>Stats loaded:</strong> {{ stats ? '✅ Yes' : '❌ No' }}</p>
+          <p><strong>Activity loaded:</strong> {{ activityData.length > 0 ? '✅ Yes (' + activityData.length + ' items)' : '❌ No' }}</p>
+          <button class="debug-btn" (click)="showDebug = false">Hide Debug</button>
         </div>
-      </ng-template>
+      </div>
+      
+      <button class="debug-toggle" *ngIf="!showDebug" (click)="showDebug = true">
+        <span class="material-icons">bug_report</span>
+        Show Debug
+      </button>
 
-      <!-- Charts Row -->
-      <div class="charts-row" *ngIf="stats">
-        <!-- Status Donut -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>Status Breakdown</mat-card-title>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <div class="donut-container">
-              <div class="donut-wrapper">
-                <svg viewBox="0 0 120 120" class="donut-svg">
-                  <circle cx="60" cy="60" r="48" fill="none" stroke="#f0f0f0" stroke-width="16"/>
-                  <circle *ngFor="let seg of donutSegments; let i = index"
-                          cx="60" cy="60" r="48" fill="none"
-                          [attr.stroke]="seg.color" stroke-width="16"
-                          [attr.stroke-dasharray]="seg.dash"
-                          [attr.stroke-dashoffset]="seg.offset"
-                          transform="rotate(-90 60 60)"
-                          style="transition: stroke-dasharray 1s ease"/>
-                </svg>
-                <div class="donut-center">
-                  <div class="donut-total">{{ stats.totalUsers }}</div>
-                  <div class="donut-label">users</div>
-                </div>
-              </div>
-              
-              <div class="legend-list">
-                <div class="legend-item" *ngFor="let seg of donutSegments">
-                  <span class="legend-dot" [style.background]="seg.color"></span>
-                  <span class="legend-label">{{ seg.label }}</span>
-                  <span class="legend-value">{{ seg.value }}</span>
-                  <span class="legend-percent">{{ (seg.value / stats.totalUsers * 100).toFixed(1) }}%</span>
-                </div>
-              </div>
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading statistics...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <span class="material-icons">error</span>
+        <p>{{ error }}</p>
+        <button class="retry-btn" (click)="loadStatistics()">Retry</button>
+      </div>
+
+      <!-- Statistics Content -->
+      <div class="statistics-content" *ngIf="!loading && !error">
+        <!-- Show message if no stats -->
+        <div class="no-data" *ngIf="!stats">
+          <p>No statistics data available</p>
+        </div>
+
+        <!-- Summary Cards - Only show if stats exist -->
+        <div class="summary-cards" *ngIf="stats">
+          <div class="summary-card total">
+            <div class="card-icon">
+              <span class="material-icons">people</span>
             </div>
-          </mat-card-content>
-        </mat-card>
+            <div class="card-info">
+              <span class="card-label">Total Users</span>
+              <span class="card-value">{{ stats.totalUsers | number }}</span>
+            </div>
+          </div>
 
-        <!-- Role Distribution -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>Users by Role</mat-card-title>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <div class="distribution-list">
-              <div class="distribution-item" *ngFor="let entry of roleEntries">
-                <div class="distribution-header">
-                  <mat-chip class="role-chip" [class]="'role-' + entry.key.toLowerCase()">
-                    {{ entry.key }}
-                  </mat-chip>
-                  <span class="distribution-count">{{ entry.value }}</span>
-                </div>
-                <div class="progress-bar-container">
-                  <div class="progress-bar-fill role-fill" 
-                       [style.width.%]="pct(entry.value, stats.totalUsers)"
-                       [style.background]="getRoleColor(entry.key)">
+          <div class="summary-card active">
+            <div class="card-icon">
+              <span class="material-icons">check_circle</span>
+            </div>
+            <div class="card-info">
+              <span class="card-label">Active Users</span>
+              <span class="card-value">{{ stats.activeUsers | number }}</span>
+            </div>
+          </div>
+
+          <div class="summary-card pending">
+            <div class="card-icon">
+              <span class="material-icons">hourglass_empty</span>
+            </div>
+            <div class="card-info">
+              <span class="card-label">Pending Verification</span>
+              <span class="card-value">{{ stats.pendingVerification | number }}</span>
+            </div>
+          </div>
+
+          <div class="summary-card new">
+            <div class="card-icon">
+              <span class="material-icons">fiber_new</span>
+            </div>
+            <div class="card-info">
+              <span class="card-label">New (7 days)</span>
+              <span class="card-value">{{ stats.newUsersLast7Days | number }}</span>
+            </div>
+          </div>
+
+          <div class="summary-card month">
+            <div class="card-icon">
+              <span class="material-icons">calendar_today</span>
+            </div>
+            <div class="card-info">
+              <span class="card-label">New (30 days)</span>
+              <span class="card-value">{{ stats.newUsersLast30Days | number }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section - Only show if stats exist -->
+        <div class="charts-section" *ngIf="stats">
+          <!-- Status Distribution -->
+          <div class="chart-card">
+            <h3>User Status Distribution</h3>
+            <div class="chart-container">
+              <div class="progress-chart">
+                <div *ngFor="let item of statusBreakdown" class="progress-item">
+                  <div class="progress-label">
+                    <span>{{ item.label }}</span>
+                    <span>{{ item.value | number }}</span>
+                  </div>
+                  <div class="progress-bar-container">
+                    <div 
+                      class="progress-bar" 
+                      [style.width.%]="getPercentage(item.value, stats.totalUsers)"
+                      [class]="'status-' + item.label.toLowerCase()"
+                    ></div>
                   </div>
                 </div>
-                <span class="progress-percent">{{ pct(entry.value, stats.totalUsers) }}%</span>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
 
-        <!-- Language Distribution -->
-        <mat-card class="chart-card">
-          <mat-card-header>
-            <mat-card-title>Users by Language</mat-card-title>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <div class="distribution-list">
-              <div class="distribution-item" *ngFor="let entry of langEntries">
-                <div class="distribution-header">
-                  <span class="language-label">
-                    {{ langFlag(entry.key) }} {{ entry.key }}
+          <!-- Role Distribution -->
+          <div class="chart-card">
+            <h3>Users by Role</h3>
+            <div class="chart-container">
+              <div class="pie-chart">
+                <div *ngFor="let item of roleStats" class="pie-legend">
+                  <span class="legend-color" [style.background]="getRoleColor(item.label)"></span>
+                  <span class="legend-label">{{ item.label }}</span>
+                  <span class="legend-value">{{ item.value | number }}</span>
+                  <span class="legend-percentage">
+                    ({{ getPercentage(item.value, stats.totalUsers) }}%)
                   </span>
-                  <span class="distribution-count">{{ entry.value }}</span>
                 </div>
-                <div class="progress-bar-container">
-                  <div class="progress-bar-fill language-fill" 
-                       [style.width.%]="pct(entry.value, stats.totalUsers)">
-                  </div>
-                </div>
-                <span class="progress-percent">{{ pct(entry.value, stats.totalUsers) }}%</span>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+
+          <!-- Language Distribution -->
+          <div class="chart-card">
+            <h3>Users by Language</h3>
+            <div class="chart-container">
+              <div class="language-bars">
+                <div *ngFor="let item of languageStats" class="language-item">
+                  <span class="language-label">{{ getLanguageName(item.label) }}</span>
+                  <div class="language-bar-container">
+                    <div 
+                      class="language-bar" 
+                      [style.width.%]="getPercentage(item.value, stats.totalUsers)"
+                    ></div>
+                  </div>
+                  <span class="language-value">{{ item.value }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Counts -->
+          <div class="chart-card">
+            <h3>Status Counts</h3>
+            <div class="chart-container">
+              <div class="status-grid">
+                <div class="status-item suspended">
+                  <span class="status-label">Suspended</span>
+                  <span class="status-number">{{ stats.suspendedUsers | number }}</span>
+                </div>
+                <div class="status-item blocked">
+                  <span class="status-label">Blocked</span>
+                  <span class="status-number">{{ stats.blockedUsers | number }}</span>
+                </div>
+                <div class="status-item deleted">
+                  <span class="status-label">Deleted</span>
+                  <span class="status-number">{{ stats.deletedUsers | number }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Activity Table -->
+        <div class="activity-section" *ngIf="activityData.length > 0">
+          <h2>User Activity</h2>
+          <div class="table-container">
+            <table class="activity-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Active</th>
+                  <th>Failed Login Attempts</th>
+                  <th>Last Login</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let activity of activityData">
+                  <td>#{{ activity.userId }}</td>
+                  <td>{{ activity.email }}</td>
+                  <td>
+                    <span class="status-badge" [class]="'status-' + activity.status.toLowerCase()">
+                      {{ activity.status }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="status-indicator" [class.active]="activity.isActive">
+                      {{ activity.isActive ? 'Yes' : 'No' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span 
+                      class="attempts-badge" 
+                      [class.warning]="activity.failedLoginAttempts >= 3"
+                      [class.danger]="activity.failedLoginAttempts >= 5"
+                    >
+                      {{ activity.failedLoginAttempts }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="never-login">Never</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- No Activity Data Message -->
+        <div class="no-data" *ngIf="activityData.length === 0 && !loading">
+          <p>No user activity data available</p>
+        </div>
       </div>
-
-      <!-- Activity Table -->
-      <mat-card class="activity-card">
-        <mat-card-header>
-          <mat-card-title>User Activity</mat-card-title>
-          <mat-card-subtitle>
-            Recent user activity and login attempts
-          </mat-card-subtitle>
-        </mat-card-header>
-
-        <mat-card-content>
-          <!-- Loading State -->
-          <div *ngIf="loadingActivity" class="loading-table">
-            <mat-spinner diameter="40"></mat-spinner>
-            <p>Loading activity data...</p>
-          </div>
-
-          <!-- Error State -->
-          <div *ngIf="activityError && !loadingActivity" class="alert error-alert">
-            <mat-icon>error</mat-icon>
-            <span>{{ activityError }}</span>
-          </div>
-
-          <!-- Table -->
-          <table mat-table [dataSource]="activity" class="activity-table" *ngIf="!loadingActivity && !activityError">
-
-            <!-- Email Column -->
-            <ng-container matColumnDef="email">
-              <th mat-header-cell *matHeaderCellDef> Email </th>
-              <td mat-cell *matCellDef="let user">
-                <a [routerLink]="['/admin/users', user.userId]" class="user-link">
-                  {{ user.email }}
-                </a>
-              </td>
-            </ng-container>
-
-            <!-- Status Column -->
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef> Status </th>
-              <td mat-cell *matCellDef="let user">
-                <mat-chip class="status-chip" [class]="'status-' + user.status.toLowerCase()">
-                  {{ user.status }}
-                </mat-chip>
-              </td>
-            </ng-container>
-
-            <!-- Active Column -->
-            <ng-container matColumnDef="active">
-              <th mat-header-cell *matHeaderCellDef> Active </th>
-              <td mat-cell *matCellDef="let user">
-                <mat-icon [class.active-icon]="user.isActive" [class.inactive-icon]="!user.isActive">
-                  {{ user.isActive ? 'check_circle' : 'radio_button_unchecked' }}
-                </mat-icon>
-              </td>
-            </ng-container>
-
-            <!-- Failed Logins Column -->
-            <ng-container matColumnDef="failedLogins">
-              <th mat-header-cell *matHeaderCellDef> Failed Logins </th>
-              <td mat-cell *matCellDef="let user">
-                <span [class.warning]="user.failedLoginAttempts >= 3"
-                      [class.danger]="user.failedLoginAttempts >= 5">
-                  {{ user.failedLoginAttempts }}/5
-                  <mat-icon *ngIf="user.failedLoginAttempts >= 5" class="lock-icon">lock</mat-icon>
-                </span>
-              </td>
-            </ng-container>
-
-            <!-- Last Login Column -->
-            <ng-container matColumnDef="lastLogin">
-              <th mat-header-cell *matHeaderCellDef> Last Login </th>
-              <td mat-cell *matCellDef="let user">
-                <span class="muted-text">
-                  <mat-icon class="info-icon">info</mat-icon>
-                  Not tracked
-                </span>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-                [class.row-blocked]="row.status === 'BLOCKED'"></tr>
-
-            <!-- Empty State -->
-            <tr class="mat-row" *matNoDataRow>
-              <td class="mat-cell empty-row" [attr.colspan]="displayedColumns.length">
-                <mat-icon>info</mat-icon>
-                <p>No activity data available</p>
-              </td>
-            </tr>
-          </table>
-        </mat-card-content>
-      </mat-card>
-    </mat-drawer-content>
-  </mat-drawer-container>
-</div>
+    </div>
   `,
   styles: [`
-    :host {
-      --primary-color: #3f51b5;
-      --success-color: #4caf50;
-      --warning-color: #ff9800;
-      --error-color: #f44336;
-      --info-color: #2196f3;
-      --text-primary: #2c3e50;
-      --text-secondary: #7f8c8d;
-      --bg-light: #f5f7fa;
-      --skeleton-color: #e0e0e0;
-    }
-
-    .admin-container {
-      height: 100vh;
-    }
-
-    .sidenav-container {
-      height: 100%;
-    }
-
-    .sidenav {
-      width: 260px;
-      background: #1e293b;
-      color: white;
-      border: none;
-    }
-
-    .sidenav-header {
-      padding: 24px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-icon {
-      color: var(--primary-color);
-      font-size: 32px;
-      width: 32px;
-      height: 32px;
-    }
-
-    .logo-text {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .sidenav-content {
-      padding: 16px 8px;
-    }
-
-    .sidenav-content a {
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 4px;
-      border-radius: 8px;
-    }
-
-    .sidenav-content a:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    .sidenav-content a.active-link {
-      background: rgba(63, 81, 181, 0.2);
-      color: var(--primary-color);
-    }
-
-    .sidenav-footer {
-      padding: 16px;
-    }
-
-    .logout-btn {
-      width: 100%;
-      color: rgba(255, 255, 255, 0.7);
-      justify-content: flex-start;
-    }
-
-    .logout-btn:hover {
-      background: rgba(220, 53, 69, 0.2);
-      color: #f87171;
-    }
-
-    .main-content {
+    .statistics-container {
       padding: 24px;
-      background: var(--bg-light);
     }
 
-    .content-header {
+    .statistics-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 24px;
     }
 
-    .page-title {
-      font-size: 28px;
-      font-weight: 600;
-      margin: 0 0 4px 0;
-      color: var(--text-primary);
+    .statistics-header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #2d3748;
     }
 
-    .page-subtitle {
-      color: var(--text-secondary);
-      font-size: 14px;
-      margin: 0;
+    .header-actions {
+      display: flex;
+      gap: 10px;
     }
 
     .refresh-btn {
-      border-color: var(--primary-color);
-      color: var(--primary-color);
-    }
-
-    /* Alert */
-    .alert {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
+      gap: 8px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .refresh-btn:hover {
+      background: #f7fafc;
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    /* Debug Toggle */
+    .debug-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 2000;
+      padding: 12px 20px;
+      background: #4a5568;
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
       font-size: 14px;
-    }
-
-    .error-alert {
-      background: #ffebee;
-      color: #c62828;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      border-radius: 12px !important;
-      overflow: hidden;
-    }
-
-    .stat-card .mat-mdc-card-content {
-      padding: 20px;
-    }
-
-    .stat-card--total { background: linear-gradient(135deg, #1a237e, #283593); color: white; }
-    .stat-card--active { background: #e8f5e9; }
-    .stat-card--pending { background: #fff3e0; }
-    .stat-card--blocked { background: #ffebee; }
-    .stat-card--suspended { background: #fff8e1; }
-    .stat-card--new { background: #e3f2fd; }
-
-    .stat-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      opacity: 0.7;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-size: 28px;
       font-weight: 500;
-      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s;
     }
 
-    .stat-trend, .stat-percentage, .stat-period {
-      font-size: 12px;
-      opacity: 0.8;
+    .debug-toggle:hover {
+      background: #2d3748;
+      transform: translateY(-2px);
     }
 
-    .stat-card--active .stat-value { color: #2e7d32; }
-    .stat-card--pending .stat-value { color: #e65100; }
-    .stat-card--blocked .stat-value { color: #c62828; }
-    .stat-card--suspended .stat-value { color: #856404; }
-    .stat-card--new .stat-value { color: #0d47a1; }
-
-    /* Skeleton */
-    .skeleton {
-      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
+    .debug-info {
+      position: fixed;
+      bottom: 90px;
+      right: 20px;
+      z-index: 2000;
+      width: 300px;
+      animation: slideIn 0.3s;
     }
 
-    .skeleton-line {
-      height: 16px;
-      background: rgba(255,255,255,0.3);
-      border-radius: 4px;
-      margin-bottom: 8px;
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    @keyframes shimmer {
-      to { background-position: -200% 0; }
-    }
-
-    /* Charts Row */
-    .charts-row {
-      display: grid;
-      grid-template-columns: 350px 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-
-    .chart-card {
-      border-radius: 12px !important;
-    }
-
-    .chart-card .mat-mdc-card-header {
-      padding: 20px 20px 0;
-    }
-
-    .chart-card .mat-mdc-card-content {
+    .debug-section {
+      background: white;
+      border-radius: 12px;
       padding: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      border: 2px solid #48bb78;
     }
 
-    /* Donut */
-    .donut-container {
-      display: flex;
-      gap: 20px;
+    .debug-section h4 {
+      margin: 0 0 15px 0;
+      color: #2d3748;
+      font-size: 16px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 10px;
     }
 
-    .donut-wrapper {
-      position: relative;
-      width: 140px;
-      height: 140px;
+    .debug-section p {
+      margin: 8px 0;
+      font-size: 13px;
+      color: #4a5568;
     }
 
-    .donut-svg {
+    .debug-btn {
       width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
+      padding: 8px;
+      margin-top: 10px;
+      background: #48bb78;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
 
-    .donut-center {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error State */
+    .error-state {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    .error-state .material-icons {
+      font-size: 48px;
+      color: #e53e3e;
+      margin-bottom: 16px;
+    }
+
+    .retry-btn {
+      padding: 8px 24px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+
+    /* No Data */
+    .no-data {
+      text-align: center;
+      padding: 60px;
+      background: white;
+      border-radius: 16px;
+      color: #a0aec0;
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s;
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .donut-total {
+    .total .card-icon {
+      background: #667eea20;
+      color: #667eea;
+    }
+
+    .active .card-icon {
+      background: #48bb7820;
+      color: #48bb78;
+    }
+
+    .pending .card-icon {
+      background: #ecc94b20;
+      color: #ecc94b;
+    }
+
+    .new .card-icon {
+      background: #9f7aea20;
+      color: #9f7aea;
+    }
+
+    .month .card-icon {
+      background: #ed64a620;
+      color: #ed64a6;
+    }
+
+    .card-info {
+      flex: 1;
+    }
+
+    .card-label {
+      display: block;
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 4px;
+    }
+
+    .card-value {
+      display: block;
       font-size: 28px;
       font-weight: 600;
-      line-height: 1;
+      color: #2d3748;
     }
 
-    .donut-label {
-      font-size: 11px;
-      color: var(--text-secondary);
+    /* Charts Section */
+    .charts-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
     }
 
-    .legend-list {
-      flex: 1;
+    .chart-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-card h3 {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      color: #4a5568;
+      font-weight: 600;
+    }
+
+    .chart-container {
+      min-height: 200px;
+    }
+
+    /* Progress Chart */
+    .progress-chart {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 16px;
     }
 
-    .legend-item {
+    .progress-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .progress-bar-container {
+      height: 8px;
+      background: #edf2f7;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .progress-bar.status-active {
+      background: #48bb78;
+    }
+
+    .progress-bar.status-pending {
+      background: #ecc94b;
+    }
+
+    .progress-bar.status-suspended {
+      background: #ed8936;
+    }
+
+    .progress-bar.status-blocked {
+      background: #f56565;
+    }
+
+    .progress-bar.status-deleted {
+      background: #a0aec0;
+    }
+
+    /* Pie Chart Legend */
+    .pie-chart {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .pie-legend {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
+      font-size: 14px;
     }
 
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
     }
 
     .legend-label {
-      flex: 1;
-      color: var(--text-secondary);
+      color: #4a5568;
+      min-width: 80px;
     }
 
     .legend-value {
       font-weight: 600;
-      margin-right: 8px;
+      color: #2d3748;
+      min-width: 50px;
     }
 
-    .legend-percent {
-      color: var(--text-secondary);
+    .legend-percentage {
+      color: #718096;
     }
 
-    /* Distribution Lists */
-    .distribution-list {
+    /* Language Bars */
+    .language-bars {
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    .distribution-item {
+    .language-item {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .distribution-header {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-    }
-
-    .role-chip {
-      font-size: 11px;
-      min-height: 24px;
-    }
-
-    .role-chip.role-admin { background: #ff9800 !important; color: white !important; }
-    .role-chip.role-user { background: #2196f3 !important; color: white !important; }
-    .role-chip.role-moderator { background: #9c27b0 !important; color: white !important; }
-
-    .distribution-count {
-      font-weight: 600;
-    }
-
-    .progress-bar-container {
-      height: 6px;
-      background: #f0f0f0;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      transition: width 0.8s ease;
-    }
-
-    .role-fill { background: var(--primary-color); }
-    .language-fill { background: var(--info-color); }
-
-    .progress-percent {
-      font-size: 11px;
-      color: var(--text-secondary);
-      text-align: right;
+      gap: 12px;
     }
 
     .language-label {
-      font-size: 13px;
+      min-width: 40px;
+      font-size: 14px;
+      color: #4a5568;
     }
 
-    /* Activity Table */
-    .activity-card {
-      border-radius: 12px !important;
+    .language-bar-container {
+      flex: 1;
+      height: 8px;
+      background: #edf2f7;
+      border-radius: 4px;
+      overflow: hidden;
     }
 
-    .loading-table {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .language-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .language-value {
+      min-width: 50px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    /* Status Grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 16px;
-      padding: 48px;
-      color: var(--text-secondary);
+    }
+
+    .status-item {
+      text-align: center;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    .status-item.suspended {
+      background: #ed893620;
+    }
+
+    .status-item.blocked {
+      background: #f5656520;
+    }
+
+    .status-item.deleted {
+      background: #a0aec020;
+    }
+
+    .status-label {
+      display: block;
+      font-size: 14px;
+      color: #718096;
+      margin-bottom: 8px;
+    }
+
+    .status-number {
+      display: block;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .suspended .status-number {
+      color: #ed8936;
+    }
+
+    .blocked .status-number {
+      color: #f56565;
+    }
+
+    .deleted .status-number {
+      color: #718096;
+    }
+
+    /* Activity Section */
+    .activity-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .activity-section h2 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #2d3748;
+    }
+
+    .table-container {
+      overflow-x: auto;
     }
 
     .activity-table {
       width: 100%;
+      border-collapse: collapse;
     }
 
-    .user-link {
-      color: var(--primary-color);
-      text-decoration: none;
-    }
-
-    .user-link:hover {
-      text-decoration: underline;
-    }
-
-    .status-chip {
-      min-height: 24px;
-      font-size: 11px;
-    }
-
-    .status-chip.status-active { background: #4caf50 !important; color: white !important; }
-    .status-chip.status-inactive { background: #9e9e9e !important; color: white !important; }
-    .status-chip.status-pending { background: #ff9800 !important; color: white !important; }
-    .status-chip.status-blocked { background: #f44336 !important; color: white !important; }
-    .status-chip.status-suspended { background: #ff5722 !important; color: white !important; }
-
-    .active-icon { color: var(--success-color); }
-    .inactive-icon { color: var(--text-secondary); }
-
-    .warning { color: var(--warning-color); font-weight: 500; }
-    .danger { color: var(--error-color); font-weight: 600; }
-
-    .lock-icon {
+    .activity-table th {
+      text-align: left;
+      padding: 12px;
+      background: #f7fafc;
       font-size: 14px;
-      width: 14px;
-      height: 14px;
-      margin-left: 4px;
-      vertical-align: middle;
+      font-weight: 600;
+      color: #4a5568;
+      border-bottom: 2px solid #e2e8f0;
     }
 
-    .muted-text {
-      color: var(--text-secondary);
+    .activity-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .activity-table tr:hover td {
+      background: #f7fafc;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
       font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      font-weight: 500;
     }
 
-    .info-icon {
-      font-size: 14px;
-      width: 14px;
-      height: 14px;
+    .status-badge.status-active {
+      background: #9ae6b4;
+      color: #22543d;
     }
 
-    .row-blocked {
-      opacity: 0.7;
-      background: #fafafa;
+    .status-badge.status-pending {
+      background: #fefcbf;
+      color: #744210;
     }
 
-    .empty-row {
-      text-align: center;
-      padding: 48px !important;
-      color: var(--text-secondary);
+    .status-badge.status-suspended {
+      background: #fbd38d;
+      color: #744210;
     }
 
-    .empty-row mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      margin-bottom: 16px;
-      opacity: 0.5;
+    .status-badge.status-blocked {
+      background: #feb2b2;
+      color: #742a2a;
+    }
+
+    .status-badge.status-deleted {
+      background: #cbd5e0;
+      color: #2d3748;
+    }
+
+    .status-indicator {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #f7fafc;
+    }
+
+    .status-indicator.active {
+      background: #9ae6b4;
+      color: #22543d;
+    }
+
+    .attempts-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #f7fafc;
+    }
+
+    .attempts-badge.warning {
+      background: #fefcbf;
+      color: #744210;
+    }
+
+    .attempts-badge.danger {
+      background: #feb2b2;
+      color: #742a2a;
+    }
+
+    .never-login {
+      color: #a0aec0;
+      font-style: italic;
     }
 
     /* Responsive */
-    @media (max-width: 1200px) {
-      .stats-grid { grid-template-columns: repeat(3, 1fr); }
-      .charts-row { grid-template-columns: 1fr; }
-    }
-
     @media (max-width: 768px) {
-      .sidenav { width: 0; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .summary-cards {
+        grid-template-columns: 1fr;
+      }
+      
+      .charts-section {
+        grid-template-columns: 1fr;
+      }
+      
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .activity-table {
+        min-width: 600px;
+      }
     }
   `]
 })
 export class StatisticsComponent implements OnInit {
   stats: UserStatisticsResponse | null = null;
-  activity: UserActivityResponse[] = [];
-  loadingStats = true;
-  loadingActivity = true;
+  activityData: UserActivityResponse[] = [];
+  loading = true;
   error = '';
-  activityError = '';
 
-  displayedColumns: string[] = ['email', 'status', 'active', 'failedLogins', 'lastLogin'];
-  readonly CIRCUMFERENCE = 2 * Math.PI * 48;
+  roleStats: ChartDataPoint[] = [];
+  languageStats: ChartDataPoint[] = [];
+  statusBreakdown: ChartDataPoint[] = [];
+
+  // Debug properties
+  showDebug = true;
+  hasToken = false;
+  tokenValid = false;
+  isAdmin = false;
 
   constructor(
     private statisticsService: StatisticsService,
-    private authService: AuthService,
-    private errorHandler: ErrorHandlerService,
-    private snackBar: MatSnackBar
+    private tokenService: TokenService
   ) {}
 
   ngOnInit(): void {
-    this.loadAll();
+    this.checkAuth();
+    this.loadStatistics();
   }
 
-  refresh(): void { 
-    this.loadAll();
-    this.snackBar.open('Refreshing statistics...', 'Close', { duration: 2000 });
+  checkAuth(): void {
+    const token = this.tokenService.getAccessToken();
+    this.hasToken = !!token;
+    this.tokenValid = token ? !this.tokenService.isTokenExpired(token) : false;
+    this.isAdmin = this.tokenService.isAdmin();
   }
 
-  loadAll(): void {
-    this.loadingStats = true;
-    this.loadingActivity = true;
+  loadStatistics(): void {
+    this.loading = true;
     this.error = '';
-    this.activityError = '';
-
-    this.statisticsService.getUserStatistics().subscribe({
-      next: (s) => { 
-        this.stats = s; 
-        this.loadingStats = false; 
-      },
-      error: (e: HttpErrorResponse) => { 
-        this.error = this.errorHandler.handle(e).userMessage; 
-        this.loadingStats = false; 
-      }
-    });
-
-    this.statisticsService.getUserActivity().subscribe({
-      next: (a) => { 
-        this.activity = a; 
-        this.loadingActivity = false; 
-      },
-      error: (e: HttpErrorResponse) => { 
-        this.activityError = this.errorHandler.handle(e).userMessage; 
-        this.loadingActivity = false; 
-      }
-    });
-  }
-
-  get donutSegments() {
-    if (!this.stats) return [];
-    const total = this.stats.totalUsers || 1;
-    const segments = [
-      { label: 'Active',    value: this.stats.activeUsers,          color: '#4CAF50' },
-      { label: 'Pending',   value: this.stats.pendingVerification,  color: '#FF9800' },
-      { label: 'Blocked',   value: this.stats.blockedUsers,         color: '#f44336' },
-      { label: 'Suspended', value: this.stats.suspendedUsers,       color: '#ff9800' },
-      { label: 'Deleted',   value: this.stats.deletedUsers,         color: '#9e9e9e' },
-    ].filter(seg => seg.value > 0);
     
-    let cumulativeOffset = 0;
-    return segments.map(seg => {
-      const frac = seg.value / total;
-      const dash = `${frac * this.CIRCUMFERENCE} ${this.CIRCUMFERENCE}`;
-      const offset = this.CIRCUMFERENCE - cumulativeOffset;
-      cumulativeOffset += frac * this.CIRCUMFERENCE;
-      return { ...seg, dash, offset };
+    this.checkAuth();
+
+    // Load statistics summary
+    this.statisticsService.getUserStatistics().subscribe({
+      next: (stats) => {
+        console.log('✅ Statistics loaded:', stats);
+        this.stats = stats;
+        this.processStats();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('❌ Error loading statistics:', error);
+        this.error = 'Failed to load statistics';
+        this.loading = false;
+      }
+    });
+
+    // Load user activity
+    this.statisticsService.getUserActivity().subscribe({
+      next: (activity) => {
+        console.log('✅ Activity loaded:', activity);
+        this.activityData = activity;
+      },
+      error: (error) => {
+        console.error('❌ Error loading activity:', error);
+      }
     });
   }
 
-  get roleEntries() {
-    if (!this.stats) return [];
-    return Object.entries(this.stats.usersByRole)
-      .map(([key, value]) => ({ key, value }))
-      .sort((a, b) => b.value - a.value);
+  processStats(): void {
+    if (!this.stats) return;
+
+    this.roleStats = roleStatsToChartData(this.stats.usersByRole);
+    this.languageStats = languageStatsToChartData(this.stats.usersByLanguage);
+    this.statusBreakdown = getStatusBreakdown(this.stats);
+
+    console.log('Processed stats:', {
+      roleStats: this.roleStats,
+      languageStats: this.languageStats,
+      statusBreakdown: this.statusBreakdown
+    });
   }
 
-  get langEntries() {
-    if (!this.stats) return [];
-    return Object.entries(this.stats.usersByLanguage)
-      .map(([key, value]) => ({ key, value }))
-      .sort((a, b) => b.value - a.value);
+  getPercentage(value: number, total: number): number {
+    if (total === 0) return 0;
+    return Math.round((value / total) * 100);
   }
 
   getRoleColor(role: string): string {
     const colors: Record<string, string> = {
-      'ADMIN': '#ff9800',
-      'USER': '#2196f3',
-      'MODERATOR': '#9c27b0'
+      'ADMIN': '#feb2b2',
+      'USER': '#9ae6b4',
+      'SUPPORT': '#fbd38d'
     };
-    return colors[role] || '#757575';
+    return colors[role] || '#cbd5e0';
   }
 
-  pct(value: number, total: number): number { 
-    return total ? Math.round((value / total) * 100) : 0; 
-  }
-
-  langFlag(l: string): string {
-    const flags: Record<string, string> = {
-      'FR': '🇫🇷', 'EN': '🇬🇧', 'ES': '🇪🇸', 'DE': '🇩🇪', 'IT': '🇮🇹'
+  getLanguageName(lang: string): string {
+    const languages: Record<string, string> = {
+      'EN': 'English',
+      'FR': 'French',
+      'ES': 'Spanish',
+      'DE': 'German',
+      'IT': 'Italian'
     };
-    return flags[l] ?? '🌐';
-  }
-
-  logout(): void { 
-    this.authService.logout(); 
+    return languages[lang] || lang;
   }
 }

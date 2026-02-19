@@ -6,17 +6,11 @@ import {
   HttpInterceptor,
   HttpErrorResponse
 } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject, switchMap, filter, take, catchError } from 'rxjs';
-import { TokenService } from '../services/token.service';
-import { AuthService } from '../services/auth.service'; 
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { TokenService } from '../services/users/token.service';
+import { AuthService } from '../services/users/auth.service';
 
-/**
- * Public routes that must NOT receive an Authorization header.
- * Mirrors SecurityConfig.kt — .permitAll() routes under /api/auth/**
- *
- * CRITICAL: /api/auth/reset-password is excluded in JwtAuthenticationFilter.shouldNotFilter()
- * The reset token (tokenType: "password_reset") would be rejected if sent as Bearer.
- */
 const PUBLIC_ROUTES: string[] = [
   '/api/auth/register',
   '/api/auth/login',
@@ -24,16 +18,11 @@ const PUBLIC_ROUTES: string[] = [
   '/api/auth/verify-email',
   '/api/auth/resend-verification',
   '/api/auth/forgot-password',
-  '/api/auth/reset-password',   // JwtAuthenticationFilter.shouldNotFilter() skips this
-  '/oauth2/',
-  '/login/oauth2/',
+  '/api/auth/reset-password',
 ];
 
 @Injectable()
 export class JwtInterceptor implements HttpInterceptor {
-
-  private isRefreshing = false;
-  private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
   constructor(
     private tokenService: TokenService,
@@ -41,81 +30,41 @@ export class JwtInterceptor implements HttpInterceptor {
   ) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // Skip public routes — no Authorization header needed
+    // Check if it's a public route
     if (this.isPublicRoute(request.url)) {
       return next.handle(request);
     }
 
-    // Attach Bearer token if valid access token exists
-    const accessToken = this.tokenService.getAccessToken();
-    if (accessToken && this.tokenService.isAccessToken(accessToken)) {
-      request = this.addAuthHeader(request, accessToken);
+    // Get token
+    const token = this.tokenService.getAccessToken();
+    
+    if (token) {
+      // Clone the request and add the authorization header
+      request = request.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        },
+        withCredentials: true // Important for CORS
+      });
+      
+      console.log(`🔐 Added token to request: ${request.method} ${request.url}`);
+    } else {
+      console.warn(`⚠️ No token for protected route: ${request.url}`);
     }
 
     return next.handle(request).pipe(
-      catchError(error => {
-        // Handle 401 — attempt token refresh once, then logout
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          return this.handle401Error(request, next);
-        }
-        // Handle 403 — Access Denied from SecurityConfig accessDeniedHandler
-        if (error instanceof HttpErrorResponse && error.status === 403) {
-          console.error('Access denied:', error.error?.message);
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          console.error('🔄 401 error - token might be expired');
+          // Handle 401 error - maybe redirect to login
+          this.authService.logout();
         }
         return throwError(() => error);
       })
     );
   }
 
-  private addAuthHeader(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
-    return request.clone({
-      setHeaders: {
-        // Header name mirrors JwtAuthenticationFilter.getJwtFromRequest()
-        Authorization: `Bearer ${token}`
-      }
-    });
-  }
-
   private isPublicRoute(url: string): boolean {
     return PUBLIC_ROUTES.some(route => url.includes(route));
-  }
-
-  /**
-   * Handles 401 by attempting a single token refresh.
-   * If refresh fails, clears tokens and redirects to login.
-   */
-  private handle401Error(
-    request: HttpRequest<unknown>,
-    next: HttpHandler
-  ): Observable<HttpEvent<unknown>> {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      return this.authService.refreshToken().pipe(
-        switchMap(response => {
-          this.isRefreshing = false;
-          const newToken = response.data?.accessToken;
-          if (newToken) {
-            this.refreshTokenSubject.next(newToken);
-            return next.handle(this.addAuthHeader(request, newToken));
-          }
-          this.authService.logout();
-          return throwError(() => new Error('Refresh failed'));
-        }),
-        catchError(err => {
-          this.isRefreshing = false;
-          this.authService.logout();
-          return throwError(() => err);
-        })
-      );
-    }
-
-    // Queue requests while refresh is in progress
-    return this.refreshTokenSubject.pipe(
-      filter(token => token !== null),
-      take(1),
-      switchMap(token => next.handle(this.addAuthHeader(request, token!)))
-    );
   }
 }

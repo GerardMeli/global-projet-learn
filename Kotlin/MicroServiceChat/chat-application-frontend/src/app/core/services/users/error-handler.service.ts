@@ -1,11 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
-import {
-  parseAuthError,
-  AUTH_ERROR_MESSAGES,
-  AuthErrorCode,
-  ValidationErrors
-} from '../models/error.model';
+import { HttpErrorResponse } from '@angular/common/http'; 
+import { ValidationErrors } from '@angular/forms';
+import { AuthErrorCode, parseAuthError, AUTH_ERROR_MESSAGES } from '../../models/users/error.model';
 
 export interface HandledError {
   code: AuthErrorCode;
