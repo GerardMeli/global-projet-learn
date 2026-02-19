@@ -5,6 +5,7 @@ import com.example.manage_users.models.Theme
 import com.example.manage_users.models.UserRole
 import com.example.manage_users.models.UserStatus
 import jakarta.validation.constraints.NotNull
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
 
@@ -31,6 +32,10 @@ class AdminDto {
     data class AdminUserUpdateRequest(
         val firstName: String? = null,
         val lastName: String? = null,
+        @Pattern(
+            regexp = "^\\+237\\s6\\d{2}\\s\\d{3}\\s\\d{3}$",
+            message = "Invalid Cameroonian phone number format. Example: +237 698 520 147"
+        )
         val phoneNumber: String? = null,
         val address: String? = null,
         val role: UserRole? = null,
@@ -59,20 +64,5 @@ class AdminDto {
         val reason: String? = null
     )
 
-    data class UserSearchCriteria(
-        val email: String? = null,
-        val firstName: String? = null,
-        val lastName: String? = null,
-        val role: UserRole? = null
-    )
-
-    data class PaginatedUsersResponse(
-        val content: List<AdminUserResponse>,
-        val page: Int,
-        val size: Int,
-        val totalElements: Long,
-        val totalPages: Int,
-        val last: Boolean
-    )
 
 }

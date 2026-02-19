@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router'; 
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -11,13 +11,22 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { Language } from '../models/enums.model';
-import { AuthService } from '../service/auth.service';
-import { ErrorHandlerService } from '../service/error handler.service';
+import { Language } from '../../models/enums.model';
+import { AuthService } from '../../service/auth.service';
+import { ErrorHandlerService } from '../../service/error handler.service';
+
+// Custom validator for Cameroonian phone number
+export function cameroonPhoneValidator(control: AbstractControl): ValidationErrors | null {
+  const phoneRegex = /^\+237\s6\d{2}\s\d{3}\s\d{3}$/;
+  if (!control.value) {
+    return null; // Optional field
+  }
+  return phoneRegex.test(control.value) ? null : { invalidCameroonPhone: true };
+}
 
 @Component({
   selector: 'app-register',
@@ -33,8 +42,8 @@ import { ErrorHandlerService } from '../service/error handler.service';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatDividerModule,
     MatSelectModule,
+    MatDividerModule,
     MatSnackBarModule
   ],
   template: `
@@ -44,7 +53,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
     <mat-card class="register-card" appearance="outlined">
       <!-- Brand -->
       <div class="brand">
-        <mat-icon class="brand-icon" color="primary">admin_panel_settings</mat-icon>
+        <mat-icon class="brand-icon" aria-hidden="false" aria-label="Logo">admin_panel_settings</mat-icon>
         <span class="brand-name">FlowManage</span>
       </div>
 
@@ -60,19 +69,31 @@ import { ErrorHandlerService } from '../service/error handler.service';
         <span>{{ errorMessage }}</span>
       </div>
 
-      <!-- Form -->
+      <!-- Registration Form -->
       <form [formGroup]="form" (ngSubmit)="submit()" class="register-form">
         <!-- Name Row -->
-        <div class="name-row">
-          <mat-form-field appearance="outline" class="full-width">
+        <div class="form-row">
+          <!-- First Name -->
+          <mat-form-field appearance="outline" class="half-width">
             <mat-label>First name</mat-label>
-            <input matInput formControlName="firstName" placeholder="Meli" />
+            <input 
+              matInput 
+              type="text" 
+              formControlName="firstName"
+              placeholder="Marie"
+            />
             <mat-icon matSuffix>person</mat-icon>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
+          <!-- Last Name -->
+          <mat-form-field appearance="outline" class="half-width">
             <mat-label>Last name</mat-label>
-            <input matInput formControlName="lastName" placeholder="Gerard" />
+            <input 
+              matInput 
+              type="text" 
+              formControlName="lastName"
+              placeholder="Dupont"
+            />
             <mat-icon matSuffix>person</mat-icon>
           </mat-form-field>
         </div>
@@ -83,8 +104,8 @@ import { ErrorHandlerService } from '../service/error handler.service';
           <input 
             matInput 
             type="email" 
-            formControlName="email" 
-            placeholder="name@company.com"
+            formControlName="email"
+            placeholder="marie@example.com"
             autocomplete="email"
           />
           <mat-icon matSuffix>email</mat-icon>
@@ -141,28 +162,63 @@ import { ErrorHandlerService } from '../service/error handler.service';
           </span>
         </div>
 
-        <!-- Phone -->
+        <!-- Phone Number (with Cameroon format) -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Phone number</mat-label>
+          <span matTextPrefix class="phone-prefix">🇨🇲&nbsp;</span>
           <input 
             matInput 
             type="tel" 
-            formControlName="phoneNumber" 
-            placeholder="+2376xxxx"
+            formControlName="phoneNumber"
+            placeholder="+237 698 520 147"
+            autocomplete="tel"
           />
           <mat-icon matSuffix>phone</mat-icon>
-          <mat-hint>Optional</mat-hint>
+          <mat-hint>Format: +237 6XX XXX XXX (Cameroon)</mat-hint>
+          <mat-error *ngIf="f['phoneNumber'].touched && f['phoneNumber'].hasError('invalidCameroonPhone')">
+            Invalid Cameroonian phone number format. Example: +237 698 520 147
+          </mat-error>
         </mat-form-field>
 
-        <!-- Language -->
+        <!-- Phone Format Helper -->
+        <div class="phone-helper" *ngIf="f['phoneNumber'].value && !f['phoneNumber'].hasError('invalidCameroonPhone')">
+          <div class="helper-item" [class.valid]="phoneHasPlus237">
+            <mat-icon class="helper-icon">{{ phoneHasPlus237 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Starts with +237</span>
+          </div>
+          <div class="helper-item" [class.valid]="phoneHasSpace">
+            <mat-icon class="helper-icon">{{ phoneHasSpace ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Space after +237</span>
+          </div>
+          <div class="helper-item" [class.valid]="phoneHas6">
+            <mat-icon class="helper-icon">{{ phoneHas6 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Starts with 6 after code</span>
+          </div>
+          <div class="helper-item" [class.valid]="phoneHasCorrectLength">
+            <mat-icon class="helper-icon">{{ phoneHasCorrectLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>9 digits total (6XX XXX XXX)</span>
+          </div>
+        </div>
+
+        <!-- Language Selection -->
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Preferred language</mat-label>
           <mat-select formControlName="language">
-            <mat-option value="FR">Français</mat-option>
-            <mat-option value="EN">English</mat-option>
-            <mat-option value="ES">Español</mat-option>
-            <mat-option value="DE">Deutsch</mat-option>
-            <mat-option value="IT">Italiano</mat-option>
+            <mat-option [value]="Language.FR">
+              <span class="language-option">🇫🇷 Français</span>
+            </mat-option>
+            <mat-option [value]="Language.EN">
+              <span class="language-option">🇬🇧 English</span>
+            </mat-option>
+            <mat-option [value]="Language.ES">
+              <span class="language-option">🇪🇸 Español</span>
+            </mat-option>
+            <mat-option [value]="Language.DE">
+              <span class="language-option">🇩🇪 Deutsch</span>
+            </mat-option>
+            <mat-option [value]="Language.IT">
+              <span class="language-option">🇮🇹 Italiano</span>
+            </mat-option>
           </mat-select>
           <mat-icon matSuffix>language</mat-icon>
         </mat-form-field>
@@ -173,7 +229,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
           color="primary" 
           type="submit" 
           class="submit-button"
-          [disabled]="loading"
+          [disabled]="loading || form.invalid"
         >
           <mat-icon *ngIf="!loading" class="button-icon">person_add</mat-icon>
           <mat-spinner diameter="20" *ngIf="loading" class="button-spinner"></mat-spinner>
@@ -185,7 +241,9 @@ import { ErrorHandlerService } from '../service/error handler.service';
           <mat-divider></mat-divider>
           <p class="login-text">
             Already have an account?
-            <a routerLink="/auth/login" class="login-link">Sign in</a>
+            <a routerLink="/auth/login" class="login-link" color="primary">
+              Sign in
+            </a>
           </p>
         </div>
       </form>
@@ -210,7 +268,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
         <mat-card class="feature-card" appearance="outlined">
           <mat-icon class="feature-icon" color="primary">security</mat-icon>
           <div class="feature-text">
-            <h3>Role-based access</h3>
+            <h3>Role-based access control</h3>
             <p>Granular permissions for your team</p>
           </div>
         </mat-card>
@@ -219,8 +277,8 @@ import { ErrorHandlerService } from '../service/error handler.service';
         <mat-card class="feature-card" appearance="outlined">
           <mat-icon class="feature-icon" color="primary">insights</mat-icon>
           <div class="feature-text">
-            <h3>Real-time statistics</h3>
-            <p>Monitor user activity live</p>
+            <h3>Real-time user statistics</h3>
+            <p>Monitor activity and engagement</p>
           </div>
         </mat-card>
 
@@ -237,8 +295,8 @@ import { ErrorHandlerService } from '../service/error handler.service';
         <mat-card class="feature-card" appearance="outlined">
           <mat-icon class="feature-icon" color="primary">language</mat-icon>
           <div class="feature-text">
-            <h3>Multi-language</h3>
-            <p>Support for 5+ languages</p>
+            <h3>Multi-language support</h3>
+            <p>5+ languages available</p>
           </div>
         </mat-card>
       </div>
@@ -246,16 +304,16 @@ import { ErrorHandlerService } from '../service/error handler.service';
       <!-- Stats -->
       <div class="stats-row">
         <div class="stat-item">
+          <span class="stat-value">10k+</span>
+          <span class="stat-label">Active Users</span>
+        </div>
+        <div class="stat-item">
           <span class="stat-value">99.9%</span>
           <span class="stat-label">Uptime</span>
         </div>
         <div class="stat-item">
           <span class="stat-value">24/7</span>
           <span class="stat-label">Support</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">10k+</span>
-          <span class="stat-label">Users</span>
         </div>
       </div>
     </div>
@@ -266,7 +324,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
 <ng-template #successBlock>
   <div class="success-container">
     <mat-card class="success-card" appearance="outlined">
-      <div class="icon-wrapper">
+      <div class="icon-wrapper success">
         <mat-icon class="success-icon">mark_email_read</mat-icon>
       </div>
       
@@ -277,19 +335,16 @@ import { ErrorHandlerService } from '../service/error handler.service';
       </p>
       
       <div class="success-details">
-        <mat-icon class="details-icon">info</mat-icon>
-        <p>
-          Click the link in the email to activate your account. 
-          The link expires in <strong>24 hours</strong>.
-        </p>
+        <mat-icon class="details-icon">schedule</mat-icon>
+        <span>Click the link in the email to activate your account. The link expires in <strong>24 hours</strong>.</span>
       </div>
       
       <div class="success-actions">
         <button 
           mat-stroked-button 
           color="primary" 
-          class="action-button secondary"
           (click)="goToResend()"
+          class="action-button secondary"
         >
           <mat-icon>refresh</mat-icon>
           Resend email
@@ -298,18 +353,13 @@ import { ErrorHandlerService } from '../service/error handler.service';
         <button 
           mat-flat-button 
           color="primary" 
-          class="action-button primary"
           routerLink="/auth/login"
+          class="action-button"
         >
           <mat-icon>login</mat-icon>
           Go to Sign In
         </button>
       </div>
-      
-      <p class="success-note">
-        <mat-icon class="note-icon">schedule</mat-icon>
-        The verification link expires in 24 hours
-      </p>
     </mat-card>
   </div>
 </ng-template>
@@ -323,10 +373,10 @@ import { ErrorHandlerService } from '../service/error handler.service';
       --bg-light: #f5f7fa;
       --success-color: #4caf50;
       --error-color: #f44336;
+      --warning-color: #ff9800;
       --weak-color: #f44336;
       --medium-color: #ff9800;
       --strong-color: #4caf50;
-      --border-radius: 12px;
     }
 
     /* Container */
@@ -339,18 +389,19 @@ import { ErrorHandlerService } from '../service/error handler.service';
     /* Left Panel - Form */
     .register-form-panel {
       flex: 1;
-      max-width: 50%;
+      max-width: 560px;
       padding: 32px;
       background: white;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      position: relative;
       box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
     }
 
     .register-card {
-      padding: 40px 36px;
-      border-radius: var(--border-radius) !important;
+      padding: 40px 32px;
+      border-radius: 20px !important;
       border: none !important;
       box-shadow: none !important;
     }
@@ -360,18 +411,18 @@ import { ErrorHandlerService } from '../service/error handler.service';
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
     }
 
     .brand-icon {
-      font-size: 36px;
-      width: 36px;
-      height: 36px;
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
       color: var(--primary-color);
     }
 
     .brand-name {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.01em;
@@ -379,20 +430,21 @@ import { ErrorHandlerService } from '../service/error handler.service';
 
     /* Form Header */
     .form-header {
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
     .form-title {
-      font-size: 36px;
+      font-size: 32px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 8px;
+      margin: 0 0 8px 0;
       letter-spacing: -0.02em;
     }
 
     .form-subtitle {
-      font-size: 16px;
+      font-size: 15px;
       color: var(--text-secondary);
+      margin: 0;
     }
 
     /* Alert */
@@ -402,7 +454,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
       gap: 12px;
       padding: 12px 16px;
       border-radius: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       font-size: 14px;
     }
 
@@ -424,7 +476,7 @@ import { ErrorHandlerService } from '../service/error handler.service';
       gap: 16px;
     }
 
-    .name-row {
+    .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 16px;
@@ -432,6 +484,47 @@ import { ErrorHandlerService } from '../service/error handler.service';
 
     .full-width {
       width: 100%;
+    }
+
+    .half-width {
+      width: 100%;
+    }
+
+    /* Phone Input */
+    .phone-prefix {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-right: 4px;
+    }
+
+    /* Phone Helper */
+    .phone-helper {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: -8px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .helper-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .helper-item.valid {
+      color: var(--success-color);
+    }
+
+    .helper-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
 
     /* Password Strength */
@@ -482,13 +575,20 @@ import { ErrorHandlerService } from '../service/error handler.service';
       color: var(--strong-color);
     }
 
+    /* Language Option */
+    .language-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     /* Submit Button */
     .submit-button {
       height: 52px;
       font-size: 16px;
       font-weight: 500;
       border-radius: 8px !important;
-      margin-top: 16px;
+      margin-top: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -501,18 +601,17 @@ import { ErrorHandlerService } from '../service/error handler.service';
 
     /* Login Section */
     .login-section {
-      margin-top: 24px;
+      margin-top: 16px;
     }
 
     .login-text {
       text-align: center;
       font-size: 14px;
       color: var(--text-secondary);
-      margin-top: 24px;
+      margin-top: 20px;
     }
 
     .login-link {
-      color: var(--primary-color);
       text-decoration: none;
       font-weight: 500;
       margin-left: 4px;
@@ -526,9 +625,9 @@ import { ErrorHandlerService } from '../service/error handler.service';
     .footer {
       text-align: center;
       margin-top: auto;
-      padding-top: 40px;
+      padding-top: 32px;
       color: var(--text-secondary);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     /* Right Panel - Features */
@@ -557,16 +656,16 @@ import { ErrorHandlerService } from '../service/error handler.service';
     .features-content {
       position: relative;
       z-index: 1;
-      max-width: 520px;
+      max-width: 480px;
       width: 100%;
     }
 
     .features-title {
-      font-size: 42px;
+      font-size: 40px;
       font-weight: 600;
       color: white;
       line-height: 1.2;
-      margin-bottom: 48px;
+      margin-bottom: 40px;
     }
 
     .highlight {
@@ -606,14 +705,14 @@ import { ErrorHandlerService } from '../service/error handler.service';
 
     .feature-text h3 {
       color: white;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      margin-bottom: 4px;
+      margin: 0 0 4px 0;
     }
 
     .feature-text p {
       color: rgba(255, 255, 255, 0.7);
-      font-size: 13px;
+      font-size: 12px;
       margin: 0;
       line-height: 1.5;
     }
@@ -632,14 +731,14 @@ import { ErrorHandlerService } from '../service/error handler.service';
 
     .stat-value {
       display: block;
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 600;
       color: white;
       margin-bottom: 4px;
     }
 
     .stat-label {
-      font-size: 13px;
+      font-size: 12px;
       color: rgba(255, 255, 255, 0.6);
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -656,10 +755,10 @@ import { ErrorHandlerService } from '../service/error handler.service';
     }
 
     .success-card {
-      max-width: 520px;
+      max-width: 500px;
       width: 100%;
       padding: 56px 48px;
-      border-radius: 24px !important;
+      border-radius: 28px !important;
       background: white;
       text-align: center;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
@@ -684,51 +783,44 @@ import { ErrorHandlerService } from '../service/error handler.service';
     }
 
     .success-title {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 16px;
-      letter-spacing: -0.02em;
+      margin: 0 0 12px 0;
     }
 
     .success-message {
       color: var(--text-secondary);
       font-size: 16px;
       line-height: 1.6;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .success-details {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 12px;
-      text-align: left;
       background: #f8f9fa;
+      padding: 16px;
       border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      text-align: left;
+      font-size: 14px;
+      color: var(--text-secondary);
     }
 
     .details-icon {
-      color: var(--success-color);
+      color: var(--primary-color);
       font-size: 20px;
       width: 20px;
       height: 20px;
       flex-shrink: 0;
     }
 
-    .success-details p {
-      margin: 0;
-      color: var(--text-secondary);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
     .success-actions {
       display: flex;
       gap: 16px;
       justify-content: center;
-      margin-bottom: 24px;
     }
 
     .action-button {
@@ -746,22 +838,6 @@ import { ErrorHandlerService } from '../service/error handler.service';
       border: 1px solid var(--primary-color);
     }
 
-    .success-note {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      color: var(--text-secondary);
-      font-size: 13px;
-      margin: 0;
-    }
-
-    .note-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-
     /* Material Overrides */
     ::ng-deep .mat-mdc-form-field-flex {
       height: 56px !important;
@@ -771,10 +847,14 @@ import { ErrorHandlerService } from '../service/error handler.service';
       background-color: #f8fafc !important;
     }
 
+    ::ng-deep .mat-mdc-form-field-hint-wrapper {
+      padding: 0 !important;
+    }
+
     /* Responsive */
     @media (max-width: 1024px) {
       .register-form-panel {
-        max-width: 500px;
+        max-width: 480px;
         padding: 24px;
       }
 
@@ -801,27 +881,16 @@ import { ErrorHandlerService } from '../service/error handler.service';
         display: none;
       }
 
-      .name-row {
+      .form-row {
         grid-template-columns: 1fr;
-        gap: 0;
+      }
+
+      .phone-helper {
+        grid-template-columns: 1fr;
       }
 
       .success-actions {
         flex-direction: column;
-      }
-
-      .success-card {
-        padding: 40px 24px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .form-title {
-        font-size: 28px;
-      }
-
-      .success-title {
-        font-size: 24px;
       }
     }
   `]
@@ -833,6 +902,7 @@ export class RegisterComponent {
   registeredEmail = '';
   errorMessage = '';
   hidePassword = true;
+  Language = Language;
 
   constructor(
     private fb: FormBuilder,
@@ -846,14 +916,34 @@ export class RegisterComponent {
       lastName: [''],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(50)]],
-      phoneNumber: [''],
+      phoneNumber: ['', cameroonPhoneValidator],
       language: [Language.FR]
     });
   }
 
   get f() { return this.form.controls; }
 
-  // Password strength methods
+  // Phone validation helpers
+  get phoneHasPlus237(): boolean {
+    return this.f['phoneNumber'].value?.startsWith('+237');
+  }
+
+  get phoneHasSpace(): boolean {
+    const val = this.f['phoneNumber'].value;
+    return val && val.length > 4 && val[4] === ' ';
+  }
+
+  get phoneHas6(): boolean {
+    const val = this.f['phoneNumber'].value;
+    return val && val.length > 5 && val[5] === '6';
+  }
+
+  get phoneHasCorrectLength(): boolean {
+    const val = this.f['phoneNumber'].value;
+    return val && val.replace(/\s/g, '').length === 12; // +237 + 9 digits
+  }
+
+  // Password strength
   getPasswordStrength(): number {
     const pwd = this.f['password'].value || '';
     let strength = 0;
@@ -862,7 +952,8 @@ export class RegisterComponent {
     if (pwd.length >= 8) strength += 20;
     if (/[a-z]/.test(pwd)) strength += 15;
     if (/[A-Z]/.test(pwd)) strength += 15;
-    if (/[0-9]/.test(pwd)) strength += 20;
+    if (/[0-9]/.test(pwd)) strength += 10;
+    if (/[@#$%^&+=]/.test(pwd)) strength += 10;
     
     return Math.min(strength, 100);
   }
@@ -877,6 +968,15 @@ export class RegisterComponent {
   submit(): void {
     if (this.form.invalid) { 
       this.form.markAllAsTouched(); 
+      
+      // Show snackbar with validation errors
+      if (this.f['phoneNumber'].hasError('invalidCameroonPhone')) {
+        this.snackBar.open('Please enter a valid Cameroonian phone number', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+      
       return; 
     }
     
@@ -889,11 +989,8 @@ export class RegisterComponent {
         this.registered = true;
         this.loading = false;
         
-        // Show success snackbar
-        this.snackBar.open('Account created! Check your email.', 'Close', {
+        this.snackBar.open('Account created! Check your email for verification.', 'Close', {
           duration: 5000,
-          horizontalPosition: 'end',
-          verticalPosition: 'top',
           panelClass: ['success-snackbar']
         });
       },

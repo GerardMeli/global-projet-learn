@@ -26,6 +26,10 @@ class RegistrationDto {
         @field:Size(max = 100)
         val lastName: String? = null,
 
+        @Pattern(
+            regexp = "^\\+237\\s6\\d{2}\\s\\d{3}\\s\\d{3}$",
+            message = "Invalid Cameroonian phone number format. Example: +237 698 520 147"
+        )
         val phoneNumber: String? = null,
 
         @field:Size(max = 45)

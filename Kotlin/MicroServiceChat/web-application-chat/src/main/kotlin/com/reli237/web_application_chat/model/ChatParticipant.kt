@@ -32,8 +32,7 @@ data class ChatParticipant(
 
     @Enumerated(EnumType.STRING)
     val role: ParticipantRole = ParticipantRole.MEMBER
-) {
-}
+)
 
 enum class ParticipantRole {
     ADMIN, MODERATOR, MEMBER

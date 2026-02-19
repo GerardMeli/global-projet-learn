@@ -13,9 +13,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { STRONG_PASSWORD_PATTERN } from '../models/email pwd.model';
-import { AuthService } from '../service/auth.service';
-import { ErrorHandlerService } from '../service/error handler.service';
+import { STRONG_PASSWORD_PATTERN } from '../../models/email pwd.model';
+import { AuthService } from '../../service/auth.service';
+import { ErrorHandlerService } from '../../service/error handler.service';
 
 function passwordsMatch(control: AbstractControl) {
   const newPwd = control.get('newPassword')?.value;

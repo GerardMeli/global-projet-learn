@@ -4,12 +4,6 @@ import jakarta.validation.constraints.*
 
 class EmailPwdDto {
 
-    // Email Verification
-    data class EmailVerificationRequest(
-        @field:NotBlank
-        val token: String
-    )
-
     data class ResendVerificationEmailRequest(
         @field:NotBlank
         @field:Email

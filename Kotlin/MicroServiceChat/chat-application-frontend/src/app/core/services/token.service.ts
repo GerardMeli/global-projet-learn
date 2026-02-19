@@ -100,4 +100,9 @@ export class TokenService {
     if (this.isTokenExpired(token)) return false;
     return true;
   }
+
+  /** Alias for getCurrentUserEmail() — returns email claim from stored access token */
+  getEmail(): string | null {
+    return this.getCurrentUserEmail();
+  }
 }

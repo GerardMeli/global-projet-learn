@@ -13,8 +13,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 
-import { AuthService } from '../service/auth.service';
-import { ErrorHandlerService } from '../service/error handler.service';
+import { AuthService } from '../../service/auth.service';
+import { ErrorHandlerService } from '../../service/error handler.service';
 
 @Component({
   selector: 'app-forgot-password',

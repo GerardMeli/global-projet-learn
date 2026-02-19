@@ -4,8 +4,22 @@ export const routes: Routes = [
   {
     path: 'auth',
     loadChildren: () =>
-      import('./component/admin-routing.module').then(m => m.AuthRoutingModule)
+      import('./component/auth/admin-routing.module')
+        .then(m => m.AuthRoutingModule)
   },
-  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
-  { path: '**', redirectTo: 'auth/login' }
+  {
+    path: 'admin',
+    loadChildren: () =>
+      import('./component/admin/admin-routing.module')
+        .then(m => m.AdminRoutingModule)
+  },
+  {
+    path: '',
+    redirectTo: 'auth',
+    pathMatch: 'full'
+  },
+  {
+    path: '**',
+    redirectTo: 'auth'
+  }
 ];

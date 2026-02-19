@@ -14,9 +14,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { AuthErrorCode } from '../models/error.model';
-import { AuthService } from '../service/auth.service';
-import { ErrorHandlerService } from '../service/error handler.service';
+import { AuthErrorCode } from '../../models/error.model';
+import { AuthService } from '../../service/auth.service';
+import { ErrorHandlerService } from '../../service/error handler.service';
 
 @Component({
   selector: 'app-login',
