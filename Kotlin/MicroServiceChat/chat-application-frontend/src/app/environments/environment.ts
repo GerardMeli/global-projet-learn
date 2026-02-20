@@ -1,25 +1,45 @@
 export const environment = {
   production: false,
 
-  // Spring Boot backend base URL
-  // CORS in SecurityConfig.kt allows: localhost:3000, 5173, 8080
-  // Angular runs on 4200 — add it to SecurityConfig OR use the proxy below
+  // manage-users — port 8082 (from manage-users application.yaml: server.port: 8082)
   apiUrl: 'http://localhost:8082/api',
 
-  // OAuth2 redirect — mirrors SecurityConfig oauth2Login failureHandler redirect
+  // web-application-chat — port 8081 (from chat application.yaml: server.port: 8081)
+  chatApiUrl: 'http://localhost:8081',
+  chatWsUrl:  'http://localhost:8081',
+
+  // system-manager-file — no server.port in application.yaml → Spring default = 8080
+  fileApiUrl: 'http://localhost:8080',
+
   oauth2RedirectUri: 'http://localhost:4200/oauth2/callback',
 };
 
 /**
- * ─── IMPORTANT: CORS FIX ─────────────────────────────────────────────────────
- * Angular runs on :4200, but SecurityConfig only allows :3000, :5173, :8080.
+ * ─── PROXY SETUP (recommended for dev to avoid CORS) ─────────────────────────
  *
- * Option A (recommended for dev): Use proxy.conf.json
- *   → Angular proxies /api → localhost:8080, so browser sees same origin.
- *   → Set apiUrl: '/api' above and run: ng serve --proxy-config proxy.conf.json
+ * proxy.conf.json at project root:
+ * {
+ *   "/api":      { "target": "http://localhost:8082", "changeOrigin": true },
+ *   "/chat-api": { "target": "http://localhost:8081", "changeOrigin": true },
+ *   "/ws-chat":  { "target": "http://localhost:8081", "changeOrigin": true, "ws": true },
+ *   "/files-api":{ "target": "http://localhost:8080", "changeOrigin": true }
+ * }
  *
- * Option B: Add "http://localhost:4200" to SecurityConfig.kt allowedOrigins list.
+ * When using proxy, change to:
+ *   apiUrl:     '/api'
+ *   chatApiUrl: '/chat-api'
+ *   chatWsUrl:  ''         ← SockJS uses current host
+ *   fileApiUrl: '/files-api'
  *
- * proxy.conf.json is generated alongside this file.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Run: ng serve --proxy-config proxy.conf.json
+ *
+ * ─── CORS — add to each Spring service ───────────────────────────────────────
+ *   manage-users SecurityConfig.kt:      allowedOrigins("http://localhost:4200")
+ *   web-application-chat:                @CrossOrigin / WebMvcConfigurer
+ *   system-manager-file WebController:   @CrossOrigin("http://localhost:4200")
+ *
+ * ─── FILE UPLOAD LIMITS ───────────────────────────────────────────────────────
+ *   system-manager-file application.yaml:
+ *     spring.servlet.multipart.max-file-size: 10MB   ← already configured
+ *     spring.servlet.multipart.max-request-size: 10MB
  */

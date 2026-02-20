@@ -2,11 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router'; 
+import { HttpClient } from '@angular/common/http'; // Add this for debugging
 import { UserProfileResponse } from '../../core/models/users/profile.model';
 import { AdminUserUpdateRequest, UserStatusUpdateRequest, UserRoleUpdateRequest, AdminUserResponse } from '../../core/models/users/admin.model';
 import { UserStatus, UserRole } from '../../core/models/users/enums.model';
 import { AdminService } from '../../core/services/users/admin.service';
-import { TokenService } from '../../core/services/users/token.service';
+import { TokenService } from '../../core/services/users/token.service'; 
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-user-detail',
@@ -21,6 +23,28 @@ import { TokenService } from '../../core/services/users/token.service';
           Back to Users
         </button>
         <h1>User Details</h1>
+        
+        <!-- Debug Button -->
+        <button class="debug-btn" (click)="showDebug = !showDebug">
+          <span class="material-icons">bug_report</span>
+          {{ showDebug ? 'Hide Debug' : 'Debug' }}
+        </button>
+      </div>
+
+      <!-- Debug Panel -->
+      <div class="debug-panel" *ngIf="showDebug">
+        <h4>Debug Information</h4>
+        <p><strong>User ID:</strong> {{ userId }}</p>
+        <p><strong>Token Present:</strong> {{ hasToken ? '✅' : '❌' }}</p>
+        <p><strong>Token Valid:</strong> {{ tokenValid ? '✅' : '❌' }}</p>
+        <p><strong>Is Admin:</strong> {{ isAdmin ? '✅' : '❌' }}</p>
+        <p><strong>API URL:</strong> {{ apiUrl }}/admin/users/{{ userId }}</p>
+        <p><strong>Last Error:</strong> {{ lastError }}</p>
+        <div class="debug-actions">
+          <button (click)="testDirectRequest()" class="debug-btn">Test Direct Request</button>
+          <button (click)="testServiceRequest()" class="debug-btn">Test Service</button>
+          <button (click)="checkToken()" class="debug-btn">Check Token</button>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -33,6 +57,7 @@ import { TokenService } from '../../core/services/users/token.service';
       <div class="error-state" *ngIf="error">
         <span class="material-icons">error</span>
         <p>{{ error }}</p>
+        <p class="error-details" *ngIf="errorDetails">{{ errorDetails }}</p>
         <button class="retry-btn" (click)="loadUser()">Retry</button>
       </div>
 
@@ -286,6 +311,7 @@ import { TokenService } from '../../core/services/users/token.service';
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-wrap: wrap;
     }
 
     .back-btn {
@@ -311,6 +337,62 @@ import { TokenService } from '../../core/services/users/token.service';
       margin: 0;
       font-size: 24px;
       color: #2d3748;
+      flex: 1;
+    }
+
+    .debug-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #4a5568;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .debug-btn:hover {
+      background: #2d3748;
+    }
+
+    /* Debug Panel */
+    .debug-panel {
+      background: #1a202c;
+      color: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .debug-panel h4 {
+      margin: 0 0 15px 0;
+      color: #a0aec0;
+    }
+
+    .debug-panel p {
+      margin: 8px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .debug-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .debug-panel .debug-btn {
+      background: #4a5568;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .debug-panel .debug-btn:hover {
+      background: #718096;
     }
 
     /* Success Message */
@@ -392,6 +474,18 @@ import { TokenService } from '../../core/services/users/token.service';
       font-size: 48px;
       color: #e53e3e;
       margin-bottom: 16px;
+    }
+
+    .error-details {
+      color: #718096;
+      font-size: 12px;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f7fafc;
+      border-radius: 4px;
+      max-width: 600px;
+      margin: 10px auto;
+      font-family: monospace;
     }
 
     .retry-btn {
@@ -768,9 +862,11 @@ export class UserDetailComponent implements OnInit {
   user: UserProfileResponse | null = null;
   loading = true;
   error = '';
+  errorDetails = '';
   successMessage = '';
   saving = false;
   updating = false;
+  showDebug = false;
 
   editData: Partial<AdminUserUpdateRequest> = {};
   statusUpdate: UserStatusUpdateRequest = { status: UserStatus.ACTIVE };
@@ -779,35 +875,134 @@ export class UserDetailComponent implements OnInit {
   // Separate from editData for better control
   emailNotifications = true;
 
+  // Debug properties
+  hasToken = false;
+  tokenValid = false;
+  isAdmin = false;
+  apiUrl = environment.apiUrl;
+  lastError = '';
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private adminService: AdminService,
-    private tokenService: TokenService
+    private tokenService: TokenService,
+    private http: HttpClient // Add HttpClient for direct testing
   ) {}
 
   ngOnInit(): void {
     this.userId = Number(this.route.snapshot.paramMap.get('id'));
+    this.checkToken();
     this.loadUser();
   }
 
-  loadUser(): void {
-    this.loading = true;
-    this.error = '';
+  checkToken(): void {
+    const token = this.tokenService.getAccessToken();
+    this.hasToken = !!token;
+    this.tokenValid = token ? !this.tokenService.isTokenExpired(token) : false;
+    this.isAdmin = this.tokenService.isAdmin();
+  }
+
+  testDirectRequest(): void {
+    const token = this.tokenService.getAccessToken();
+    const headers = { 'Authorization': `Bearer ${token}` };
     
+    // Try different URL patterns
+    const urls = [
+      `${this.apiUrl}/admin/users/${this.userId}`,
+      `${this.apiUrl}/admin/users/${this.userId}/`,
+      `${this.apiUrl}/admin/users/${this.userId}?t=${Date.now()}`, // Add cache buster
+    ];
+
+    urls.forEach((url, index) => {
+      console.log(`Testing URL ${index + 1}: ${url}`);
+      this.http.get(url, { headers, observe: 'response' }).subscribe({
+        next: (response) => {
+          console.log(`✅ URL ${index + 1} succeeded:`, response.status);
+          this.error = '';
+          this.errorDetails = `URL ${index + 1} works!`;
+        },
+        error: (error) => {
+          console.log(`❌ URL ${index + 1} failed:`, error.status);
+          this.errorDetails = `URL ${index + 1} failed with status ${error.status}`;
+        }
+      });
+    });
+  }
+
+  testServiceRequest(): void {
+    console.log('Testing service request...');
     this.adminService.getUserById(this.userId).subscribe({
-      next: (user: UserProfileResponse) => {
+      next: (user) => {
+        console.log('✅ Service request succeeded:', user);
         this.user = user;
         this.resetForm();
-        this.loading = false;
+        this.error = '';
       },
       error: (error) => {
-        this.error = 'Failed to load user details';
-        this.loading = false;
-        console.error('Error loading user:', error);
+        console.log('❌ Service request failed:', error);
+        this.error = 'Service request failed';
+        this.errorDetails = `Status: ${error.status} - ${error.message}`;
       }
     });
   }
+
+loadUser(): void {
+  this.loading = true;
+  this.error = '';
+  this.errorDetails = '';
+  
+  // Check authentication first
+  this.checkToken();
+  
+  if (!this.hasToken) {
+    this.error = 'No authentication token found';
+    this.loading = false;
+    return;
+  }
+
+  if (!this.isAdmin) {
+    this.error = 'User is not an administrator';
+    this.loading = false;
+    return;
+  }
+  
+  console.log('Loading user with ID:', this.userId);
+  console.log('Token present:', this.hasToken);
+  
+  this.adminService.getUserById(this.userId).subscribe({
+    next: (user: UserProfileResponse) => {
+      console.log('✅ User loaded successfully:', user);
+      this.user = user;
+      this.resetForm();
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('❌ Error loading user - Full error:', error);
+      console.error('Error status:', error.status);
+      console.error('Error message:', error.message);
+      console.error('Error details:', error.error);
+      
+      this.error = 'Failed to load user details';
+      
+      if (error.status === 401) {
+        this.error = 'Authentication failed. Please log in again.';
+        this.errorDetails = 'Your session may have expired.';
+      } else if (error.status === 403) {
+        this.error = 'You do not have permission to view this user.';
+        this.errorDetails = 'Admin access required.';
+      } else if (error.status === 404) {
+        this.error = 'User not found.';
+        this.errorDetails = `User with ID ${this.userId} does not exist.`;
+      } else {
+        this.errorDetails = `Status: ${error.status} - ${error.message}`;
+      }
+      
+      this.lastError = JSON.stringify(error);
+      this.loading = false;
+    }
+  });
+}
 
   getFullName(): string {
     if (!this.user) return '';

@@ -1,6 +1,12 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
+
+    // Public landing page
+  { path: '',
+    loadComponent: () => import('./component/home/home.component').then(m => m.HomeComponent) },
+
+
   {
     path: 'auth',
     loadChildren: () =>
@@ -13,6 +19,12 @@ export const routes: Routes = [
       import('./component/admin/admin-routing.module')
         .then(m => m.AdminRoutingModule)
   },
+    { path: 'chat',
+    loadChildren: () => import('./component/chat/chat-routing.module').then(m => m.ChatRoutingModule) },
+
+      { path: 'files',  
+    loadChildren: () => import('./component/file/file.routin-.module').then(m => m.FileRoutingModule) },
+
   {
     path: '',
     redirectTo: 'auth',
