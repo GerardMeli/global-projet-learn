@@ -138,6 +138,15 @@ class PrivateChatController(
         return ResponseEntity.ok(privateChatService.deleteFileMessage(messageId))
     }
 
+    /**
+     * REST endpoint to get users currently typing
+     */
+    @GetMapping("/typing/{receiverId}")
+    fun getTypingUsers(@PathVariable receiverId: Long): ResponseEntity<List<PrivateChatService.UserTypingStatus>> {
+        val typingUsers = privateChatService.getTypingUsers(receiverId)
+        return ResponseEntity.ok(typingUsers)
+    }
+
     // ═══════════════════════════════════════════════════════════
     // GESTION DES ERREURS
     // ═══════════════════════════════════════════════════════════

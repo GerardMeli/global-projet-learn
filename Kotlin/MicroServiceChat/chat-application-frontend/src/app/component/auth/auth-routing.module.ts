@@ -1,6 +1,8 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
+console.log("Hello authentication")
+
 const routes: Routes = [
   { path: 'login',                loadComponent: () => import('./login.component').then(m => m.LoginComponent) },
   { path: 'register',             loadComponent: () => import('./register.component').then(m => m.RegisterComponent) },

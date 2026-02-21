@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class PrivateChatService(
@@ -20,6 +21,9 @@ class PrivateChatService(
     private val messagingTemplate: SimpMessagingTemplate,
     private val fileWebChatInterface: FileWebChatInterface
 ) {
+
+    // Store typing status in memory (consider using Redis for production)
+    private val typingStatus = ConcurrentHashMap<String, UserTypingStatus>()
 
     private fun <T> ResponseEntity<T>.getBodyOrThrow(errorMessage: String): T {
         if (!this.statusCode.is2xxSuccessful || this.body == null) throw IllegalArgumentException(errorMessage)
@@ -180,6 +184,41 @@ class PrivateChatService(
         return buildFileResponse(message, sender, receiver, fileName, "Deleted")
     }
 
+    fun setUserTyping(senderId: Long, receiverId: Long) {
+        val key = generateTypingKey(senderId, receiverId)
+        typingStatus[key] = UserTypingStatus(
+            userId = senderId,
+            receiverId = receiverId,
+            isTyping = true,
+            startedAt = System.currentTimeMillis()
+        )
+    }
+
+    fun removeUserTyping(senderId: Long, receiverId: Long) {
+        val key = generateTypingKey(senderId, receiverId)
+        typingStatus.remove(key)
+    }
+
+    fun getTypingUsers(receiverId: Long): List<UserTypingStatus> {
+        val now = System.currentTimeMillis()
+        val timeout = 5000 // 5 seconds timeout for typing indicator
+
+        return typingStatus.values
+            .filter { it.receiverId == receiverId && now - it.startedAt < timeout }
+            .also {
+                // Clean up expired typing statuses
+                it.forEach { status ->
+                    if (now - status.startedAt >= timeout) {
+                        typingStatus.remove(generateTypingKey(status.userId, status.receiverId))
+                    }
+                }
+            }
+    }
+
+    private fun generateTypingKey(senderId: Long, receiverId: Long): String {
+        return "$senderId:$receiverId"
+    }
+
     // ═══════════════════════════════════════════════════════════
     // HELPERS PRIVÉS
     // ═══════════════════════════════════════════════════════════
@@ -289,6 +328,13 @@ class PrivateChatService(
     data class UserContactDTO(
         val userId: Long, val username: String, val lastMessage: String,
         val lastMessageTime: LocalDateTime?, val unreadCount: Int
+    )
+
+    data class UserTypingStatus(
+        val userId: Long,
+        val receiverId: Long,
+        val isTyping: Boolean,
+        val startedAt: Long
     )
 
 }

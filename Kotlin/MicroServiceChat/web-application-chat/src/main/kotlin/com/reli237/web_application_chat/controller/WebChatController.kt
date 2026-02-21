@@ -416,6 +416,41 @@ class WebChatController(
 //        }
 //    }
 
+    /**
+     * Handles typing notifications in private chats
+     * Client sends to: /app/private/typing/{userId}
+     * Server broadcasts to: /topic/private/typing/{otherUserId}
+     */
+    @MessageMapping("/private/typing/{userId}")
+    fun handlePrivateTyping(
+        @DestinationVariable userId: Long,
+        @Payload payload: TypingPayload,
+        principal: Principal
+    ) {
+        val senderId = principal.name.toLongOrNull() ?: return
+        val receiverId = payload.userId
+
+        // Create typing notification
+        val typingNotification = TypingNotification(
+            userId = senderId,
+            isTyping = payload.isTyping,
+            timestamp = System.currentTimeMillis()
+        )
+
+        // Send to the specific user who should see the typing indicator
+        messagingTemplate.convertAndSend(
+            "/topic/private/typing/$receiverId",
+            typingNotification
+        )
+
+        // Optionally store typing status in service if needed
+        if (payload.isTyping) {
+            privateChatService.setUserTyping(senderId, receiverId)
+        } else {
+            privateChatService.removeUserTyping(senderId, receiverId)
+        }
+    }
+
     @MessageMapping("/private/read/{userId}")
     fun markMessagesAsRead(
         @DestinationVariable userId: Long,
@@ -542,5 +577,16 @@ class WebChatController(
         val username: String?,
         val roomId: Long
     )
+
+    data class TypingPayload(
+        val userId: Long,
+        val isTyping: Boolean
+    )
+
+//    data class TypingNotification(
+//        val userId: Long,
+//        val isTyping: Boolean,
+//        val timestamp: Long
+//    )
 
 }

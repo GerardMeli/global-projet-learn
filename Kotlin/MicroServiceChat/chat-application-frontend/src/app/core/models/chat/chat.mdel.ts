@@ -16,7 +16,7 @@ export interface UserSimpleResponse {
 // ─── WebSocket event shapes (from WebChatController / PrivateChatService) ─────
 
 /** Broadcast to /topic/room/{roomId} */
-export interface MessageEvent {
+export interface ChatMessageEvent {
   type: 'NEW_MESSAGE';
   message: MessageResponse;
   timestamp: number;

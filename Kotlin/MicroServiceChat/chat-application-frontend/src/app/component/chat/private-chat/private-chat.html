@@ -1,0 +1,206 @@
+<div class="private-shell">
+
+  <!-- LEFT PANEL TOGGLE -->
+  <button class="toggle-btn toggle-left" (click)="leftOpen.set(!leftOpen())" [class.active]="leftOpen()">
+    <span class="toggle-icon">{{ leftOpen() ? '◀' : '▶' }}</span>
+    <span class="toggle-label">Chats</span>
+  </button>
+
+  <!-- LEFT PANEL: Contacts & Users -->
+  <aside class="panel panel-left" [class.open]="leftOpen()">
+
+    <div class="panel-header">
+      <h2>💌 Privé</h2>
+      <button class="btn-icon" title="Retour aux salons" (click)="goToRooms()">🏠</button>
+    </div>
+
+    <!-- Tabs: Contacts vs All Users -->
+    <div class="panel-tabs">
+      <button [class.active]="activeTab() === 'contacts'" (click)="activeTab.set('contacts')">
+        Conversations
+        @if (totalUnread() > 0) { <span class="tab-badge">{{ totalUnread() }}</span> }
+      </button>
+      <button [class.active]="activeTab() === 'users'" (click)="activeTab.set('users')">Utilisateurs</button>
+    </div>
+
+    @if (activeTab() === 'contacts') {
+      <!-- Contact List -->
+      <div class="search-box">
+        <input [(ngModel)]="contactSearch" placeholder="Rechercher..." class="search-input" />
+      </div>
+      <div class="contact-list">
+        @for (contact of filteredContacts(); track contact.userId) {
+          <div class="contact-item" [class.active]="activeUserId() === contact.userId" (click)="selectContact(contact)">
+            <div class="contact-avatar">{{ contact.username[0]?.toUpperCase() }}</div>
+            <div class="contact-info">
+              <span class="contact-name">{{ contact.username }}</span>
+              <span class="contact-last-msg">{{ contact.lastMessage || 'Aucun message' }}</span>
+            </div>
+            @if (contact.unreadCount > 0) {
+              <span class="unread-badge">{{ contact.unreadCount }}</span>
+            }
+          </div>
+        }
+        @if (filteredContacts().length === 0) {
+          <div class="empty-state">
+            <span>📭</span>
+            <p>Aucune conversation</p>
+            <small>Commencez à discuter depuis l'onglet Utilisateurs</small>
+          </div>
+        }
+      </div>
+    } @else {
+      <!-- All Users List -->
+      <div class="search-box">
+        <input [(ngModel)]="userSearch" placeholder="Trouver un utilisateur..." class="search-input" />
+      </div>
+      <div class="users-list">
+        @for (user of filteredUsers(); track user.id) {
+          <div class="user-item" [class.active]="activeUserId() === user.id" (click)="selectUser(user)">
+            <div class="user-avatar" [class.online]="user.isActive">{{ user.email[0].toUpperCase() }}</div>
+            <div class="user-info">
+              <span class="user-email">{{ user.email }}</span>
+              <span class="user-role">{{ user.role }}</span>
+            </div>
+            <div class="user-status" [class.active]="user.isActive">{{ user.isActive ? '●' : '○' }}</div>
+          </div>
+        }
+        @if (filteredUsers().length === 0) {
+          <div class="empty-state"><p>Aucun utilisateur</p></div>
+        }
+      </div>
+    }
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="private-main">
+    @if (activeUserId() !== null) {
+      <header class="chat-header">
+        <div class="chat-title">
+          <div class="header-avatar" [class.online]="activeUserOnline()">
+            {{ activeUserEmail()?.[0]?.toUpperCase() }}
+          </div>
+          <div>
+            <h3>{{ activeUserEmail() }}</h3>
+            <span class="chat-subtitle" [class.online]="activeUserOnline()">
+              {{ activeUserOnline() ? '● En ligne' : '○ Hors ligne' }}
+            </span>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button class="btn-icon" (click)="showFiles.set(!showFiles())" title="Fichiers partagés">📎</button>
+          <button class="btn-icon" (click)="loadSharedFiles()" title="Voir tous les fichiers">🗂</button>
+        </div>
+      </header>
+
+      <!-- Shared Files Panel -->
+      @if (showFiles()) {
+        <div class="files-panel">
+          <div class="files-panel-header">
+            <span>📎 Fichiers partagés</span>
+            <button (click)="showFiles.set(false)">✕</button>
+          </div>
+          <div class="files-list">
+            @for (f of sharedFiles(); track f.messageId) {
+              <div class="file-item">
+                <span class="file-icon">{{ getFileIcon(f.fileType) }}</span>
+                <div class="file-details">
+                  <span class="file-name">{{ f.originalFileName }}</span>
+                  <span class="file-meta">{{ f.senderName }} · {{ formatTime(f.timestamp) }}</span>
+                </div>
+                <a [href]="f.downloadUrl" download class="btn-download">⬇</a>
+              </div>
+            }
+            @if (sharedFiles().length === 0) {
+              <div class="empty-files">Aucun fichier partagé</div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Messages -->
+      <div class="messages-area" #messagesContainer>
+        @for (msg of messages(); track msg.id) {
+          <div class="message" [class.own]="msg.senderId1 === currentUserId()">
+            @if (msg.senderId1 !== currentUserId()) {
+              <div class="msg-avatar">{{ msg.senderName1[0]?.toUpperCase() }}</div>
+            }
+            <div class="msg-bubble">
+              <p class="msg-text">{{ msg.content }}</p>
+              <div class="msg-footer">
+                <span class="msg-time">{{ formatTime(msg.timestamp) }}</span>
+                @if (msg.senderId1 === currentUserId()) {
+                  <span class="msg-read" [class.read]="msg.isRead">{{ msg.isRead ? '✓✓' : '✓' }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (isTyping()) {
+          <div class="typing-indicator">
+            <span>{{ activeUserEmail() }} est en train d'écrire</span>
+            <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>
+        }
+      </div>
+
+      <!-- File Upload (send file) -->
+      @if (showSendFile) {
+        <div class="send-file-panel">
+          <div class="send-file-header">
+            <span>📎 Envoyer un fichier</span>
+            <button (click)="showSendFile = false">✕</button>
+          </div>
+          <div class="file-drop-zone" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)" (click)="fileInput.click()">
+            <input #fileInput type="file" (change)="onFileSelect($event)" hidden />
+            <div class="drop-content">
+              <span>📤</span>
+              <p>Glissez ou cliquez pour choisir</p>
+            </div>
+          </div>
+          @if (pendingFile) {
+            <div class="pending-file-row">
+              <span class="file-name-preview">{{ pendingFile.name }}</span>
+              <input [(ngModel)]="fileDesc" placeholder="Description" class="file-desc-input" />
+              <button class="btn-send-file" (click)="sendFile()" [disabled]="uploading">
+                {{ uploading ? '...' : 'Envoyer' }}
+              </button>
+              <button class="btn-cancel" (click)="pendingFile = null">✕</button>
+            </div>
+          }
+          @if (uploadProgress > 0 && uploadProgress < 100) {
+            <div class="upload-bar">
+              <div class="upload-fill" [style.width.%]="uploadProgress"></div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <button class="btn-attach" (click)="showSendFile = !showSendFile">📎</button>
+        <textarea
+          [(ngModel)]="messageText"
+          (keydown.enter)="$event.preventDefault(); sendMessage()"
+          (input)="onTyping()"
+          placeholder="Écrivez un message... (Entrée pour envoyer)"
+          class="message-input"
+          rows="1"
+        ></textarea>
+        <button class="btn-send" (click)="sendMessage()" [disabled]="!messageText.trim()">➤</button>
+      </div>
+
+    } @else {
+      <div class="no-chat-selected">
+        <div class="welcome-icon">💌</div>
+        <h3>Messages Privés</h3>
+        <p>Sélectionnez une conversation ou démarrez-en une nouvelle depuis la liste</p>
+        <button class="btn-primary" (click)="activeTab.set('users'); leftOpen.set(true)">
+          Trouver un utilisateur
+        </button>
+      </div>
+    }
+  </main>
+
+</div>

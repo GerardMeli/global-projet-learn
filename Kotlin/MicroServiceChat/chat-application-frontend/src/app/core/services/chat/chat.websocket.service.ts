@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { environment } from '../../../environments/environment';
-import { WsError, TypingNotification, UserActivityEvent, PrivateChatNotification, PrivateFileNotification, MessagesReadNotification, MessageConfirmation } from '../../models/chat/chat.mdel';
+import { WsError, TypingNotification, UserActivityEvent, PrivateChatNotification, PrivateFileNotification, MessagesReadNotification, MessageConfirmation, ChatMessageEvent } from '../../models/chat/chat.mdel';
 import { TokenService } from '../users/token.service';
 
 export type WsConnectionState = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
@@ -107,8 +107,8 @@ export class ChatWebSocketService implements OnDestroy {
    * Subscribe to new messages in a room.
    * Topic: /topic/room/{roomId}
    */
-  onRoomMessages(roomId: number): Observable<MessageEvent> {
-    return this.subscribe<MessageEvent>(`room-msg-${roomId}`, `/topic/room/${roomId}`);
+  onRoomMessages(roomId: number): Observable<ChatMessageEvent> {
+    return this.subscribe<ChatMessageEvent>(`room-msg-${roomId}`, `/topic/room/${roomId}`);
   }
 
   /**
@@ -176,9 +176,9 @@ export class ChatWebSocketService implements OnDestroy {
    * Send typing notification.
    * Maps to @MessageMapping("/chat.typing/{roomId}").
    */
-  sendTyping(roomId: number, userId: number, isTyping: boolean): void {
-    this.send(`/app/chat.typing/${roomId}`, { userId, isTyping, roomId });
-  }
+  // sendTyping(roomId: number, userId: number, isTyping: boolean): void {
+  //   this.send(`/app/chat.typing/${roomId}`, { userId, isTyping, roomId });
+  // }
 
   /**
    * Notify joining a room.
@@ -212,6 +212,33 @@ export class ChatWebSocketService implements OnDestroy {
   markPrivateRead(userId: number, messageIds: number[]): void {
     this.send(`/app/private/read/${userId}`, messageIds);
   }
+
+  // Add these methods to the ChatWebSocketService class
+
+/**
+ * Subscribe to private typing notifications
+ * Topic: /topic/private/typing/{userId}
+ */
+onPrivateTyping(userId: number): Observable<TypingNotification> {
+  return this.subscribe<TypingNotification>(`private-typing-${userId}`, `/topic/private/typing/${userId}`);
+}
+
+/**
+ * Send private typing notification
+ * Maps to @MessageMapping("/private/typing/{userId}")
+ */
+sendPrivateTyping(userId: number, otherUserId: number, isTyping: boolean): void {
+  this.send(`/app/private/typing/${userId}`, { userId: otherUserId, isTyping });
+}
+
+// Update the existing sendTyping method to handle both room and private typing
+sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boolean = false): void {
+  if (isPrivate) {
+    this.sendPrivateTyping(targetId, userId, isTyping);
+  } else {
+    this.send(`/app/chat.typing/${targetId}`, { userId, isTyping, roomId: targetId });
+  }
+}
 
   // ─── Errors ───────────────────────────────────────────────────────────────
 

@@ -1,1014 +1,1308 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { TokenService } from '../../core/services/users/token.service';
+import { AuthService } from '../../core/services/users/auth.service';
+import { AdminService } from '../../core/services/users/admin.service';
+import { PrivateChatService } from '../../core/services/chat/private-chat.service';
+import { Subscription } from 'rxjs';
+import { UserContactDTO } from '../../core/models/chat/private-chat.model';
+import { FileManagerService } from '../../core/services/file/file.service';
+import { ChatComponent } from '../chat/chat-room/chat-room';
 
 @Component({
-  selector: 'app-home',
+    selector: 'app-home',
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-<div class="home" [class.scrolled]="scrolled">
+    <div class="home-container" [class.authenticated]="isAuthenticated">
+      <!-- Navbar -->
+      <nav class="navbar">
+        <div class="nav-brand">
+          <span class="brand-icon">⚡</span>
+          <span class="brand-name">ManageUsers</span>
+        </div>
+        
+        <div class="nav-menu">
+          <!-- Public Links -->
+          <a *ngIf="!isAuthenticated" routerLink="/auth/login" class="nav-link">Login</a>
+          <a *ngIf="!isAuthenticated" routerLink="/auth/register" class="nav-link register-btn">Register</a>
+          
+          <!-- Authenticated User Menu -->
+          <ng-container *ngIf="isAuthenticated">
+            <!-- Role-based navigation -->
+            <a *ngIf="isAdmin" routerLink="/admin/users" class="nav-link admin-link">
+              <span class="material-icons">dashboard</span>
+              Admin Dashboard
+            </a>
+            <a *ngIf="!isAdmin" routerLink="/profile" class="nav-link">
+              <span class="material-icons">person</span>
+              My Profile
+            </a>
+            <a routerLink="/chat/private/1" class="nav-link">
+              <span class="material-icons">chat</span>
+              Messages
+              <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>
+            </a>
+            
+            <!-- User Menu Dropdown -->
+            <div class="user-menu" (click)="toggleUserMenu()" (clickOutside)="userMenuOpen = false">
+              <div class="user-avatar">
+                {{ getUserInitials() }}
+              </div>
+              <span class="user-name">{{ getUserDisplayName() }}</span>
+              <span class="material-icons dropdown-icon">arrow_drop_down</span>
+              
+              <!-- Dropdown Menu -->
+              <div class="dropdown-menu" *ngIf="userMenuOpen">
+                <a routerLink="/profile" (click)="userMenuOpen = false">
+                  <span class="material-icons">person</span>
+                  My Profile
+                </a>
+                <a *ngIf="!isAdmin" routerLink="/settings" (click)="userMenuOpen = false">
+                  <span class="material-icons">settings</span>
+                  Settings
+                </a>
+                <a *ngIf="isAdmin" routerLink="/admin/settings" (click)="userMenuOpen = false">
+                  <span class="material-icons">admin_panel_settings</span>
+                  Admin Settings
+                </a>
+                <div class="dropdown-divider"></div>
+                <button (click)="logout()">
+                  <span class="material-icons">logout</span>
+                  Logout
+                </button>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </nav>
 
-  <!-- ── GRID LINES ──────────────────────────────────────────── -->
-  <div class="grid-overlay" aria-hidden="true">
-    <div class="grid-line" *ngFor="let l of gridLines" [style.left.%]="l"></div>
-  </div>
-
-  <!-- ── NAV ────────────────────────────────────────────────── -->
-  <nav class="nav">
-    <div class="nav-logo">
-      <span class="nav-logo-hex">⬡</span>
-      <span class="nav-logo-name">Nexus</span>
-    </div>
-    <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#how">How it works</a>
-    </div>
-    <div class="nav-cta">
-      <a class="btn-ghost" routerLink="/auth/login">Sign in</a>
-      <a class="btn-solid" routerLink="/auth/register">Get started</a>
-    </div>
-  </nav>
-
-  <!-- ── HERO ───────────────────────────────────────────────── -->
-  <section class="hero">
-    <div class="hero-left">
-      <div class="hero-eyebrow">
-        <span class="eyebrow-dot"></span>
-        Real-time collaboration
-      </div>
-      <h1 class="hero-title">
-        <span class="title-line title-line--1">Talk.</span>
-        <span class="title-line title-line--2">Share.</span>
-        <span class="title-line title-line--3">Connect.</span>
-      </h1>
-      <p class="hero-body">
-        Nexus brings your team together with live chat, peer-to-peer video calls,
-        voice messages, and shared file storage — all in one place.
-      </p>
-      <div class="hero-actions">
-        <a class="cta-primary" routerLink="/auth/register">
-          Start for free
-          <span class="cta-arrow">→</span>
-        </a>
-        <a class="cta-secondary" routerLink="/auth/login">
-          Sign in
-        </a>
-      </div>
-      <div class="hero-proof">
-        <div class="proof-avatars">
-          <div class="proof-av" *ngFor="let c of avatarColors" [style.background]="c">
-            {{ c.charAt(1).toUpperCase() }}
+      <!-- Hero Section (shown only to non-authenticated users) -->
+      <section class="hero-section" *ngIf="!isAuthenticated">
+        <div class="hero-content">
+          <h1>Welcome to <span class="gradient-text">ManageUsers</span></h1>
+          <p class="hero-subtitle">A complete user management solution with real-time chat, file sharing, and administrative controls</p>
+          
+          <div class="stats-banner">
+            <div class="stat-item">
+              <span class="stat-number">1,245</span>
+              <span class="stat-label">Users</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">342</span>
+              <span class="stat-label">Active Today</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-number">15k</span>
+              <span class="stat-label">Messages</span>
+            </div>
+          </div>
+          
+          <div class="cta-buttons">
+            <a routerLink="/auth/register" class="btn btn-primary">Get Started</a>
+            <a routerLink="/auth/login" class="btn btn-outline">Sign In</a>
           </div>
         </div>
-        <span class="proof-text">Trusted by teams everywhere</span>
-      </div>
-    </div>
-
-    <div class="hero-right">
-      <!-- Animated phone mockup -->
-      <div class="mockup">
-        <div class="mockup-frame">
-          <!-- Call screen -->
-          <div class="mock-call" [class.mock-call--visible]="activeCard === 'call'">
-            <div class="mock-avatar-ring">
-              <div class="ring ring--1"></div>
-              <div class="ring ring--2"></div>
-              <div class="ring ring--3"></div>
-              <div class="mock-avatar">J</div>
-            </div>
-            <div class="mock-name">Julia Reyes</div>
-            <div class="mock-status">{{ callStatus }}</div>
-            <div class="mock-call-btns">
-              <button class="mcb mcb--end">✕</button>
-              <button class="mcb mcb--mic">🎤</button>
-              <button class="mcb mcb--cam">📷</button>
-            </div>
+        
+        <div class="hero-image">
+          <div class="floating-card card-1">
+            <span class="material-icons">people</span>
+            <span>User Management</span>
           </div>
-          <!-- Chat screen -->
-          <div class="mock-chat" [class.mock-chat--visible]="activeCard === 'chat'">
-            <div class="mock-msg mock-msg--in">Hey! Did you see the new designs?</div>
-            <div class="mock-msg mock-msg--out">Just reviewed them — incredible work 🎉</div>
-            <div class="mock-msg mock-msg--in">
-              <div class="mock-voice">
-                <span class="mv-play">▶</span>
-                <div class="mv-bars">
-                  <div class="mv-bar" *ngFor="let h of voiceBars" [style.height.px]="h"></div>
+          <div class="floating-card card-2">
+            <span class="material-icons">chat</span>
+            <span>Real-time Chat</span>
+          </div>
+          <div class="floating-card card-3">
+            <span class="material-icons">insert_drive_file</span>
+            <span>File Sharing</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Authenticated User Dashboard -->
+      <section class="dashboard-section" *ngIf="isAuthenticated">
+        <div class="welcome-banner">
+          <div>
+            <h2>Welcome back, <span class="user-highlight">{{ getUserDisplayName() }}</span>!</h2>
+            <p class="user-email">{{ userEmail }}</p>
+          </div>
+          <p class="user-role-badge" [class.admin]="isAdmin">
+            {{ isAdmin ? 'Administrator' : 'Regular User' }}
+          </p>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div class="admin-dashboard" *ngIf="isAdmin">
+          <h3>Admin Quick Actions</h3>
+          <div class="quick-actions-grid">
+            <a routerLink="/admin/users" class="quick-action-card">
+              <span class="material-icons card-icon">people</span>
+              <h4>Manage Users</h4>
+              <p>View, edit, and manage all users</p>
+              <span class="card-badge" *ngIf="totalUsers > 0">{{ totalUsers }} users</span>
+            </a>
+            
+            <a routerLink="/admin/statistics" class="quick-action-card">
+              <span class="material-icons card-icon">insights</span>
+              <h4>Statistics</h4>
+              <p>View platform analytics</p>
+            </a>
+            
+            <a routerLink="/admin/settings" class="quick-action-card">
+              <span class="material-icons card-icon">settings</span>
+              <h4>System Settings</h4>
+              <p>Configure application settings</p>
+            </a>
+            
+            <a routerLink="/chat" class="quick-action-card">
+              <span class="material-icons card-icon">chat</span>
+              <h4>Chat Rooms</h4>
+              <p>Monitor chat activity</p>
+              <span class="card-badge" *ngIf="unreadCount > 0">{{ unreadCount }} unread</span>
+            </a>
+          </div>
+
+          <!-- Recent Activity (Admin) -->
+          <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+              <div class="activity-item" *ngFor="let activity of recentActivities">
+                <span class="material-icons activity-icon" [ngClass]="activity.type">{{ activity.icon }}</span>
+                <div class="activity-details">
+                  <p><strong>{{ activity.message }}</strong></p>
+                  <span class="activity-time">{{ activity.time }}</span>
                 </div>
-                <span class="mv-dur">0:12</span>
               </div>
-            </div>
-            <div class="mock-msg mock-msg--out">Love the voice note feature!</div>
-          </div>
-          <!-- Files screen -->
-          <div class="mock-files" [class.mock-files--visible]="activeCard === 'files'">
-            <div class="mock-file-row" *ngFor="let f of mockFiles">
-              <span class="mfr-icon">{{ f.icon }}</span>
-              <div class="mfr-info">
-                <div class="mfr-name">{{ f.name }}</div>
-                <div class="mfr-size">{{ f.size }}</div>
+              <div class="no-activity" *ngIf="recentActivities.length === 0">
+                <span class="material-icons">info</span>
+                <p>No recent activity</p>
               </div>
-              <span class="mfr-dl">⬇</span>
             </div>
           </div>
         </div>
-        <!-- Tab switcher -->
-        <div class="mockup-tabs">
-          <button [class.active]="activeCard==='call'"   (click)="activeCard='call'">📞 Call</button>
-          <button [class.active]="activeCard==='chat'"   (click)="activeCard='chat'">💬 Chat</button>
-          <button [class.active]="activeCard==='files'"  (click)="activeCard='files'">📁 Files</button>
+
+        <!-- Regular User Dashboard -->
+        <div class="user-dashboard" *ngIf="!isAdmin">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="material-icons stat-icon">chat</span>
+              <div class="stat-info">
+                <span class="stat-value">{{ contacts.length }}</span>
+                <span class="stat-label">Active Chats</span>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="material-icons stat-icon">insert_drive_file</span>
+              <div class="stat-info">
+                <span class="stat-value">{{ totalFiles }}</span>
+                <span class="stat-label">Shared Files</span>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="material-icons stat-icon">people</span>
+              <div class="stat-info">
+                <span class="stat-value">{{ contacts.length }}</span>
+                <span class="stat-label">Contacts</span>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <span class="material-icons stat-icon">mark_as_unread</span>
+              <div class="stat-info">
+                <span class="stat-value">{{ unreadCount }}</span>
+                <span class="stat-label">Unread</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions for Regular Users -->
+          <h3>Quick Actions</h3>
+          <div class="quick-actions-grid">
+            <a routerLink="/chat" class="quick-action-card">
+              <span class="material-icons card-icon">chat</span>
+              <h4>Open Chat</h4>
+              <p>Start a new conversation</p>
+            </a>
+            
+            <a routerLink="/profile" class="quick-action-card">
+              <span class="material-icons card-icon">person</span>
+              <h4>My Profile</h4>
+              <p>View and edit your profile</p>
+            </a>
+            
+            <a routerLink="/chat/contacts" class="quick-action-card">
+              <span class="material-icons card-icon">contacts</span>
+              <h4>Contacts</h4>
+              <p>Find and add contacts</p>
+            </a>
+          </div>
+
+          <!-- Recent Chats -->
+          <div class="recent-chats">
+            <h3>Recent Conversations</h3>
+            <div class="chat-list">
+              <div class="chat-item" *ngFor="let contact of contacts" (click)="openChat(contact.userId)">
+                <div class="chat-avatar">{{ getContactInitials(contact.username) }}</div>
+                <div class="chat-info">
+                  <p class="chat-name">{{ contact.username }}</p>
+                  <p class="chat-preview">{{ contact.lastMessage || 'No messages yet' }}</p>
+                </div>
+                <div class="chat-meta">
+                  <span class="chat-time">{{ contact.lastMessageTime | date:'shortTime' }}</span>
+                  <span class="unread-badge" *ngIf="contact.unreadCount > 0">{{ contact.unreadCount }}</span>
+                </div>
+              </div>
+              <div class="no-chats" *ngIf="contacts.length === 0">
+                <span class="material-icons">chat</span>
+                <p>No conversations yet</p>
+                <a routerLink="/chat" class="start-chat-btn">Start Chatting</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section (shown to everyone) -->
+      <section class="features-section">
+        <h2>Powerful Features</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <span class="material-icons feature-icon">security</span>
+            <h3>Secure Authentication</h3>
+            <p>JWT-based authentication with role-based access control</p>
+          </div>
+          
+          <div class="feature-card">
+            <span class="material-icons feature-icon">chat</span>
+            <h3>Real-time Chat</h3>
+            <p>WebSocket-powered instant messaging with typing indicators</p>
+          </div>
+          
+          <div class="feature-card">
+            <span class="material-icons feature-icon">insert_drive_file</span>
+            <h3>File Sharing</h3>
+            <p>Share files with drag & drop support</p>
+          </div>
+          
+          <div class="feature-card">
+            <span class="material-icons feature-icon">admin_panel_settings</span>
+            <h3>Admin Dashboard</h3>
+            <p>Comprehensive user and system management</p>
+          </div>
+          
+          <div class="feature-card">
+            <span class="material-icons feature-icon">insights</span>
+            <h3>Analytics</h3>
+            <p>Detailed statistics and insights</p>
+          </div>
+          
+          <div class="feature-card">
+            <span class="material-icons feature-icon">notifications</span>
+            <h3>Notifications</h3>
+            <p>Real-time notifications and alerts</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="footer">
+        <p>&copy; 2024 ManageUsers. All rights reserved.</p>
+      </footer>
+
+      <!-- Logout Confirmation Modal -->
+      <div class="modal-overlay" *ngIf="showLogoutModal" (click)="cancelLogout()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Confirm Logout</h3>
+            <button class="close-btn" (click)="cancelLogout()">×</button>
+          </div>
+          <div class="modal-body">
+            <span class="material-icons">logout</span>
+            <p>Are you sure you want to logout?</p>
+          </div>
+          <div class="modal-footer">
+            <button class="cancel-btn" (click)="cancelLogout()">Cancel</button>
+            <button class="logout-confirm-btn" (click)="confirmLogout()">Logout</button>
+          </div>
         </div>
       </div>
-
-      <!-- Floating stat chips -->
-      <div class="stat-chip stat-chip--1">
-        <span class="sc-num">48ms</span>
-        <span class="sc-label">avg latency</span>
-      </div>
-      <div class="stat-chip stat-chip--2">
-        <span class="sc-num">E2E</span>
-        <span class="sc-label">encrypted</span>
-      </div>
     </div>
-  </section>
-
-  <!-- ── MARQUEE ─────────────────────────────────────────────── -->
-  <div class="marquee-wrap" aria-hidden="true">
-    <div class="marquee-track">
-      <span *ngFor="let w of marqueeWords" class="marquee-word">{{ w }}</span>
-      <span *ngFor="let w of marqueeWords" class="marquee-word">{{ w }}</span>
-    </div>
-  </div>
-
-  <!-- ── FEATURES ────────────────────────────────────────────── -->
-  <section class="features" id="features">
-    <div class="features-header">
-      <span class="section-tag">Features</span>
-      <h2 class="features-title">Everything your team needs</h2>
-    </div>
-
-    <div class="feat-grid">
-      <div class="feat-card feat-card--large feat-card--chat">
-        <div class="feat-icon">💬</div>
-        <h3>Live Chat Rooms</h3>
-        <p>Public and private rooms with real-time messaging. See who's typing. Never miss a message.</p>
-        <div class="feat-tag">WebSocket · STOMP</div>
-      </div>
-
-      <div class="feat-card feat-card--call">
-        <div class="feat-icon">📞</div>
-        <h3>Video &amp; Voice Calls</h3>
-        <p>Peer-to-peer calls with zero server relay. Crystal clear, low-latency, end-to-end.</p>
-        <div class="feat-tag">WebRTC · P2P</div>
-      </div>
-
-      <div class="feat-card feat-card--voice">
-        <div class="feat-icon">🎙</div>
-        <h3>Voice Messages</h3>
-        <p>Record and send audio clips. Animated waveform playback. Faster than typing.</p>
-        <div class="feat-tag">MediaRecorder API</div>
-      </div>
-
-      <div class="feat-card feat-card--large feat-card--files">
-        <div class="feat-icon">📁</div>
-        <h3>File Manager</h3>
-        <p>Upload, organize, and share files across your team. 10 MB per file, unlimited storage.</p>
-        <div class="feat-tag">Spring Boot · PostgreSQL</div>
-      </div>
-
-      <div class="feat-card feat-card--dm">
-        <div class="feat-icon">✉️</div>
-        <h3>Direct Messages</h3>
-        <p>Private 1-on-1 conversations with read receipts and file sharing built in.</p>
-        <div class="feat-tag">End-to-end private</div>
-      </div>
-
-      <div class="feat-card feat-card--admin">
-        <div class="feat-icon">⚙️</div>
-        <h3>Admin Dashboard</h3>
-        <p>Manage users, review statistics, suspend accounts, and control your platform.</p>
-        <div class="feat-tag">Role-based access</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── HOW IT WORKS ──────────────────────────────────────────── -->
-  <section class="how" id="how">
-    <span class="section-tag">How it works</span>
-    <h2 class="how-title">Up in seconds</h2>
-
-    <div class="steps">
-      <div class="step" *ngFor="let s of steps; let i = index">
-        <div class="step-num">{{ (i + 1).toString().padStart(2, '0') }}</div>
-        <div class="step-content">
-          <div class="step-icon">{{ s.icon }}</div>
-          <h4>{{ s.title }}</h4>
-          <p>{{ s.body }}</p>
-        </div>
-        <div class="step-line" *ngIf="i < steps.length - 1"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── CTA BANNER ──────────────────────────────────────────── -->
-  <section class="cta-banner">
-    <div class="cta-banner-bg"></div>
-    <h2 class="cta-banner-title">Ready to connect?</h2>
-    <p class="cta-banner-sub">Free to join. No credit card required.</p>
-    <a class="cta-primary cta-primary--large" routerLink="/auth/register">
-      Create your account
-      <span class="cta-arrow">→</span>
-    </a>
-  </section>
-
-  <!-- ── FOOTER ──────────────────────────────────────────────── -->
-  <footer class="footer">
-    <div class="footer-logo">
-      <span class="nav-logo-hex">⬡</span>
-      <span class="nav-logo-name">Nexus</span>
-    </div>
-    <p class="footer-copy">© {{ year }} Nexus. Built with Spring Boot &amp; Angular.</p>
-    <div class="footer-links">
-      <a routerLink="/auth/login">Sign in</a>
-      <a routerLink="/auth/register">Register</a>
-    </div>
-  </footer>
-
-</div>
   `,
   styles: [`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Instrument+Sans:wght@400;500;600&display=swap');
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    a { text-decoration: none; color: inherit; }
-
-    /* ── ROOT ──────────────────────────────────────────────────── */
-    .home {
+    .home-container {
       min-height: 100vh;
-      background: #0c0c0e;
-      color: #ede8df;
-      font-family: 'Instrument Sans', sans-serif;
-      overflow-x: hidden;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .home-container.authenticated {
+      background: #f5f5f5;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .brand-icon {
+      font-size: 2rem;
+      animation: pulse 2s infinite;
+    }
+
+    .brand-name {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-menu {
+      display: flex;
+      align-items: center;
+      gap: 20px;
       position: relative;
     }
 
-    /* ── GRID OVERLAY ──────────────────────────────────────────── */
-    .grid-overlay {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .grid-line {
-      position: absolute;
-      top: 0; bottom: 0;
-      width: 1px;
-      background: rgba(255,255,255,0.04);
+    .nav-link {
+      text-decoration: none;
+      color: #4a5568;
+      font-weight: 500;
+      transition: color 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      position: relative;
     }
 
-    /* ── NAV ───────────────────────────────────────────────────── */
-    .nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
+    .nav-link:hover {
+      color: #667eea;
+    }
+
+    .nav-link.admin-link {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+
+    .register-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white !important;
+      padding: 8px 20px;
+      border-radius: 25px;
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: #e53e3e;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      min-width: 16px;
+      text-align: center;
+    }
+
+    /* User Menu */
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 5px 10px;
+      border-radius: 30px;
+      background: #f7fafc;
+      position: relative;
+    }
+
+    .user-avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .user-name {
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .dropdown-icon {
+      font-size: 20px;
+      color: #718096;
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 10px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      min-width: 200px;
+      z-index: 1000;
+      animation: slideDown 0.2s;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .dropdown-menu a,
+    .dropdown-menu button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      color: #4a5568;
+      text-decoration: none;
+      transition: background 0.3s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .dropdown-menu a:hover,
+    .dropdown-menu button:hover {
+      background: #f7fafc;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 8px 0;
+    }
+
+    /* Hero Section */
+    .hero-section {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 20px 60px;
-      transition: background 0.3s, border-color 0.3s;
+      padding: 4rem 6rem;
+      min-height: 80vh;
+      color: white;
     }
-    .scrolled .nav {
-      background: rgba(12,12,14,0.92);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+
+    .hero-content {
+      flex: 1;
+      max-width: 600px;
     }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Playfair Display', serif;
-      font-weight: 900;
-      font-size: 22px;
-      letter-spacing: -0.02em;
+
+    .hero-content h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
     }
-    .nav-logo-hex {
-      background: linear-gradient(135deg, #c8a96e, #f0e0b8);
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-size: 28px;
-      line-height: 1;
-    }
-    .nav-logo-name { color: #ede8df; }
-    .nav-links {
-      display: flex;
-      gap: 32px;
-    }
-    .nav-links a {
-      font-size: 14px;
-      font-weight: 500;
-      color: rgba(237,232,223,0.55);
-      transition: color 0.15s;
-    }
-    .nav-links a:hover { color: #ede8df; }
-    .nav-cta {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .btn-ghost {
-      padding: 9px 20px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 500;
-      color: rgba(237,232,223,0.7);
-      border: 1px solid rgba(255,255,255,0.12);
-      transition: all 0.15s;
-    }
-    .btn-ghost:hover {
-      color: #ede8df;
-      border-color: rgba(255,255,255,0.28);
-      background: rgba(255,255,255,0.05);
-    }
-    .btn-solid {
-      padding: 9px 22px;
-      border-radius: 50px;
-      font-size: 14px;
-      font-weight: 600;
-      background: #c8a96e;
-      color: #0c0c0e;
-      transition: all 0.15s;
-    }
-    .btn-solid:hover {
-      background: #f0e0b8;
-      transform: translateY(-1px);
     }
 
-    /* ── HERO ──────────────────────────────────────────────────── */
-    .hero {
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
-      padding: 130px 60px 80px;
-      position: relative;
-      z-index: 1;
-    }
-    .hero-eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #c8a96e;
-      margin-bottom: 28px;
-    }
-    .eyebrow-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #c8a96e;
-      animation: blink 2s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-    .hero-title {
-      font-family: 'Playfair Display', serif;
-      font-weight: 900;
-      font-size: clamp(64px, 7vw, 108px);
-      line-height: 0.95;
-      letter-spacing: -0.03em;
-      margin-bottom: 28px;
-    }
-    .title-line {
-      display: block;
-      animation: slideIn 0.8s cubic-bezier(0.16,1,0.3,1) both;
-    }
-    .title-line--1 { animation-delay: 0.0s; color: #ede8df; }
-    .title-line--2 { animation-delay: 0.12s; color: #c8a96e; font-style: italic; }
-    .title-line--3 { animation-delay: 0.24s; color: rgba(237,232,223,0.35); }
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateY(40px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .hero-subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
     }
 
-    .hero-body {
-      font-size: 17px;
-      line-height: 1.7;
-      color: rgba(237,232,223,0.55);
-      max-width: 420px;
-      margin-bottom: 36px;
-      animation: slideIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.36s both;
-    }
-
-    .hero-actions {
+    .stats-banner {
       display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 36px;
-      animation: slideIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.48s both;
-    }
-    .cta-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 28px;
-      border-radius: 50px;
-      background: #c8a96e;
-      color: #0c0c0e;
-      font-weight: 700;
-      font-size: 15px;
-      transition: all 0.2s ease;
-    }
-    .cta-primary:hover {
-      background: #f0e0b8;
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(200,169,110,0.35);
-    }
-    .cta-arrow { font-size: 18px; transition: transform 0.15s; }
-    .cta-primary:hover .cta-arrow { transform: translateX(4px); }
-    .cta-primary--large {
-      padding: 18px 36px;
-      font-size: 17px;
-    }
-    .cta-secondary {
-      font-size: 15px;
-      font-weight: 500;
-      color: rgba(237,232,223,0.5);
-      padding: 14px 4px;
-      border-bottom: 1px solid rgba(237,232,223,0.2);
-      transition: all 0.15s;
-    }
-    .cta-secondary:hover { color: #ede8df; border-color: rgba(237,232,223,0.6); }
-
-    .hero-proof {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      animation: slideIn 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s both;
-    }
-    .proof-avatars {
-      display: flex;
-    }
-    .proof-av {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 2px solid #0c0c0e;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: #0c0c0e;
-      margin-left: -8px;
-    }
-    .proof-av:first-child { margin-left: 0; }
-    .proof-text {
-      font-size: 13px;
-      color: rgba(237,232,223,0.4);
-    }
-
-    /* ── MOCKUP ──────────────────────────────────────────────── */
-    .hero-right {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      animation: floatIn 1s cubic-bezier(0.16,1,0.3,1) 0.2s both;
-    }
-    @keyframes floatIn {
-      from { opacity: 0; transform: translateY(60px) scale(0.95); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    .mockup {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    .mockup-frame {
-      width: 320px;
-      height: 420px;
-      background: #131316;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 28px;
-      overflow: hidden;
-      position: relative;
-      box-shadow:
-        0 0 0 1px rgba(200,169,110,0.12),
-        0 40px 80px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-
-    /* Shared card styles */
-    .mock-call, .mock-chat, .mock-files {
-      position: absolute;
-      inset: 0;
-      padding: 28px;
-      opacity: 0;
-      transform: scale(0.96) translateY(12px);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      pointer-events: none;
-    }
-    .mock-call--visible, .mock-chat--visible, .mock-files--visible {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-      pointer-events: auto;
-    }
-
-    /* Call screen */
-    .mock-call {
-      background: linear-gradient(160deg, #0e1a2b, #091320);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
-    .mock-avatar-ring {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 1px solid rgba(45,200,154,0.4);
-      animation: ripple 2.4s ease-out infinite;
-    }
-    .ring--1 { width: 100px; height: 100px; animation-delay: 0s; }
-    .ring--2 { width: 130px; height: 130px; animation-delay: 0.6s; }
-    .ring--3 { width: 160px; height: 160px; animation-delay: 1.2s; }
-    @keyframes ripple {
-      0%   { opacity: 0.8; transform: scale(0.9); }
-      100% { opacity: 0;   transform: scale(1.1); }
-    }
-    .mock-avatar {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2dc89a, #5b6ef5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 28px;
-      color: white;
-      z-index: 1;
-    }
-    .mock-name {
-      font-family: 'Instrument Sans', sans-serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: white;
-    }
-    .mock-status {
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
-      letter-spacing: 0.06em;
-    }
-    .mock-call-btns {
-      display: flex;
-      gap: 16px;
-      margin-top: 20px;
-    }
-    .mcb {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      font-size: 20px;
-      transition: transform 0.15s;
-    }
-    .mcb:hover { transform: scale(1.1); }
-    .mcb--end { background: #ef4444; color: white; }
-    .mcb--mic, .mcb--cam { background: rgba(255,255,255,0.1); }
-
-    /* Chat screen */
-    .mock-chat {
-      background: #0c0c0e;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      justify-content: flex-end;
-      padding-bottom: 24px;
-    }
-    .mock-msg {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 18px;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .mock-msg--in {
-      background: #1e1e24;
-      color: #e0dbd4;
-      border-bottom-left-radius: 4px;
-      align-self: flex-start;
-    }
-    .mock-msg--out {
-      background: #c8a96e;
-      color: #0c0c0e;
-      font-weight: 500;
-      border-bottom-right-radius: 4px;
-      align-self: flex-end;
-    }
-    .mock-voice {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .mv-play { font-size: 11px; }
-    .mv-bars {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-    .mv-bar {
-      width: 2px;
-      background: rgba(237,232,223,0.5);
-      border-radius: 1px;
-    }
-    .mv-dur { font-size: 11px; color: rgba(237,232,223,0.5); }
-
-    /* Files screen */
-    .mock-files {
-      background: #0c0c0e;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      justify-content: center;
-    }
-    .mock-file-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .mock-file-row:last-child { border-bottom: none; }
-    .mfr-icon { font-size: 24px; }
-    .mfr-info { flex: 1; }
-    .mfr-name { font-size: 13px; font-weight: 500; color: #ede8df; }
-    .mfr-size { font-size: 11px; color: rgba(237,232,223,0.35); margin-top: 2px; }
-    .mfr-dl { color: rgba(237,232,223,0.3); font-size: 15px; }
-
-    .mockup-tabs {
-      display: flex;
-      gap: 8px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 50px;
-      padding: 4px;
-    }
-    .mockup-tabs button {
-      padding: 8px 16px;
-      border-radius: 50px;
-      border: none;
-      background: none;
-      font-size: 12px;
-      font-weight: 500;
-      color: rgba(237,232,223,0.4);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: 'Instrument Sans', sans-serif;
-    }
-    .mockup-tabs button.active {
-      background: #c8a96e;
-      color: #0c0c0e;
-    }
-
-    .stat-chip {
-      position: absolute;
-      background: rgba(19,19,22,0.9);
-      border: 1px solid rgba(255,255,255,0.1);
+      gap: 2rem;
+      margin-bottom: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1.5rem;
       border-radius: 12px;
-      padding: 10px 16px;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-item {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-    }
-    .stat-chip--1 { top: 40px; right: -20px; animation: float1 5s ease-in-out infinite; }
-    .stat-chip--2 { bottom: 80px; left: -30px; animation: float2 6s ease-in-out infinite; }
-    @keyframes float1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    @keyframes float2 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
-    .sc-num { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #c8a96e; }
-    .sc-label { font-size: 10px; color: rgba(237,232,223,0.4); letter-spacing: 0.06em; text-transform: uppercase; }
-
-    /* ── MARQUEE ─────────────────────────────────────────────── */
-    .marquee-wrap {
-      overflow: hidden;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding: 14px 0;
-      position: relative;
-      z-index: 1;
-    }
-    .marquee-track {
-      display: flex;
-      gap: 40px;
-      animation: marquee 24s linear infinite;
-      white-space: nowrap;
-    }
-    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-    .marquee-word {
-      font-family: 'Playfair Display', serif;
-      font-size: 13px;
-      font-style: italic;
-      color: rgba(237,232,223,0.2);
-      letter-spacing: 0.08em;
-    }
-
-    /* ── FEATURES ─────────────────────────────────────────────── */
-    .features {
-      padding: 100px 60px;
-      position: relative;
-      z-index: 1;
-    }
-    .features-header {
-      margin-bottom: 48px;
-    }
-    .section-tag {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #c8a96e;
-      border: 1px solid rgba(200,169,110,0.3);
-      padding: 4px 12px;
-      border-radius: 50px;
-      margin-bottom: 16px;
-    }
-    .features-title {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(36px, 4vw, 56px);
-      font-weight: 700;
-      color: #ede8df;
-      letter-spacing: -0.02em;
-    }
-
-    .feat-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: auto auto;
-      gap: 16px;
-    }
-    .feat-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 20px;
-      padding: 32px 28px;
-      transition: all 0.25s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .feat-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .feat-card:hover { border-color: rgba(200,169,110,0.25); transform: translateY(-4px); }
-    .feat-card:hover::before { opacity: 1; }
-    .feat-card--large { grid-column: span 2; }
-    .feat-card--chat::before   { background: radial-gradient(circle at top left, rgba(91,110,245,0.08), transparent 60%); }
-    .feat-card--call::before   { background: radial-gradient(circle at top left, rgba(45,200,154,0.08), transparent 60%); }
-    .feat-card--voice::before  { background: radial-gradient(circle at top left, rgba(200,169,110,0.08), transparent 60%); }
-    .feat-card--files::before  { background: radial-gradient(circle at top left, rgba(251,146,60,0.08), transparent 60%); }
-    .feat-card--dm::before     { background: radial-gradient(circle at top left, rgba(236,72,153,0.08), transparent 60%); }
-    .feat-card--admin::before  { background: radial-gradient(circle at top left, rgba(167,139,250,0.08), transparent 60%); }
-
-    .feat-icon {
-      font-size: 32px;
-      margin-bottom: 16px;
-      display: block;
-    }
-    .feat-card h3 {
-      font-family: 'Playfair Display', serif;
-      font-size: 22px;
-      font-weight: 700;
-      color: #ede8df;
-      margin-bottom: 10px;
-      letter-spacing: -0.01em;
-    }
-    .feat-card p {
-      font-size: 14px;
-      line-height: 1.7;
-      color: rgba(237,232,223,0.45);
-    }
-    .feat-tag {
-      margin-top: 20px;
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: rgba(237,232,223,0.25);
-    }
-
-    /* ── HOW IT WORKS ────────────────────────────────────────── */
-    .how {
-      padding: 100px 60px;
-      position: relative;
-      z-index: 1;
-    }
-    .how-title {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(36px, 4vw, 56px);
-      font-weight: 700;
-      color: #ede8df;
-      margin-bottom: 64px;
-      margin-top: 16px;
-      letter-spacing: -0.02em;
-    }
-    .steps {
-      display: flex;
-      gap: 0;
-      align-items: flex-start;
-    }
-    .step {
-      flex: 1;
-      display: flex;
-      gap: 0;
-      align-items: flex-start;
-      position: relative;
-    }
-    .step-num {
-      font-family: 'Playfair Display', serif;
-      font-size: 56px;
-      font-weight: 900;
-      color: rgba(200,169,110,0.12);
-      line-height: 1;
-      flex-shrink: 0;
-      margin-right: 16px;
-      margin-top: -6px;
-    }
-    .step-content { flex: 1; }
-    .step-icon { font-size: 28px; margin-bottom: 12px; }
-    .step-content h4 {
-      font-family: 'Playfair Display', serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #ede8df;
-      margin-bottom: 8px;
-    }
-    .step-content p { font-size: 14px; line-height: 1.65; color: rgba(237,232,223,0.45); }
-    .step-line {
-      width: 1px;
-      height: 60px;
-      background: rgba(255,255,255,0.08);
-      margin: 0 28px;
-      flex-shrink: 0;
-      margin-top: 14px;
-    }
-
-    /* ── CTA BANNER ───────────────────────────────────────────── */
-    .cta-banner {
-      margin: 0 60px 80px;
-      border-radius: 28px;
-      background: #131316;
-      border: 1px solid rgba(200,169,110,0.2);
-      padding: 80px 60px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      z-index: 1;
-    }
-    .cta-banner-bg {
-      position: absolute;
-      inset: -50%;
-      background: radial-gradient(circle, rgba(200,169,110,0.06) 0%, transparent 65%);
-    }
-    .cta-banner-title {
-      font-family: 'Playfair Display', serif;
-      font-size: clamp(36px, 4vw, 56px);
-      font-weight: 700;
-      color: #ede8df;
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
-      position: relative;
-    }
-    .cta-banner-sub {
-      font-size: 16px;
-      color: rgba(237,232,223,0.45);
-      margin-bottom: 36px;
-      position: relative;
-    }
-
-    /* ── FOOTER ──────────────────────────────────────────────── */
-    .footer {
-      padding: 32px 60px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex;
       align-items: center;
-      gap: 24px;
-      position: relative;
-      z-index: 1;
     }
-    .footer-logo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: 'Playfair Display', serif;
-      font-size: 16px;
-      font-weight: 700;
+
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: bold;
     }
-    .footer-copy { font-size: 13px; color: rgba(237,232,223,0.3); flex: 1; }
-    .footer-links {
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .cta-buttons {
       display: flex;
       gap: 20px;
     }
-    .footer-links a { font-size: 13px; color: rgba(237,232,223,0.4); transition: color 0.15s; }
-    .footer-links a:hover { color: #ede8df; }
 
-    /* ── RESPONSIVE ──────────────────────────────────────────── */
-    @media (max-width: 1024px) {
-      .nav { padding: 20px 32px; }
-      .hero { grid-template-columns: 1fr; padding: 130px 32px 60px; }
-      .hero-right { display: none; }
-      .feat-grid { grid-template-columns: 1fr 1fr; }
-      .feat-card--large { grid-column: span 1; }
-      .features, .how { padding: 80px 32px; }
-      .cta-banner { margin: 0 32px 60px; padding: 60px 32px; }
-      .footer { padding: 24px 32px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 30px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: transform 0.3s, box-shadow 0.3s;
     }
-    @media (max-width: 640px) {
-      .nav { padding: 16px 20px; }
-      .nav-links { display: none; }
-      .hero { padding: 110px 20px 50px; }
-      .feat-grid { grid-template-columns: 1fr; }
-      .steps { flex-direction: column; gap: 36px; }
-      .step-line { display: none; }
-      .cta-banner { margin: 0 20px 50px; padding: 48px 24px; }
-      .footer { flex-direction: column; align-items: flex-start; gap: 12px; padding: 24px 20px; }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+      background: white;
+      color: #667eea;
+    }
+
+    .btn-outline {
+      border: 2px solid white;
+      color: white;
+    }
+
+    .hero-image {
+      flex: 1;
+      position: relative;
+      height: 400px;
+    }
+
+    .floating-card {
+      position: absolute;
+      background: white;
+      padding: 15px 25px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      animation: float 3s infinite ease-in-out;
+      color: #4a5568;
+    }
+
+    .card-1 {
+      top: 20%;
+      left: 20%;
+      animation-delay: 0s;
+    }
+
+    .card-2 {
+      top: 50%;
+      right: 20%;
+      animation-delay: 0.5s;
+    }
+
+    .card-3 {
+      bottom: 20%;
+      left: 40%;
+      animation-delay: 1s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    /* Dashboard Section */
+    .dashboard-section {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .welcome-banner {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .welcome-banner h2 {
+      margin: 0 0 0.5rem 0;
+      color: #2d3748;
+    }
+
+    .user-highlight {
+      color: #667eea;
+    }
+
+    .user-email {
+      margin: 0;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+
+    .user-role-badge {
+      padding: 8px 20px;
+      background: #f7fafc;
+      border-radius: 30px;
+      color: #4a5568;
+      font-weight: 600;
+    }
+
+    .user-role-badge.admin {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 2rem;
+    }
+
+    .quick-action-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    .quick-action-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .card-icon {
+      font-size: 2.5rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+
+    .quick-action-card h4 {
+      margin: 0 0 0.5rem 0;
+      color: #2d3748;
+    }
+
+    .quick-action-card p {
+      margin: 0;
+      color: #718096;
+      font-size: 0.9rem;
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #667eea;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+    }
+
+    /* Stats Grid for Regular Users */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      color: #667eea;
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #2d3748;
+    }
+
+    .stat-label {
+      color: #718096;
+      font-size: 0.9rem;
+    }
+
+    /* Recent Activity */
+    .recent-activity, .recent-chats {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-top: 2rem;
+    }
+
+    .recent-activity h3, .recent-chats h3 {
+      margin: 0 0 1rem 0;
+      color: #2d3748;
+    }
+
+    .activity-list, .chat-list {
+      margin-top: 1rem;
+    }
+
+    .activity-item, .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .activity-item:last-child, .chat-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-item:hover, .chat-item:hover {
+      background: #f7fafc;
+    }
+
+    .activity-icon {
+      padding: 8px;
+      border-radius: 50%;
+    }
+
+    .activity-icon.person_add {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .activity-icon.warning {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .activity-icon.chat {
+      background: #bee3f8;
+      color: #2c5282;
+    }
+
+    .activity-details {
+      flex: 1;
+    }
+
+    .activity-details p {
+      margin: 0 0 4px 0;
+      color: #2d3748;
+    }
+
+    .activity-time {
+      font-size: 0.8rem;
+      color: #a0aec0;
+    }
+
+    .no-activity, .no-chats {
+      text-align: center;
+      padding: 2rem;
+      color: #a0aec0;
+    }
+
+    .no-activity .material-icons,
+    .no-chats .material-icons {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .start-chat-btn {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 8px 20px;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 20px;
+    }
+
+    .chat-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .chat-info {
+      flex: 1;
+    }
+
+    .chat-name {
+      margin: 0 0 4px 0;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .chat-preview {
+      margin: 0;
+      color: #718096;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .chat-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .chat-time {
+      color: #a0aec0;
+      font-size: 0.8rem;
+    }
+
+    .unread-badge {
+      background: #e53e3e;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    /* Features Section */
+    .features-section {
+      padding: 4rem 2rem;
+      background: white;
+    }
+
+    .features-section h2 {
+      text-align: center;
+      margin-bottom: 3rem;
+      font-size: 2.5rem;
+      color: #2d3748;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature-card {
+      text-align: center;
+      padding: 2rem;
+      border-radius: 12px;
+      transition: transform 0.3s;
+      background: #f7fafc;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .feature-icon {
+      font-size: 3rem;
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      margin: 0 0 1rem 0;
+      color: #2d3748;
+    }
+
+    .feature-card p {
+      margin: 0;
+      color: #718096;
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      background: #2d3748;
+      color: white;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      animation: fadeIn 0.2s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      animation: slideUp 0.3s;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: #2d3748;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #a0aec0;
+    }
+
+    .modal-body {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .modal-body .material-icons {
+      font-size: 48px;
+      color: #e53e3e;
+      margin-bottom: 16px;
+    }
+
+    .modal-body p {
+      margin: 0;
+      color: #4a5568;
+    }
+
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .cancel-btn, .logout-confirm-btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .cancel-btn {
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: #4a5568;
+    }
+
+    .cancel-btn:hover {
+      background: #f7fafc;
+    }
+
+    .logout-confirm-btn {
+      background: #e53e3e;
+      border: none;
+      color: white;
+    }
+
+    .logout-confirm-btn:hover {
+      background: #c53030;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero-section {
+        flex-direction: column;
+        padding: 2rem;
+        text-align: center;
+      }
+      
+      .hero-content h1 {
+        font-size: 2.5rem;
+      }
+      
+      .stats-banner {
+        justify-content: center;
+      }
+      
+      .cta-buttons {
+        justify-content: center;
+      }
+      
+      .hero-image {
+        width: 100%;
+        margin-top: 3rem;
+        height: 300px;
+      }
+      
+      .navbar {
+        flex-direction: column;
+        gap: 1rem;
+      }
+      
+      .nav-menu {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      .welcome-banner {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+      }
+      
+      .quick-actions-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .chat-item {
+        flex-wrap: wrap;
+      }
+      
+      .chat-preview {
+        max-width: 150px;
+      }
     }
   `]
 })
+
 export class HomeComponent implements OnInit, OnDestroy {
+  isAuthenticated = false;
+  isAdmin = false;
+  userEmail: string | null = null;
+  userMenuOpen = false;
+  showLogoutModal = false;
+  
+  // Data
+  totalUsers = 0;
+  unreadCount = 0;
+  totalFiles = 0;
+  contacts: UserContactDTO[] = [];
+  
+  recentActivities: Array<{icon: string, message: string, time: string, type: string}> = [];
 
-  scrolled = false;
-  activeCard: 'call' | 'chat' | 'files' = 'call';
-  callStatus = 'Connecting…';
-  year = new Date().getFullYear();
+  // Subscriptions
+  private authSubscription: Subscription | null = null;
+  private contactsSubscription: Subscription | null = null;
 
-  gridLines = [16.6, 33.3, 50, 66.6, 83.3];
-  avatarColors = ['#c8a96e', '#5b6ef5', '#2dc89a', '#e05cf0', '#fb923c'];
-  voiceBars = [8, 14, 20, 12, 18, 24, 16, 10, 22, 14, 8, 18, 12, 20, 16];
-  marqueeWords = [
-    'Real-time chat', '·', 'Video calls', '·', 'Voice messages', '·',
-    'File sharing', '·', 'Team collaboration', '·', 'Secure', '·',
-    'WebRTC', '·', 'Spring Boot', '·', 'Angular'
-  ];
-  mockFiles = [
-    { icon: '🖼️', name: 'design-v3.png', size: '2.4 MB' },
-    { icon: '📄', name: 'proposal.pdf', size: '840 KB' },
-    { icon: '📊', name: 'data.xlsx', size: '1.1 MB' },
-    { icon: '🎬', name: 'demo.mp4', size: '8.7 MB' },
-  ];
-  steps = [
-    { icon: '✍️', title: 'Create account', body: 'Register in seconds. No credit card, no verification delays.' },
-    { icon: '💬', title: 'Join a room', body: 'Browse public rooms or create your own private space for your team.' },
-    { icon: '📞', title: 'Call your team', body: 'One click to start a peer-to-peer video or audio call with anyone online.' },
-    { icon: '📁', title: 'Share anything', body: 'Drop files into any conversation. They\'re stored and available forever.' },
-  ];
-
-  private cardInterval: ReturnType<typeof setInterval> | null = null;
-  private callInterval: ReturnType<typeof setInterval> | null = null;
-  private callStatuses = ['Connecting…', 'Ringing…', 'Connected — 0:12', 'Connected — 0:13', 'Connected — 0:14'];
-  private callIdx = 0;
-
-  @HostListener('window:scroll')
-  onScroll() { this.scrolled = window.scrollY > 20; }
-
-  ngOnInit() {
-    // Auto-cycle mockup tabs
-    this.cardInterval = setInterval(() => {
-      const order: ('call' | 'chat' | 'files')[] = ['call', 'chat', 'files'];
-      const cur = order.indexOf(this.activeCard);
-      this.activeCard = order[(cur + 1) % 3];
-    }, 3200);
-
-    // Animate call status
-    this.callInterval = setInterval(() => {
-      this.callIdx = (this.callIdx + 1) % this.callStatuses.length;
-      this.callStatus = this.callStatuses[this.callIdx];
-    }, 1200);
+  constructor(
+    private tokenService: TokenService,
+    private authService: AuthService,
+    private adminService: AdminService,
+    private privateChatService: PrivateChatService,
+    private fileService: FileManagerService,
+    private router: Router
+  ) {
+    // No subscription in constructor - moved to ngOnInit
   }
 
-  ngOnDestroy() {
-    if (this.cardInterval) clearInterval(this.cardInterval);
-    if (this.callInterval) clearInterval(this.callInterval);
+  ngOnInit(): void {
+    this.updateUserInfo();
+    
+    // Subscribe to auth changes (if your AuthService has such an observable)
+    // If AuthService doesn't have authStatus$, we'll just check on init and after login/logout
+    this.isAuthenticated = this.authService.isLoggedIn();
+    if (this.isAuthenticated) {
+      this.updateUserInfo();
+      this.loadUserData();
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
+    }
+    if (this.contactsSubscription) {
+      this.contactsSubscription.unsubscribe();
+    }
+  }
+
+  private updateUserInfo(): void {
+    this.isAuthenticated = this.authService.isLoggedIn();
+    if (this.isAuthenticated) {
+      this.isAdmin = this.tokenService.isAdmin();
+      this.userEmail = this.tokenService.getCurrentUserEmail();
+    }
+  }
+
+  private loadUserData(): void {
+    const userId = this.tokenService.getCurrentUserId();
+    if (!userId) return;
+
+    if (this.isAdmin) {
+      // Load admin data
+      this.adminService.getAllUsers().subscribe({
+        next: (response) => {
+          this.totalUsers = response.data.length;
+        },
+        error: (error) => console.error('Error loading users:', error)
+      });
+
+      // Mock recent activities - replace with actual API call
+      this.recentActivities = [
+        { icon: 'person_add', message: 'New user registered', time: '5 min ago', type: 'person_add' },
+        { icon: 'warning', message: 'Failed login attempts detected', time: '1 hour ago', type: 'warning' },
+        { icon: 'chat', message: 'New messages in General Chat', time: '2 hours ago', type: 'chat' }
+      ];
+    } else {
+      // Load regular user data
+      this.contactsSubscription = this.privateChatService.getContacts(userId).subscribe({
+        next: (contacts) => {
+          this.contacts = contacts;
+          this.unreadCount = contacts.reduce((sum, c) => sum + c.unreadCount, 0);
+        },
+        error: (error) => console.error('Error loading contacts:', error)
+      });
+
+      // Load file stats for total files
+      this.fileService.getStats().subscribe({
+        next: (stats) => {
+          if (stats.success) {
+            this.totalFiles = stats.data.totalFiles;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading file stats:', error);
+          // Fallback to mock data
+          this.totalFiles = 24;
+        }
+      });
+    }
+  }
+
+  getUserDisplayName(): string {
+    if (!this.userEmail) return 'User';
+    return this.userEmail.split('@')[0];
+  }
+
+  getUserInitials(): string {
+    if (!this.userEmail) return 'U';
+    return this.userEmail.charAt(0).toUpperCase();
+  }
+
+  getContactInitials(username: string): string {
+    if (!username) return '?';
+    return username.charAt(0).toUpperCase();
+  }
+
+  toggleUserMenu(): void {
+    this.userMenuOpen = !this.userMenuOpen;
+  }
+
+  logout(): void {
+    this.userMenuOpen = false;
+    this.showLogoutModal = true;
+  }
+
+  cancelLogout(): void {
+    this.showLogoutModal = false;
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal = false;
+    this.authService.logout();
+    // After logout, update UI
+    this.isAuthenticated = false;
+    this.isAdmin = false;
+    this.userEmail = null;
+  }
+
+  openChat(userId: number): void {
+    this.router.navigate(['/chat/private', userId]);
   }
 }
