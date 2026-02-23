@@ -1,6 +1,6 @@
-import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs'; 
+import { Subject, takeUntil, catchError, of, finalize, switchMap } from 'rxjs'; 
 import { ChatParticipantResponse } from '../../../core/models/chat/chat-participant.model';
 import { ChatRoomResponse, ChatRoomDetailResponse } from '../../../core/models/chat/chat-room.model';
 import { TypingNotification } from '../../../core/models/chat/chat.mdel';
@@ -15,9 +15,11 @@ import { ProfileService } from '../../../core/services/users/profile.service';
 import { TokenService } from '../../../core/services/users/token.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-chat', 
+  standalone: true,
   imports: [
     CommonModule,
     FormsModule   // ✅ OBLIGATOIRE pour ngModel
@@ -25,7 +27,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './chat-room.html',
   styleUrls: ['./chat-room.scss']
 })
-export class ChatComponent implements OnInit, OnDestroy {
+export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private destroy$ = new Subject<void>();
 
   // Injected services
@@ -54,6 +56,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   allUsers = signal<PrivateUserResponse[]>([]);
   typingUsers = signal<string[]>([]);
   totalUnread = signal(0);
+  isLoading = signal(false);
+  error = signal<string | null>(null);
 
   // Computed
   activeRoom = computed(() => this.rooms().find(r => r.id === this.activeRoomId()) ?? null);
@@ -90,34 +94,126 @@ export class ChatComponent implements OnInit, OnDestroy {
   viewingUserId: number | null = null;
   viewingUserEmail: string | null = null;
   private typingTimer: any;
+  private scrollEnabled = true;
 
   ngOnInit() {
     this.loadRooms();
     this.loadAllUsers();
-    this.wsService.connect();
+    this.connectWebSocket();
+    this.setupWebSocketErrorHandling();
+  }
+
+  ngAfterViewChecked() {
+    if (this.scrollEnabled) {
+      this.scrollToBottom();
+    }
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
     this.wsService.disconnect();
+    if (this.typingTimer) {
+      clearTimeout(this.typingTimer);
+    }
   }
 
-  loadRooms() {
-    this.chatRoomService.getAll().pipe(takeUntil(this.destroy$)).subscribe(rooms => {
-      this.rooms.set(rooms);
+  private connectWebSocket() {
+    try {
+      this.wsService.connect();
+    } catch (err) {
+      console.error('[Chat] Failed to connect WebSocket:', err);
+      this.error.set('Impossible de se connecter au serveur de chat');
+    }
+  }
+
+  private setupWebSocketErrorHandling() {
+    this.wsService.errors.pipe(takeUntil(this.destroy$)).subscribe(error => {
+      console.error('[Chat] WebSocket error:', error);
+      this.error.set(`Erreur de connexion: ${error.message}`);
+      
+      // Auto-dismiss error after 5 seconds
+      setTimeout(() => this.error.set(null), 5000);
     });
   }
 
+loadRooms() {
+  // Check if user is authenticated first
+  const token = this.tokenService.getAccessToken();
+  const userId = this.currentUserId();
+  
+  console.log('[Chat] Authentication check:', { 
+    hasToken: !!token, 
+    userId: userId,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : null
+  });
+  
+  if (!token || !userId) {
+    this.error.set('Vous n\'êtes pas connecté. Redirection vers la page de connexion...');
+    setTimeout(() => this.router.navigate(['/auth/login']), 2000);
+    return;
+  }
+  
+  this.isLoading.set(true);
+  this.error.set(null);
+  
+  console.log('[Chat] Loading rooms from:', environment.chatApiUrl);
+  
+  this.chatRoomService.getAll().pipe(
+    takeUntil(this.destroy$),
+    catchError((err: any) => {
+      console.error('[Chat] Failed to load rooms:', err);
+      
+      let errorMessage = 'Impossible de charger les salons. ';
+      
+      if (err.status === 0) {
+        errorMessage += 'Le serveur est inaccessible. ';
+        errorMessage += 'Vérifiez que: ';
+        errorMessage += '1) Le backend Spring Boot est lancé sur http://localhost:8081 ';
+        errorMessage += '2) Le profil "chat" est activé ';
+        errorMessage += '3) Vous êtes bien authentifié';
+      } else if (err.status === 403) {
+        errorMessage += 'Vous n\'avez pas les permissions nécessaires. ';
+        errorMessage += 'Vérifiez que vous êtes connecté avec un compte valide.';
+      } else if (err.status === 401) {
+        errorMessage += 'Votre session a expiré. Veuillez vous reconnecter.';
+        setTimeout(() => this.router.navigate(['/auth/login']), 2000);
+      } else {
+        errorMessage += err.message || 'Erreur inconnue.';
+      }
+      
+      this.error.set(errorMessage);
+      return of([]);
+    }),
+    finalize(() => this.isLoading.set(false))
+  ).subscribe({
+    next: (rooms) => {
+      console.log('[Chat] Loaded rooms successfully:', rooms);
+      this.rooms.set(rooms);
+      
+      if (rooms.length > 0 && !this.activeRoomId()) {
+        this.selectRoom(rooms[0]);
+      }
+    }
+  });
+}
   loadAllUsers() {
     const userId = this.currentUserId();
     if (!userId) return;
-    this.profileService.getAllUsersExceptCurrent(userId).pipe(takeUntil(this.destroy$)).subscribe(users => {
+    
+    this.profileService.getAllUsersExceptCurrent(userId).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to load users', err);
+        return of([]);
+      })
+    ).subscribe(users => {
       this.allUsers.set(users ?? []);
     });
   }
 
   selectRoom(room: ChatRoomResponse) {
+    // Clear any previous room subscriptions
     if (this.activeRoomId()) {
       this.wsService.leaveRoom(this.activeRoomId()!);
     }
@@ -126,29 +222,96 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.rightOpen.set(true);
     this.messages.set([]);
     this.participants.set([]);
+    this.typingUsers.set([]);
+    this.error.set(null);
 
-    this.messageService.getByRoom(room.id).pipe(takeUntil(this.destroy$)).subscribe(msgs => {
+    // Load messages
+    this.isLoading.set(true);
+    this.messageService.getByRoom(room.id).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to load messages', err);
+        this.error.set('Impossible de charger les messages');
+        return of([]);
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(msgs => {
       this.messages.set(msgs);
-      setTimeout(() => this.scrollToBottom(), 50);
+      this.scrollEnabled = true;
+      setTimeout(() => this.scrollToBottom(), 100);
     });
 
-    this.participantService.getByRoom(room.id).pipe(takeUntil(this.destroy$)).subscribe(parts => {
+    // Load participants
+    this.participantService.getByRoom(room.id).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to load participants', err);
+        return of([]);
+      })
+    ).subscribe(parts => {
       this.participants.set(parts);
     });
 
+    // Join room via WebSocket
     this.wsService.joinRoom(room.id);
 
-    this.wsService.onRoomMessages(room.id).pipe(takeUntil(this.destroy$)).subscribe(event => {
-      this.messages.update(msgs => [...msgs, event.message]);
+    // Subscribe to new messages
+    this.wsService.onRoomMessages(room.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(event => {
+      this.messages.update(msgs => {
+        // Check if message already exists (avoid duplicates)
+        if (msgs.some(m => m.id === event.message.id)) {
+          return msgs;
+        }
+        return [...msgs, event.message];
+      });
+      this.scrollEnabled = true;
       setTimeout(() => this.scrollToBottom(), 50);
     });
 
-    this.wsService.onRoomTyping(room.id).pipe(takeUntil(this.destroy$)).subscribe((notif: TypingNotification) => {
+    // Subscribe to typing notifications
+    this.wsService.onRoomTyping(room.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe((notif: TypingNotification) => {
       if (notif.userId === this.currentUserId()) return;
+      
+      // Find user email from participants
+      const user = this.participants().find(p => p.user.id === notif.userId)?.user;
+      const userName = user?.email ? user.email.split('@')[0] : `User ${notif.userId}`;
+      
       if (notif.isTyping) {
-        this.typingUsers.update(list => [...new Set([...list, `User ${notif.userId}`])]);
+        this.typingUsers.update(list => {
+          if (!list.includes(userName)) {
+            return [...list, userName];
+          }
+          return list;
+        });
       } else {
-        this.typingUsers.update(list => list.filter(u => u !== `User ${notif.userId}`));
+        this.typingUsers.update(list => list.filter(u => u !== userName));
+      }
+    });
+
+    // Subscribe to room activity (join/leave)
+    this.wsService.onRoomActivity(room.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(event => {
+      console.log('[Chat] Room activity:', event);
+      
+      if (event.type === 'USER_JOINED') {
+        // Refresh participants list
+        this.participantService.getByRoom(room.id).pipe(
+          takeUntil(this.destroy$)
+        ).subscribe(parts => {
+          this.participants.set(parts);
+        });
+      } else if (event.type === 'USER_LEFT') {
+        // Refresh participants list
+        this.participantService.getByRoom(room.id).pipe(
+          takeUntil(this.destroy$)
+        ).subscribe(parts => {
+          this.participants.set(parts);
+        });
       }
     });
   }
@@ -156,22 +319,49 @@ export class ChatComponent implements OnInit, OnDestroy {
   sendMessage() {
     const text = this.messageText.trim();
     if (!text || !this.activeRoomId()) return;
+    
+    // Send via WebSocket
     this.wsService.sendMessage(this.activeRoomId()!, text);
     this.messageText = '';
+    
+    // Stop typing indicator
+    if (this.typingTimer) {
+      clearTimeout(this.typingTimer);
+      this.wsService.sendTyping(this.activeRoomId()!, this.currentUserId()!, false);
+    }
   }
 
   onTyping() {
     if (!this.activeRoomId()) return;
+    
+    // Send typing notification
     this.wsService.sendTyping(this.activeRoomId()!, this.currentUserId()!, true);
-    clearTimeout(this.typingTimer);
+    
+    // Clear previous timer
+    if (this.typingTimer) {
+      clearTimeout(this.typingTimer);
+    }
+    
+    // Set timer to stop typing after 2 seconds of inactivity
     this.typingTimer = setTimeout(() => {
       this.wsService.sendTyping(this.activeRoomId()!, this.currentUserId()!, false);
     }, 2000);
   }
 
   deleteMessage(messageId: number) {
-    this.messageService.delete(messageId).pipe(takeUntil(this.destroy$)).subscribe(updated => {
-      this.messages.update(msgs => msgs.map(m => m.id === messageId ? updated : m));
+    if (!confirm('Supprimer ce message ?')) return;
+    
+    this.messageService.delete(messageId).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to delete message', err);
+        this.error.set('Impossible de supprimer le message');
+        return of(null);
+      })
+    ).subscribe(updated => {
+      if (updated) {
+        this.messages.update(msgs => msgs.map(m => m.id === messageId ? updated : m));
+      }
     });
   }
 
@@ -183,25 +373,55 @@ export class ChatComponent implements OnInit, OnDestroy {
 
   createRoom() {
     if (!this.newRoomName.trim()) return;
+    
     const userId = this.currentUserId();
+    if (!userId) {
+      this.error.set('Utilisateur non connecté');
+      return;
+    }
+    
+    this.isLoading.set(true);
     this.chatRoomService.create({
       name: this.newRoomName.trim(),
       type: this.newRoomType as any,
-      userIds: userId ? [userId] : []
-    }).pipe(takeUntil(this.destroy$)).subscribe(room => {
-      this.rooms.update(list => [...list, room]);
-      this.showCreateModal = false;
-      this.selectRoom(room);
+      userIds: [userId]
+    }).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to create room', err);
+        this.error.set('Impossible de créer le salon');
+        return of(null);
+      }),
+      finalize(() => this.isLoading.set(false))
+    ).subscribe(room => {
+      if (room) {
+        this.rooms.update(list => [...list, room]);
+        this.showCreateModal = false;
+        this.selectRoom(room);
+      }
     });
   }
 
   addParticipant(userId: number) {
     const roomId = this.activeRoomId();
     if (!roomId) return;
-    this.participantService.add({ userId, chatRoomId: roomId, role: 'MEMBER' as any })
-      .pipe(takeUntil(this.destroy$)).subscribe(p => {
+    
+    this.participantService.add({ 
+      userId, 
+      chatRoomId: roomId, 
+      role: 'MEMBER' as any 
+    }).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to add participant', err);
+        this.error.set('Impossible d\'ajouter le participant');
+        return of(null);
+      })
+    ).subscribe(p => {
+      if (p) {
         this.participants.update(list => [...list, p]);
-      });
+      }
+    });
   }
 
   onFileSelect(event: Event) {
@@ -218,23 +438,68 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
   }
 
-  sendFile() {
-    if (!this.pendingFile) return;
-    this.uploadProgress = 0;
-    this.fileService.uploadWithProgress(this.pendingFile, this.fileDescription)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: ({ progress, result }) => {
-          this.uploadProgress = progress;
-          if (result) {
-            this.pendingFile = null;
-            this.fileDescription = '';
-            this.uploadProgress = 0;
+sendFile() {
+  if (!this.pendingFile) return;
+  
+  const fileToUpload = this.pendingFile; // Store reference before potential null
+  this.uploadProgress = 0;
+  
+  this.fileService.uploadWithProgress(fileToUpload, this.fileDescription)
+    .pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to upload file', err);
+        this.error.set('Impossible d\'uploader le fichier');
+        this.uploadProgress = 0;
+        return of(null);
+      })
+    )
+    .subscribe({
+      next: (event) => {
+        if (!event) return;
+        
+        // Handle progress update
+        if (event.progress !== undefined) {
+          this.uploadProgress = event.progress;
+        }
+        
+        // Handle completion with result
+        if (event.result) {
+          // File uploaded successfully
+          this.pendingFile = null;
+          this.fileDescription = '';
+          this.showFilesPanel = false;
+          
+          // Send a message with the file info
+          if (this.activeRoomId()) {
+            const fileName = fileToUpload.name;
+            const fileSize = this.formatFileSize(fileToUpload.size);
+            this.wsService.sendMessage(
+              this.activeRoomId()!, 
+              `📎 Fichier: ${fileName} (${fileSize})`
+            );
           }
-        },
-        error: () => { this.uploadProgress = 0; }
-      });
-  }
+          
+          // Reset progress after a delay
+          setTimeout(() => this.uploadProgress = 0, 1000);
+        }
+      },
+      error: (err) => {
+        console.error('[Chat] upload error:', err);
+        this.uploadProgress = 0;
+        this.error.set('Erreur lors de l\'upload');
+      }
+    });
+}
+
+// Add helper method to format file size
+private formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
 
   viewProfile(userId: number) {
     const user = this.allUsers().find(u => u.id === userId)
@@ -252,14 +517,31 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.router.navigate(['/chat/private']);
   }
 
+  refreshRooms() {
+    this.loadRooms();
+  }
+
   formatTime(timestamp: string): string {
-    return new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('fr-FR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      });
+    } catch (e) {
+      return '';
+    }
   }
 
   private scrollToBottom() {
     if (this.messagesContainer?.nativeElement) {
-      const el = this.messagesContainer.nativeElement;
-      el.scrollTop = el.scrollHeight;
+      try {
+        const el = this.messagesContainer.nativeElement;
+        el.scrollTop = el.scrollHeight;
+      } catch (err) {
+        console.error('[Chat] Error scrolling:', err);
+      }
     }
   }
 }

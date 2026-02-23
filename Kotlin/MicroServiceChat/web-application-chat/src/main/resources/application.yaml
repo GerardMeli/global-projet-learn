@@ -1,6 +1,10 @@
 spring:
   application:
     name: web-application-chat
+  mvc:
+    async:
+      request-timeout: 30000
+# Activer la propagation du contexte de requête
 
   # Database configuration
   datasource:
@@ -51,6 +55,10 @@ logging:
           messaging:
             simp:
               stomp: DEBUG
+
+app:
+  jwt:
+    secret: TGHJVxyGBVg9oBpHJED2bECDujeT+gd3Hm1Uy2TE3N0Rv+m+mFE2oE/ucN692Wp6pwqKc9eVEk6SbHwHVwcykQ==
 
 eureka:
   client:

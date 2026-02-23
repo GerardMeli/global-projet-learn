@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   UserProfileResponse,
@@ -10,6 +10,7 @@ import {
   PrivateUserResponse
 } from '../../models/users/profile.model';
 import { environment } from '../../../environments/environment';
+import { UserResponse } from '../../models/users/registration.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProfileService {

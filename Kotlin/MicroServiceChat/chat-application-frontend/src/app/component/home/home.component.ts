@@ -39,7 +39,7 @@ import { ChatComponent } from '../chat/chat-room/chat-room';
               <span class="material-icons">person</span>
               My Profile
             </a>
-            <a routerLink="/chat/private/1" class="nav-link">
+            <a routerLink="/chat/room" class="nav-link">
               <span class="material-icons">chat</span>
               Messages
               <span class="notification-badge" *ngIf="unreadCount > 0">{{ unreadCount }}</span>

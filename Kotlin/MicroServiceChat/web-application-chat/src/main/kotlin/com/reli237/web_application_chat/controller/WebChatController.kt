@@ -3,6 +3,7 @@ package com.reli237.web_application_chat.controller
 import com.reli237.web_application_chat.dto.MessageDto
 import com.reli237.web_application_chat.dto.PrivateDto
 import com.reli237.web_application_chat.feign.UsersWebChatInterface
+import com.reli237.web_application_chat.security.TokenContext
 import com.reli237.web_application_chat.service.MessageService
 import com.reli237.web_application_chat.service.PrivateChatService
 import org.slf4j.LoggerFactory
@@ -58,44 +59,33 @@ class WebChatController(
         println("📝 Content: ${messageRequest.content}")
         println("🆔 Session ID: ${headerAccessor.sessionId}")
 
-        // ==================== RÉCUPÉRER L'UTILISATEUR ====================
-
-        // ✅ IMPORTANT: L'userId a été stocké en session par AuthInterceptor
         val sessionAttributes = headerAccessor.sessionAttributes
         println("📋 Session attributes keys: ${sessionAttributes?.keys}")
 
         val userId = sessionAttributes?.get("userId") as? Long
+        val token  = sessionAttributes?.get("token")  as? String  // ← token depuis session STOMP
 
         println("👤 User ID from session: $userId")
-
-        // ==================== VALIDER L'UTILISATEUR ====================
+        println("🔑 Token present: ${token != null}")
 
         if (userId == null) {
             println("❌ Utilisateur non authentifié!")
-            println("❌ Vérifier que AuthInterceptor a stocké userId en session!")
-
-            // Envoyer une erreur à l'utilisateur
-            try {
-                messagingTemplate.convertAndSendToUser(
-                    headerAccessor.sessionId ?: "unknown",
-                    "/queue/errors",
-                    MessageError(
-                        code = "NOT_AUTHENTICATED",
-                        message = "Utilisateur non authentifié - userId not found in session"
-                    )
+            messagingTemplate.convertAndSendToUser(
+                headerAccessor.sessionId ?: "unknown",
+                "/queue/errors",
+                MessageError(
+                    code = "NOT_AUTHENTICATED",
+                    message = "Utilisateur non authentifié - userId not found in session"
                 )
-            } catch (e: Exception) {
-                println("❌ Impossible d'envoyer l'erreur: ${e.message}")
-            }
+            )
             return
         }
 
         println("✅ Utilisateur authentifié (ID: $userId)")
 
-        // ==================== CRÉER LE MESSAGE ====================
-
+        // ← Alimenter le ThreadLocal pour Feign
+        TokenContext.set(token)
         try {
-            // Ajouter le roomId à la requête
             messageRequest.chatRoomId = roomId
 
             println("💾 Création du message en base de données...")
@@ -103,31 +93,18 @@ class WebChatController(
             println("   - User: $userId")
             println("   - Content: ${messageRequest.content}")
 
-            // Créer et sauvegarder le message en base de données
             val messageResponse = messageService.createMessage(userId, messageRequest)
 
             println("✅ Message créé avec l'ID: ${messageResponse.id}")
-            println("⏰ Timestamp: ${messageResponse.timestamp}")
 
-            // ==================== BROADCAST LE MESSAGE ====================
-
-            println("📤 Envoi du message à /topic/room/$roomId")
-
-            // 1️⃣ ENVOYER LE MESSAGE À TOUS LES UTILISATEURS DE LA SALLE
-            // (y compris l'émetteur s'il est abonné)
+            // Broadcast à tous les abonnés de la salle
             messagingTemplate.convertAndSend(
                 "/topic/room/$roomId",
-                MessageEvent(
-                    type = "NEW_MESSAGE",
-                    message = messageResponse
-                )
+                MessageEvent(type = "NEW_MESSAGE", message = messageResponse)
             )
-
             println("✅ Message broadcasté à /topic/room/$roomId")
 
-            // 2️⃣ ENVOYER UNE CONFIRMATION À L'ÉMETTEUR
-            println("✅ Envoi de la confirmation à l'utilisateur $userId")
-
+            // Confirmation à l'émetteur
             try {
                 messagingTemplate.convertAndSendToUser(
                     userId.toString(),
@@ -147,10 +124,7 @@ class WebChatController(
 
         } catch (e: Exception) {
             println("❌ Erreur lors de la création du message: ${e.message}")
-            println("📋 Stack trace:")
             e.printStackTrace()
-
-            // Envoyer l'erreur à l'utilisateur
             try {
                 messagingTemplate.convertAndSendToUser(
                     userId.toString(),
@@ -161,8 +135,10 @@ class WebChatController(
                     )
                 )
             } catch (sendError: Exception) {
-                println("❌ Impossible d'envoyer l'erreur à l'utilisateur: ${sendError.message}")
+                println("❌ Impossible d'envoyer l'erreur: ${sendError.message}")
             }
+        } finally {
+            TokenContext.clear() // ← TOUJOURS nettoyer
         }
     }
 
@@ -181,8 +157,6 @@ class WebChatController(
         headerAccessor: SimpMessageHeaderAccessor
     ) {
         println("⌨️ Utilisateur ${typingNotification.userId} tape dans la salle $roomId: ${typingNotification.isTyping}")
-
-        // Envoyer la notification à tous les utilisateurs de la salle
         try {
             messagingTemplate.convertAndSend(
                 "/topic/room/$roomId/typing",
@@ -206,10 +180,11 @@ class WebChatController(
     ) {
         val sessionAttributes = headerAccessor.sessionAttributes
         val userId = sessionAttributes?.get("userId") as? Long
+        val token  = sessionAttributes?.get("token")  as? String  // ← token
 
         if (userId != null) {
             println("👋 Utilisateur $userId a rejoint la salle $roomId")
-
+            TokenContext.set(token) // ← au cas où joinRoom appelle des services Feign
             try {
                 messagingTemplate.convertAndSend(
                     "/topic/room/$roomId/activity",
@@ -223,15 +198,14 @@ class WebChatController(
                 println("✅ Activity notification envoyée")
             } catch (e: Exception) {
                 println("❌ Erreur lors de l'envoi de l'activité: ${e.message}")
+            } finally {
+                TokenContext.clear()
             }
         } else {
             println("⚠️ userId null - impossible de notifier join")
         }
     }
 
-    /**
-     * Notifier quand un utilisateur quitte une salle
-     */
     @MessageMapping("/chat.leave/{roomId}")
     fun leaveRoom(
         @DestinationVariable roomId: Long,
@@ -242,7 +216,6 @@ class WebChatController(
 
         if (userId != null) {
             println("👋 Utilisateur $userId a quitté la salle $roomId")
-
             try {
                 messagingTemplate.convertAndSend(
                     "/topic/room/$roomId/activity",
@@ -262,6 +235,8 @@ class WebChatController(
 
     // ==================== ERROR HANDLING ====================
 
+    // ==================== ERROR HANDLING ====================
+
     @MessageMapping("/error")
     fun handleError(
         @Payload error: MessageError,
@@ -270,9 +245,8 @@ class WebChatController(
         println("❌ Erreur reçue: ${error.code} - ${error.message}")
     }
 
-    /**
-     * Ajouter un utilisateur à la salle (notification)
-     */
+    // ==================== ADD USER ====================
+
     @MessageMapping("/chat.addUser/{roomId}")
     fun addUser(
         @DestinationVariable roomId: Long,
@@ -280,11 +254,7 @@ class WebChatController(
         headerAccessor: SimpMessageHeaderAccessor
     ) {
         println("👤 Utilisateur $userId rejoint la salle $roomId")
-
         val username = headerAccessor.user?.name ?: "Anonymous"
-        println("👤 Username: $username")
-
-        // Notifier tous les utilisateurs de la salle
         messagingTemplate.convertAndSend(
             "/topic/room/$roomId/users",
             UserEvent(
@@ -296,9 +266,8 @@ class WebChatController(
         )
     }
 
-    /**
-     * Message privé entre utilisateurs
-     */
+    // ==================== PRIVATE MESSAGES ====================
+
     @MessageMapping("/chat.private")
     @SendToUser("/queue/private")
     fun sendPrivateMessage(
@@ -308,7 +277,6 @@ class WebChatController(
         val senderId = principal.name.toLong()
         println("🔒 Message privé de $senderId à ${privateMessageRequest.recipientId}")
 
-        // Envoyer au destinataire
         messagingTemplate.convertAndSendToUser(
             privateMessageRequest.recipientId.toString(),
             "/queue/private",
@@ -320,7 +288,6 @@ class WebChatController(
             )
         )
 
-        // Retourner une confirmation à l'émetteur
         return PrivateMessageResponse(
             senderId = senderId,
             recipientId = privateMessageRequest.recipientId,
@@ -330,9 +297,6 @@ class WebChatController(
         )
     }
 
-    /**
-     * Notifier que le message a été lu
-     */
     @MessageMapping("/chat.message.read/{messageId}")
     fun messageRead(
         @DestinationVariable messageId: Long,
@@ -341,8 +305,6 @@ class WebChatController(
     ) {
         val senderId = principal.name.toLong()
         println("👁️ Message $messageId lu par $readByUserId")
-
-        // Notifier l'émetteur original que son message a été lu
         messagingTemplate.convertAndSendToUser(
             senderId.toString(),
             "/queue/messages/read",
@@ -351,27 +313,6 @@ class WebChatController(
     }
 
     //============= Endpoints WebSocket OneToOne Conversation  ===============
-
-    @MessageMapping("/private/send/{senderId}")
-    @SendToUser("/queue/private/confirmation")
-    fun sendPrivateMessage(
-        @DestinationVariable senderId: Long,
-        @Payload request: PrivateDto.PrivateChatRequest,
-        headerAccessor: SimpMessageHeaderAccessor
-    ): PrivateChatService.PrivateChatNotification {
-        // Envoyer le message via le service
-        val response = privateChatService.sendMessage(senderId, request)
-
-        // Retourner la confirmation à l'expéditeur
-        return PrivateChatService.PrivateChatNotification(
-            messageId = response.id,
-            senderId = response.senderId1,
-            senderName = response.senderName1,
-            content = response.content,
-            timestamp = response.timestamp,
-            isOwnMessage = true
-        )
-    }
 
 //    @MessageMapping("/private/typing/{senderId}/{receiverId}")
 //    fun handleTypingIndicator(
@@ -421,6 +362,30 @@ class WebChatController(
      * Client sends to: /app/private/typing/{userId}
      * Server broadcasts to: /topic/private/typing/{otherUserId}
      */
+    @MessageMapping("/private/send/{senderId}")
+    @SendToUser("/queue/private/confirmation")
+    fun sendPrivateMessage(
+        @DestinationVariable senderId: Long,
+        @Payload request: PrivateDto.PrivateChatRequest,
+        headerAccessor: SimpMessageHeaderAccessor
+    ): PrivateChatService.PrivateChatNotification {
+        val token = headerAccessor.sessionAttributes?.get("token") as? String
+        TokenContext.set(token)
+        return try {
+            val response = privateChatService.sendMessage(senderId, request)
+            PrivateChatService.PrivateChatNotification(
+                messageId = response.id,
+                senderId = response.senderId1,
+                senderName = response.senderName1,
+                content = response.content,
+                timestamp = response.timestamp,
+                isOwnMessage = true
+            )
+        } finally {
+            TokenContext.clear()
+        }
+    }
+
     @MessageMapping("/private/typing/{userId}")
     fun handlePrivateTyping(
         @DestinationVariable userId: Long,
@@ -430,20 +395,17 @@ class WebChatController(
         val senderId = principal.name.toLongOrNull() ?: return
         val receiverId = payload.userId
 
-        // Create typing notification
         val typingNotification = TypingNotification(
             userId = senderId,
             isTyping = payload.isTyping,
             timestamp = System.currentTimeMillis()
         )
 
-        // Send to the specific user who should see the typing indicator
         messagingTemplate.convertAndSend(
             "/topic/private/typing/$receiverId",
             typingNotification
         )
 
-        // Optionally store typing status in service if needed
         if (payload.isTyping) {
             privateChatService.setUserTyping(senderId, receiverId)
         } else {

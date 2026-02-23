@@ -173,12 +173,12 @@ export class ChatWebSocketService implements OnDestroy {
   }
 
   /**
-   * Send typing notification.
+   * Send typing notification for a room.
    * Maps to @MessageMapping("/chat.typing/{roomId}").
    */
-  // sendTyping(roomId: number, userId: number, isTyping: boolean): void {
-  //   this.send(`/app/chat.typing/${roomId}`, { userId, isTyping, roomId });
-  // }
+  sendRoomTyping(roomId: number, userId: number, isTyping: boolean): void {
+    this.send(`/app/chat.typing/${roomId}`, { userId, isTyping, roomId });
+  }
 
   /**
    * Notify joining a room.
@@ -213,32 +213,32 @@ export class ChatWebSocketService implements OnDestroy {
     this.send(`/app/private/read/${userId}`, messageIds);
   }
 
-  // Add these methods to the ChatWebSocketService class
-
-/**
- * Subscribe to private typing notifications
- * Topic: /topic/private/typing/{userId}
- */
-onPrivateTyping(userId: number): Observable<TypingNotification> {
-  return this.subscribe<TypingNotification>(`private-typing-${userId}`, `/topic/private/typing/${userId}`);
-}
-
-/**
- * Send private typing notification
- * Maps to @MessageMapping("/private/typing/{userId}")
- */
-sendPrivateTyping(userId: number, otherUserId: number, isTyping: boolean): void {
-  this.send(`/app/private/typing/${userId}`, { userId: otherUserId, isTyping });
-}
-
-// Update the existing sendTyping method to handle both room and private typing
-sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boolean = false): void {
-  if (isPrivate) {
-    this.sendPrivateTyping(targetId, userId, isTyping);
-  } else {
-    this.send(`/app/chat.typing/${targetId}`, { userId, isTyping, roomId: targetId });
+  /**
+   * Subscribe to private typing notifications
+   * Topic: /topic/private/typing/{userId}
+   */
+  onPrivateTyping(userId: number): Observable<TypingNotification> {
+    return this.subscribe<TypingNotification>(`private-typing-${userId}`, `/topic/private/typing/${userId}`);
   }
-}
+
+  /**
+   * Send private typing notification
+   * Maps to @MessageMapping("/private/typing/{userId}")
+   */
+  sendPrivateTyping(userId: number, otherUserId: number, isTyping: boolean): void {
+    this.send(`/app/private/typing/${userId}`, { userId: otherUserId, isTyping });
+  }
+
+  /**
+   * Unified typing method - determines if it's room or private based on parameters
+   */
+  sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boolean = false): void {
+    if (isPrivate) {
+      this.sendPrivateTyping(targetId, userId, isTyping);
+    } else {
+      this.sendRoomTyping(targetId, userId, isTyping);
+    }
+  }
 
   // ─── Errors ───────────────────────────────────────────────────────────────
 
@@ -250,9 +250,13 @@ sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boole
     const key = 'user-errors';
     if (this.subscriptions.has(key)) return;
     const sub = this.client!.subscribe('/user/queue/errors', (msg: IMessage) => {
-      const err = JSON.parse(msg.body) as WsError;
-      console.error('[WS] Server error:', err);
-      this.errors$.next(err);
+      try {
+        const err = JSON.parse(msg.body) as WsError;
+        console.error('[WS] Server error:', err);
+        this.errors$.next(err);
+      } catch (e) {
+        console.error('[WS] Error parsing error message:', e);
+      }
     });
     this.subscriptions.set(key, sub);
   }
@@ -261,30 +265,46 @@ sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boole
 
   private subscribe<T>(key: string, topic: string): Observable<T> {
     return new Observable<T>(observer => {
-      const waitForConnection = setInterval(() => {
-        if (!this.client?.connected) return;
-        clearInterval(waitForConnection);
-
-        if (this.subscriptions.has(key)) {
-          // Already subscribed — caller will receive from the shared subscription
+      const checkConnection = () => {
+        if (!this.client?.connected) {
+          setTimeout(checkConnection, 100);
           return;
         }
 
-        const sub = this.client!.subscribe(topic, (msg: IMessage) => {
-          try {
-            observer.next(JSON.parse(msg.body) as T);
-          } catch (e) {
-            observer.error(e);
-          }
-        });
+        if (this.subscriptions.has(key)) {
+          // Already subscribed — we could still observe, but for simplicity return
+          console.log(`[WS] Already subscribed to ${topic}`);
+          return;
+        }
 
-        this.subscriptions.set(key, sub);
-      }, 100);
+        try {
+          const sub = this.client!.subscribe(topic, (msg: IMessage) => {
+            try {
+              const data = JSON.parse(msg.body) as T;
+              observer.next(data);
+            } catch (e) {
+              console.error(`[WS] Error parsing message from ${topic}:`, e);
+              observer.error(e);
+            }
+          });
+
+          this.subscriptions.set(key, sub);
+          console.log(`[WS] Subscribed to ${topic}`);
+        } catch (e) {
+          console.error(`[WS] Error subscribing to ${topic}:`, e);
+          observer.error(e);
+        }
+      };
+
+      checkConnection();
 
       return () => {
-        clearInterval(waitForConnection);
         const sub = this.subscriptions.get(key);
-        if (sub) { sub.unsubscribe(); this.subscriptions.delete(key); }
+        if (sub) {
+          sub.unsubscribe();
+          this.subscriptions.delete(key);
+          console.log(`[WS] Unsubscribed from ${topic}`);
+        }
       };
     });
   }
@@ -294,7 +314,12 @@ sendTyping(targetId: number, userId: number, isTyping: boolean, isPrivate: boole
       console.warn('[WS] Not connected — message dropped:', destination);
       return;
     }
-    this.client.publish({ destination, body: JSON.stringify(body) });
+    try {
+      this.client.publish({ destination, body: JSON.stringify(body) });
+      console.log(`[WS] Sent to ${destination}:`, body);
+    } catch (e) {
+      console.error(`[WS] Error sending to ${destination}:`, e);
+    }
   }
 
   ngOnDestroy(): void {

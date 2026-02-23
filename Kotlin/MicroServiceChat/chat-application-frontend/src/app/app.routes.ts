@@ -70,7 +70,13 @@ export const routes: Routes = [
       import('./component/chat/private-chat/private-chat.module')
         .then(m => m.PrivateChatModule)
   },
-
+ {
+    path: 'chat/private',
+    canActivate: [AuthGuard],
+    loadChildren: () =>
+      import('./component/chat/private-chat/private-chat.module')
+        .then(m => m.PrivateChatModule)
+  },
   // ── Fallback ──────────────────────────────────────────────────────────────
   {
     path: '**',

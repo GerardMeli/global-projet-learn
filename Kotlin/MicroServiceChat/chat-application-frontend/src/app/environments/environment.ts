@@ -1,16 +1,26 @@
+// export const environment = {
+//   production: false,
+
+//   // manage-users — port 8082 (from manage-users application.yaml: server.port: 8082)
+//   apiUrl: 'http://localhost:8082/api',
+
+//   // web-application-chat — port 8081 (from chat application.yaml: server.port: 8081)
+//   chatApiUrl: 'http://localhost:8081',
+//   chatWsUrl:  'http://localhost:8081',
+
+//   // system-manager-file — no server.port in application.yaml → Spring default = 8080
+//   fileApiUrl: 'http://localhost:8080',
+
+//   oauth2RedirectUri: 'http://localhost:4200/oauth2/callback',
+// };
+
+
 export const environment = {
   production: false,
-
-  // manage-users — port 8082 (from manage-users application.yaml: server.port: 8082)
-  apiUrl: 'http://localhost:8082/api',
-
-  // web-application-chat — port 8081 (from chat application.yaml: server.port: 8081)
-  chatApiUrl: 'http://localhost:8081',
-  chatWsUrl:  'http://localhost:8081',
-
-  // system-manager-file — no server.port in application.yaml → Spring default = 8080
-  fileApiUrl: 'http://localhost:8080',
-
+  apiUrl: '/api',           // manage-users via proxy
+  chatApiUrl: '/chat-api',  // chat via proxy
+  chatWsUrl: '',            // SockJS utilise le host courant (localhost:4200)
+  fileApiUrl: '/files-api', // files via proxy
   oauth2RedirectUri: 'http://localhost:4200/oauth2/callback',
 };
 

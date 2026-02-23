@@ -80,9 +80,12 @@ class SecurityConfig(
             .authorizeHttpRequests { authz ->
                 authz
                     // Public routes
+                    .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ← ADD THIS FIRST
                     .requestMatchers("/", "/login", "/register", "/favicon.ico").permitAll()
                     .requestMatchers("/resources/**", "/static/**", "/public/**", "/css/**", "/js/**").permitAll()
                     .requestMatchers("/error").permitAll()
+//                    .requestMatchers("/ws-chat/**").permitAll() // Allow WebSocket handshake
+
 
                     // Swagger/OpenAPI
                     .requestMatchers(
@@ -110,13 +113,20 @@ class SecurityConfig(
                     .requestMatchers("/api/profile/**").permitAll()
 
                     // Admin endpoints (require ADMIN role)
+                    .requestMatchers("/api/admin/users/*/basic").authenticated()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                     // Statistics endpoints (require ADMIN role)
                     .requestMatchers("/api/admin/statistics/**").hasRole("ADMIN")
 
                     // WebSocket endpoints
-                    .requestMatchers("/ws-chat", "/ws-chat/**").permitAll()
+//                    .requestMatchers("/ws-chat", "/ws-chat/**").permitAll()
+//
+//                    .requestMatchers("/api/chat-participant/**").authenticated()
+//                    .requestMatchers("/api/chat-rooms/**").authenticated()
+//                    .requestMatchers("/api/message/**").authenticated()
+//                    .requestMatchers("/api/private-chat/**").authenticated()
+//                    .requestMatchers("/api/files/**").authenticated()
 
                     // All other requests require authentication
                     .anyRequest().authenticated()
@@ -147,9 +157,11 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val corsConfig = CorsConfiguration().apply {
             allowedOrigins = listOf(
-                "http://localhost:3000",
-                "http://localhost:5173",
+//                "http://localhost:3000",
+//                "http://localhost:5173",
                 "http://localhost:8080",
+                "http://localhost:8081",
+                "http://localhost:8082",
                 "http://localhost:4200"
             )
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
@@ -160,7 +172,8 @@ class SecurityConfig(
                 "Accept",
                 "Origin",
                 "Access-Control-Request-Method",
-                "Access-Control-Request-Headers"
+                "Access-Control-Request-Headers",
+                "X-User-Id"  // Add this header
             )
             exposedHeaders = listOf(
                 "Authorization",

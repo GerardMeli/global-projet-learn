@@ -1,104 +1,229 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpEventType, HttpRequest } from '@angular/common/http';
-import { Observable, map, filter } from 'rxjs'; 
+import { HttpClient, HttpHeaders, HttpEventType, HttpRequest } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { FileUploadResponse, FileListResponse, FileSingleResponse, FileSearchResponse, FileStatsResponse, FileDeleteResponse } from '../../models/file/file.model';
+import { TokenService } from '../users/token.service';
 
 @Injectable({ providedIn: 'root' })
 export class FileManagerService {
-
-  /** File manager runs on default Spring Boot port (8080). No server.port in application.yaml. */
   private readonly base = `${environment.fileApiUrl}/api/files`;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private tokenService: TokenService
+  ) {}
+
+  private getToken(): string | null {
+    return localStorage.getItem('access_token');
+  }
+
+  private getHeaders(): HttpHeaders {
+    return new HttpHeaders({
+      'Authorization': `Bearer ${this.getToken()}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    });
+  }
+
+  private getOptions() {
+    return { headers: this.getHeaders(), withCredentials: true };
+  }
 
   // ─── Upload ────────────────────────────────────────────────────────────────
 
-  /**
-   * POST /api/files/upload  (multipart/form-data)
-   * @param file        the File object from an <input type="file">
-   * @param description optional description text
-   */
   upload(file: File, description = ''): Observable<FileUploadResponse> {
     const form = new FormData();
     form.append('file', file, file.name);
-    form.append('description', description);
-    return this.http.post<FileUploadResponse>(`${this.base}/upload`, form);
+    form.append('description', description || ' '); // ← évite string vide (required côté Spring)
+    return this.http.post<FileUploadResponse>(`${this.base}/upload`, form, {
+      headers: new HttpHeaders({
+        'Authorization': `Bearer ${this.getToken()}`,
+        'Accept': 'application/json'
+        // PAS de Content-Type → navigateur gère multipart/form-data + boundary
+      }),
+      withCredentials: true
+    });
   }
 
-  /**
-   * Same as upload() but reports upload progress (0-100).
-   * Useful for progress bars.
-   */
-  uploadWithProgress(file: File, description = ''): Observable<{ progress: number; result?: FileUploadResponse }> {
-    const form = new FormData();
-    form.append('file', file, file.name);
-    form.append('description', description);
+  uploadWithProgress(file: File, description?: string): Observable<{ progress?: number; result?: any }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('description', description || ' '); // ← évite string vide
 
-    const req = new HttpRequest('POST', `${this.base}/upload`, form, { reportProgress: true });
+    const token = this.tokenService.getAccessToken();
 
-    return this.http.request<FileUploadResponse>(req).pipe(
-      map(event => {
-        if (event.type === HttpEventType.UploadProgress) {
-          const progress = event.total ? Math.round(100 * event.loaded / event.total) : 0;
-          return { progress };
+    return new Observable(observer => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          observer.next({ progress });
         }
-        if (event.type === HttpEventType.Response) {
-          return { progress: 100, result: event.body ?? undefined };
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            observer.next({ result: JSON.parse(xhr.responseText) });
+          } catch {
+            observer.next({ result: xhr.responseText });
+          }
+          observer.complete();
+        } else {
+          observer.error({ status: xhr.status, message: xhr.responseText });
         }
-        return { progress: 0 };
-      })
-    );
+      });
+
+      xhr.addEventListener('error', () => {
+        observer.error({ status: 0, message: 'Erreur réseau' });
+      });
+
+      xhr.open('POST', `${environment.fileApiUrl}/api/files/upload`);
+      // NE PAS setRequestHeader Content-Type → navigateur gère multipart automatiquement
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      xhr.send(formData);
+    });
   }
 
   // ─── Read ──────────────────────────────────────────────────────────────────
 
-  /** GET /api/files → { success, data: FileEntity[], count } */
   getAll(): Observable<FileListResponse> {
-    return this.http.get<FileListResponse>(this.base);
+    return this.http.get<FileListResponse>(this.base, this.getOptions());
   }
 
-  /** GET /api/files/{id} → { success, data: FileEntity } */
   getById(id: number): Observable<FileSingleResponse> {
-    return this.http.get<FileSingleResponse>(`${this.base}/${id}`);
+    return this.http.get<FileSingleResponse>(`${this.base}/${id}`, this.getOptions());
   }
 
-  /** GET /api/files/search?fileName=xxx → { success, data: FileEntity[], count } */
   search(fileName: string): Observable<FileSearchResponse> {
-    return this.http.get<FileSearchResponse>(`${this.base}/search`, { params: { fileName } });
+    return this.http.get<FileSearchResponse>(`${this.base}/search`, {
+      headers: new HttpHeaders({
+        'Authorization': `Bearer ${this.getToken()}`,
+        'Accept': 'application/json'
+      }),
+      params: { fileName },
+      withCredentials: true
+    });
   }
 
-  /** GET /api/files/stats → { success, data: { totalFiles, totalSizeBytes, ... } } */
   getStats(): Observable<FileStatsResponse> {
-    return this.http.get<FileStatsResponse>(`${this.base}/stats`);
+    return this.http.get<FileStatsResponse>(`${this.base}/stats`, this.getOptions());
   }
 
   // ─── Download ──────────────────────────────────────────────────────────────
 
   /**
-   * GET /api/files/download/{fileName}
-   * Returns a Blob — trigger browser download.
-   *
-   * Usage:
-   *   this.fileService.download(fileName).subscribe(blob => {
-   *     const url = URL.createObjectURL(blob);
-   *     const a = document.createElement('a');
-   *     a.href = url; a.download = fileName; a.click();
-   *     URL.revokeObjectURL(url);
-   *   });
+   * Télécharge un fichier par nom et déclenche le téléchargement navigateur
+   * Style Telegram/WhatsApp : progress bar + nom de fichier conservé
    */
-  download(fileName: string): Observable<Blob> {
-    return this.http.get(`${this.base}/download/${encodeURIComponent(fileName)}`, {
-      responseType: 'blob'
+  downloadWithProgress(fileName: string, displayName?: string): Observable<{ progress?: number; done?: boolean }> {
+    const token = this.getToken();
+
+    return new Observable(observer => {
+      const xhr = new XMLHttpRequest();
+      xhr.responseType = 'blob';
+
+      xhr.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          observer.next({ progress });
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const blob = xhr.response as Blob;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = displayName || fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          observer.next({ progress: 100, done: true });
+          observer.complete();
+        } else {
+          observer.error({ status: xhr.status, message: 'Téléchargement échoué' });
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        observer.error({ status: 0, message: 'Erreur réseau' });
+      });
+
+      xhr.open('GET', `${this.base}/download/${encodeURIComponent(fileName)}`);
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+      xhr.send();
     });
   }
 
-  /** GET /api/files/download-by-id/{id} → Blob */
-  downloadById(id: number): Observable<Blob> {
-    return this.http.get(`${this.base}/download-by-id/${id}`, { responseType: 'blob' });
+  /**
+   * Télécharge par ID avec progress
+   */
+  downloadByIdWithProgress(id: number, displayName?: string): Observable<{ progress?: number; done?: boolean }> {
+    const token = this.getToken();
+
+    return new Observable(observer => {
+      const xhr = new XMLHttpRequest();
+      xhr.responseType = 'blob';
+
+      xhr.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          observer.next({ progress });
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const blob = xhr.response as Blob;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = displayName || `file-${id}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          observer.next({ progress: 100, done: true });
+          observer.complete();
+        } else {
+          observer.error({ status: xhr.status });
+        }
+      });
+
+      xhr.addEventListener('error', () => observer.error({ status: 0 }));
+
+      xhr.open('GET', `${this.base}/download-by-id/${id}`);
+      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.send();
+    });
   }
 
-  /** Returns a direct URL for linking/embedding (no Angular Observable). */
+  /** Blob simple (sans progress) */
+  download(fileName: string): Observable<Blob> {
+    return this.http.get(`${this.base}/download/${encodeURIComponent(fileName)}`, {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${this.getToken()}` }),
+      responseType: 'blob',
+      withCredentials: true
+    });
+  }
+
+  downloadById(id: number): Observable<Blob> {
+    return this.http.get(`${this.base}/download-by-id/${id}`, {
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${this.getToken()}` }),
+      responseType: 'blob',
+      withCredentials: true
+    });
+  }
+
   getDownloadUrl(fileName: string): string {
     return `${this.base}/download/${encodeURIComponent(fileName)}`;
   }
@@ -107,28 +232,22 @@ export class FileManagerService {
     return `${this.base}/download-by-id/${id}`;
   }
 
-  // ─── Update ────────────────────────────────────────────────────────────────
+  // ─── Update / Delete ───────────────────────────────────────────────────────
 
-  /**
-   * PUT /api/files/{id}/description?description=xxx
-   * Note: description is a query param, not a request body.
-   */
   updateDescription(id: number, description: string): Observable<FileSingleResponse> {
     return this.http.put<FileSingleResponse>(`${this.base}/${id}/description`, null, {
-      params: { description }
+      headers: this.getHeaders(),
+      params: { description },
+      withCredentials: true
     });
   }
 
-  // ─── Delete ────────────────────────────────────────────────────────────────
-
-  /** DELETE /api/files/{id} — hard delete from DB + filesystem */
   delete(id: number): Observable<FileDeleteResponse> {
-    return this.http.delete<FileDeleteResponse>(`${this.base}/${id}`);
+    return this.http.delete<FileDeleteResponse>(`${this.base}/${id}`, this.getOptions());
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  /** Format file size from String (backend stores as string) */
   formatSize(fileSizeStr: string): string {
     const bytes = parseInt(fileSizeStr, 10);
     if (isNaN(bytes)) return fileSizeStr;
@@ -137,7 +256,6 @@ export class FileManagerService {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  /** Derive an icon from MIME type */
   getFileIcon(fileType: string): string {
     if (fileType.startsWith('image/')) return '🖼️';
     if (fileType === 'application/pdf') return '📄';
@@ -147,5 +265,17 @@ export class FileManagerService {
     if (fileType.startsWith('video/')) return '🎬';
     if (fileType.startsWith('audio/')) return '🎵';
     return '📁';
+  }
+
+  isImage(fileType: string): boolean {
+    return fileType.startsWith('image/');
+  }
+
+  isVideo(fileType: string): boolean {
+    return fileType.startsWith('video/');
+  }
+
+  isAudio(fileType: string): boolean {
+    return fileType.startsWith('audio/');
   }
 }

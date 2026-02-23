@@ -60,22 +60,6 @@ export class AdminService {
     });
   }
 
-  // ─── GET /api/admin/users/{userId}/basic ─────────────────────────────────
-  getUserBasicInfo(userId: number): Observable<UserResponse> {
-    const token = localStorage.getItem('access_token');
-    
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    });
-
-    return this.http.get<UserResponse>(`${this.baseUrl}/${userId}/basic`, { 
-      headers,
-      withCredentials: true 
-    });
-  }
-
   // ─── PUT /api/admin/users/{userId} ───────────────────────────────────────
   updateUser(userId: number, data: AdminUserUpdateRequest): Observable<AdminUserResponse> {
     const token = localStorage.getItem('access_token');
@@ -139,6 +123,22 @@ export class AdminService {
       withCredentials: true 
     });
   }
+
+      // ─── GET /api/admin/users/{userId}/basic ─────────────────────────────────
+    getUserBasicInfo(userId: number): Observable<UserResponse> {
+      const token = localStorage.getItem('access_token');
+      
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      });
+  
+      return this.http.get<UserResponse>(`${this.baseUrl}/${userId}/basic`, { 
+        headers,
+        withCredentials: true 
+      });
+    }
 
   // For testing - simplified version
   testDirectGet(userId?: number): Observable<any> {

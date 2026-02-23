@@ -40,6 +40,8 @@ class JwtAuthenticationFilter (
     ) {
         try {
             val jwt = getJwtFromRequest(request)
+            val token = extractToken(request)
+            println("🔍 [manage-users] Token reçu: ${token?.take(50)}")
 
             // On valide d'abord la signature et l'expiration
             if (jwt?.isNotEmpty() == true && jwtProvider.validateToken(jwt)) {
@@ -87,6 +89,15 @@ class JwtAuthenticationFilter (
     private fun getJwtFromRequest(request: HttpServletRequest): String? {
         val bearerToken = request.getHeader("Authorization")
         return if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            bearerToken.substring(7)
+        } else {
+            null
+        }
+    }
+
+    private fun extractToken(request: HttpServletRequest): String? {
+        val bearerToken = request.getHeader("Authorization")
+        return if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             bearerToken.substring(7)
         } else {
             null

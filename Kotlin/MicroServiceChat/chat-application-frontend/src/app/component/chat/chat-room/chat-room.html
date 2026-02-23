@@ -156,6 +156,21 @@
         <button class="btn-primary" (click)="leftOpen.set(true)">Voir les salons</button>
       </div>
     }
+
+    <!-- Add after <main class="chat-main"> -->
+  @if (error()) {
+    <div class="error-banner">
+      <span>{{ error() }}</span>
+      <button (click)="error.set(null)">✕</button>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Chargement...</span>
+    </div>
+  }
   </main>
 
   <!-- RIGHT PANEL TOGGLE -->

@@ -38,27 +38,50 @@ export class JwtInterceptor implements HttpInterceptor {
     // Get token
     const token = this.tokenService.getAccessToken();
     
+    // Clone the request and add headers
+    let modifiedRequest = request;
+    
     if (token) {
-      // Clone the request and add the authorization header
-      request = request.clone({
+      // Add authorization header and CORS headers
+      modifiedRequest = request.clone({
         setHeaders: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         withCredentials: true // Important for CORS
       });
       
       console.log(`🔐 Added token to request: ${request.method} ${request.url}`);
     } else {
+      // Even without token, add CORS headers
+      modifiedRequest = request.clone({
+        setHeaders: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        withCredentials: true
+      });
       console.warn(`⚠️ No token for protected route: ${request.url}`);
     }
 
-    return next.handle(request).pipe(
+    return next.handle(modifiedRequest).pipe(
       catchError((error: HttpErrorResponse) => {
+        console.error('HTTP Error:', error);
+        
         if (error.status === 401) {
           console.error('🔄 401 error - token might be expired');
-          // Handle 401 error - maybe redirect to login
           this.authService.logout();
+          // Redirect to login
+          window.location.href = '/auth/login';
+        } else if (error.status === 403) {
+          console.error('🔒 403 error - forbidden access');
+          // You might want to show a notification here
+        } else if (error.status === 0) {
+          console.error('📡 Network/CORS error - check if backend is running and CORS is configured');
+          // Network error or CORS issue
         }
+        
         return throwError(() => error);
       })
     );
