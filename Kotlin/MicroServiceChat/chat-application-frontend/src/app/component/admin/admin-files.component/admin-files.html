@@ -1,0 +1,187 @@
+    <div class="admin-section">
+      <div class="section-header">
+        <h2>File Management</h2>
+        <div class="header-actions">
+          <button class="btn-refresh" (click)="loadData()" [disabled]="loading">
+            <span class="material-icons">refresh</span>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Storage Stats -->
+      <div class="stats-grid" *ngIf="stats">
+        <div class="stat-card">
+          <div class="stat-icon total">📁</div>
+          <div class="stat-content">
+            <span class="stat-label">Total Files</span>
+            <span class="stat-value">{{ stats.data?.totalFiles || 0 }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon size">💾</div>
+          <div class="stat-content">
+            <span class="stat-label">Total Size</span>
+            <span class="stat-value">{{ stats.data?.totalSizeMB || '0 MB' }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon images">🖼️</div>
+          <div class="stat-content">
+            <span class="stat-label">Images</span>
+            <span class="stat-value">{{ getTypeCount('image/') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon docs">📄</div>
+          <div class="stat-content">
+            <span class="stat-label">Documents</span>
+            <span class="stat-value">{{ getDocumentCount() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="filters-bar">
+        <div class="search-box">
+          <span class="material-icons">search</span>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm"
+            (ngModelChange)="searchFiles()"
+            placeholder="Search by file name..."
+          >
+        </div>
+
+        <select [(ngModel)]="typeFilter" (change)="filterByType()" class="filter-select">
+          <option value="">All Types</option>
+          <option value="image/">Images</option>
+          <option value="video/">Videos</option>
+          <option value="audio/">Audio</option>
+          <option value="application/pdf">PDF</option>
+          <option value="application/msword">Word</option>
+          <option value="application/vnd.ms-excel">Excel</option>
+          <option value="application/zip">Archive</option>
+        </select>
+      </div>
+
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Loading files...</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="error-state" *ngIf="error">
+        <span class="material-icons">error_outline</span>
+        <p>{{ error }}</p>
+        <button class="btn-retry" (click)="loadData()">Try Again</button>
+      </div>
+
+      <!-- Files Grid -->
+      <div class="files-grid" *ngIf="!loading && filteredFiles.length > 0">
+        <div class="file-card" *ngFor="let file of paginatedFiles">
+          <div class="file-preview" [style.background]="getFileBackground(file)">
+            <span class="file-icon">{{ fileService.getFileIcon(file.fileType) }}</span>
+            <span *ngIf="fileService.isImage(file.fileType)" class="image-badge">
+              {{ getImageDimensions(file) }}
+            </span>
+          </div>
+          
+          <div class="file-info">
+            <h4 class="file-name" [title]="file.originalFileName || file.fileName">
+              {{ (file.originalFileName || file.fileName) | slice:0:30 }}
+              {{ (file.originalFileName || file.fileName).length > 30 ? '...' : '' }}
+            </h4>
+            <div class="file-meta">
+              <span class="file-size">{{ formatFileSize(file.fileSize) }}</span>
+              <span class="file-type">{{ getFileTypeLabel(file.fileType) }}</span>
+            </div>
+            <div class="file-description" *ngIf="file.description">
+              {{ file.description | slice:0:50 }}{{ file.description.length > 50 ? '...' : '' }}
+            </div>
+            <div class="file-uploader">
+              <span class="material-icons">person</span>
+              <span class="uploader-id">ID: {{ extractUploaderId(file) }}</span>
+            </div>
+            <div class="file-date">
+              <span class="material-icons">calendar_today</span>
+              {{ file.uploadTime | date:'medium' }}
+            </div>
+          </div>
+
+          <div class="file-actions">
+            <button class="btn-icon download" (click)="downloadFile(file)" title="Download">
+              <span class="material-icons">download</span>
+            </button>
+            <button class="btn-icon delete" (click)="confirmDeleteFile(file)" title="Delete">
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div class="no-results" *ngIf="!loading && filteredFiles.length === 0">
+        <span class="material-icons">folder_open</span>
+        <h3>No files found</h3>
+        <p *ngIf="searchTerm || typeFilter">Try adjusting your filters</p>
+        <p *ngIf="!searchTerm && !typeFilter">No files have been uploaded yet</p>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="filteredFiles.length > 0">
+        <div class="pagination-info">
+          Showing {{ (currentPage - 1) * pageSize + 1 }} to 
+          {{ Math.min(currentPage * pageSize, filteredFiles.length) }} of 
+          {{ filteredFiles.length }} files
+        </div>
+        <div class="pagination-controls">
+          <button class="btn-page" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="page-indicator">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="btn-page" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <select class="page-size" [(ngModel)]="pageSize" (change)="changePageSize()">
+            <option [value]="12">12 per page</option>
+            <option [value]="24">24 per page</option>
+            <option [value]="48">48 per page</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay" *ngIf="fileToDelete" (click)="cancelDelete()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Delete File</h3>
+          <button class="btn-close" (click)="cancelDelete()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="warning-icon">
+            <span class="material-icons">warning</span>
+          </div>
+          <p class="warning-text">
+            Are you sure you want to delete <strong>{{ fileToDelete?.originalFileName || fileToDelete?.fileName }}</strong>?
+          </p>
+          <p class="warning-details">
+            This action cannot be undone. The file will be permanently removed from the system.
+          </p>
+          <div class="file-preview-small" *ngIf="fileToDelete">
+            <span class="file-icon-small">{{ fileService.getFileIcon(fileToDelete.fileType) }}</span>
+            <span class="file-name-small">{{ formatFileSize(fileToDelete.fileSize) }}</span>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="cancelDelete()">Cancel</button>
+          <button class="btn-danger" (click)="deleteFile()">Delete Permanently</button>
+        </div>
+      </div>
+    </div>

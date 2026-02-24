@@ -27,6 +27,14 @@ export class TokenService {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
+    /**
+   * Enregistre les tokens
+   */
+  // setTokens(accessToken: string, refreshToken: string): void {
+  //   localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
+  //   localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+  // }
+
   // ─── Decoding ───────────────────────────────────────────────────────────────
 
   /**

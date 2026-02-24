@@ -1,1 +1,116 @@
-<p>admin-dashboard works!</p>
+<div class="admin-dashboard" [class.sidebar-collapsed]="sidebarCollapsed">
+      <!-- Sidebar -->
+      <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
+        <div class="sidebar-header">
+          <div class="logo-area">
+            <span class="logo-icon">⚡</span>
+            <h2 *ngIf="!sidebarCollapsed">Admin Panel</h2>
+          </div>
+          
+          <!-- Collapse Toggle -->
+          <button class="collapse-toggle" (click)="toggleSidebar()">
+            <span class="material-icons">
+              {{ sidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
+            </span>
+          </button>
+        </div>
+        
+        <nav class="sidebar-nav">
+          <a routerLink="/admin/dashboard" routerLinkActive="active" 
+             [routerLinkActiveOptions]="{exact: true}" class="nav-item">
+            <span class="material-icons">dashboard</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Dashboard</span>
+          </a>
+          
+          <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">people</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Users</span>
+          </a>
+          
+          <a routerLink="/admin/chat-rooms" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">chat</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Chat Rooms</span>
+          </a>
+          
+          <a routerLink="/admin/messages" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">message</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Messages</span>
+          </a>
+          
+          <a routerLink="/admin/files" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">folder</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Files</span>
+          </a>
+          
+          <a routerLink="/admin/statistics" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">insights</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Statistics</span>
+          </a>
+          
+          <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">settings</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Settings</span>
+          </a>
+        </nav>
+        
+        <div class="sidebar-footer">
+          <a routerLink="/profile" class="profile-link">
+            <span class="material-icons">person</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">My Profile</span>
+          </a>
+          
+          <button class="logout-btn" (click)="confirmLogout()">
+            <span class="material-icons">logout</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content" [class.expanded]="sidebarCollapsed">
+        <header class="content-header">
+          <div class="header-left">
+            <h1>{{ getPageTitle() }}</h1>
+          </div>
+          
+          <div class="header-actions">
+            <button class="notification-btn">
+              <span class="material-icons">notifications</span>
+              <span class="notification-badge">3</span>
+            </button>
+            
+            <a routerLink="/profile" class="user-menu">
+              <div class="user-avatar">A</div>
+            </a>
+          </div>
+        </header>
+        
+        <!-- Router Outlet for child components -->
+        <div class="content-body">
+          <router-outlet></router-outlet>
+        </div>
+      </main>
+
+      <!-- Logout Confirmation Modal -->
+      <div class="modal-overlay" *ngIf="showLogoutModal" (click)="cancelLogout()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Confirm Logout</h3>
+            <button class="close-btn" (click)="cancelLogout()">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <span class="material-icons">logout</span>
+            <p>Are you sure you want to logout?</p>
+          </div>
+          <div class="modal-footer">
+            <button class="cancel-btn" (click)="cancelLogout()">Cancel</button>
+            <button class="logout-confirm-btn" (click)="logout()">
+              <span class="material-icons">logout</span>
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>

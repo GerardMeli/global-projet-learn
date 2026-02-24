@@ -14,6 +14,8 @@ export interface MessageUpdateRequest {
 }
 
 export interface MessageResponse {
+  fileUrl: any;
+  roomId: number;
   id: number;
   content: string;
   sender: UserSimpleResponse;
