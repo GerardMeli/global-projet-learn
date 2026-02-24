@@ -1398,4 +1398,168 @@
       color: rgba(160, 160, 184, 0.4);
     }
   }
+  // Notifications
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+  
+  &.success {
+    background: #28a745;
+  }
+  
+  &.error {
+    background: #dc3545;
+  }
+  
+  &.info {
+    background: #17a2b8;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Améliorations pour les fichiers — bouton circulaire style Telegram
+.msg-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  min-width: 200px;
+
+  .msg-file-content {
+    flex: 1;
+    min-width: 0;
+
+    .msg-file-name {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      color: #f0f0fa;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .msg-file-action {
+      font-size: 11px;
+      color: rgba(232, 121, 249, 0.8);
+    }
+  }
+}
+
+/* ── Bouton de téléchargement circulaire (Telegram style) ── */
+.dl-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(232, 121, 249, 0.15);
+  color: #e879f9;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.15s;
+  outline: none;
+
+  &:hover {
+    background: rgba(232, 121, 249, 0.28);
+    transform: scale(1.08);
+  }
+
+  /* Taille réduite pour le panneau fichiers */
+  &--sm {
+    width: 38px;
+    height: 38px;
+  }
+
+  &--done {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    cursor: default;
+    transform: none !important;
+  }
+
+  &--loading {
+    background: rgba(232, 121, 249, 0.08);
+    cursor: default;
+    &:hover { transform: none; }
+  }
+
+  &__icon {
+    width: 20px;
+    height: 20px;
+
+    .dl-btn--sm & {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+
+    &-bg { stroke: rgba(232, 121, 249, 0.15); }
+
+    &-fill {
+      stroke: #e879f9;
+      stroke-dasharray: 88;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s ease;
+    }
+  }
+
+  &__cancel {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    color: #e879f9;
+  }
+}
+
+/* Bouton dans les messages "own" */
+.message.own .dl-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+
+  &:hover { background: rgba(255, 255, 255, 0.25); }
+  &--done { background: rgba(74, 222, 128, 0.25); color: #4ade80; }
+
+  .dl-btn__ring-bg { stroke: rgba(255,255,255,0.15); }
+  .dl-btn__ring-fill { stroke: rgba(255,255,255,0.9); }
+  .dl-btn__cancel { color: rgba(255,255,255,0.9); }
+}
+
+.file-item {
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255,255,255,0.04);
+
+    .dl-btn { background: rgba(232, 121, 249, 0.28); }
+  }
+}
 }

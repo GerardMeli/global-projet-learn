@@ -96,6 +96,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private typingTimer: any;
   private scrollEnabled = true;
 
+  // Download state: messageId → progress (0-100) | 'done'
+  downloadProgress = new Map<number, number | 'done'>();
+
   ngOnInit() {
     this.loadRooms();
     this.loadAllUsers();
@@ -519,6 +522,61 @@ private formatFileSize(bytes: number): string {
 
   refreshRooms() {
     this.loadRooms();
+  }
+
+  /** Vérifie si un message est un message fichier (format: "📎 Fichier: nom (taille)") */
+  isFileMessage(content: string): boolean {
+    return content?.startsWith('📎 Fichier:') ?? false;
+  }
+
+  /** Extrait le nom du fichier depuis le message */
+  extractFileName(content: string): string {
+    const match = content.match(/📎 Fichier: (.+?) \(/);
+    return match ? match[1] : '';
+  }
+
+  /** Extrait la taille du fichier depuis le message */
+  extractFileSize(content: string): string {
+    const match = content.match(/\((.+?)\)$/);
+    return match ? match[1] : '';
+  }
+
+  /** Retourne la progression de téléchargement pour un message */
+  getDownloadProgress(msgId: number): number | 'done' | null {
+    return this.downloadProgress.get(msgId) ?? null;
+  }
+
+  /** Télécharge le fichier associé à un message */
+  downloadFile(msgId: number, content: string): void {
+    if (this.downloadProgress.has(msgId)) return; // déjà en cours
+
+    const fileName = this.extractFileName(content);
+    if (!fileName) return;
+
+    this.downloadProgress.set(msgId, 0);
+
+    this.fileService.downloadWithProgress(fileName, fileName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (event) => {
+          if (event.progress !== undefined) {
+            this.downloadProgress.set(msgId, event.progress);
+          }
+          if (event.done) {
+            this.downloadProgress.set(msgId, 'done');
+            // Retire l'état "done" après 2s pour revenir au bouton normal
+            setTimeout(() => {
+              this.downloadProgress.delete(msgId);
+            }, 2000);
+          }
+        },
+        error: (err) => {
+          console.error('[Chat] Download error:', err);
+          this.downloadProgress.delete(msgId);
+          this.error.set('Erreur lors du téléchargement');
+          setTimeout(() => this.error.set(null), 4000);
+        }
+      });
   }
 
   formatTime(timestamp: string): string {

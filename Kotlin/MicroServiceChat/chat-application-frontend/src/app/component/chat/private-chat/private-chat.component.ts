@@ -50,6 +50,11 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
   isTyping = signal(false);
   totalUnread = signal(0);
   loadingMessages = signal(false);
+  notificationMessage = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  // Download state: fileId → progress (0-100) | 'done'
+  fileDownloadProgress = new Map<number, number | 'done'>();
+  // Download state for inline messages: messageId → progress | 'done'
+  msgDownloadProgress = new Map<number, number | 'done'>();
   private shouldScroll = false;
 
   // Upload state
@@ -61,7 +66,7 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
   filePreviewUrl: SafeUrl | null = null;
   fileError = signal<string | null>(null);
   dragActive = signal(false);
-  acceptedFileTypes = ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+  acceptedFileTypes = signal(['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']);
   maxFileSize = 50 * 1024 * 1024; // 50 MB
 
   // Input state
@@ -83,6 +88,7 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
 
   // Helper pour obtenir l'icône du fichier
   getFileIcon(mimeType: string): string {
+    if (!mimeType) return '📁';
     if (mimeType.startsWith('image/')) return '🖼️';
     if (mimeType === 'application/pdf') return '📄';
     if (mimeType.includes('word')) return '📝';
@@ -169,31 +175,25 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
 
   // Propriétés pour le drag & drop
   isFileValid = computed(() => {
-    if (!this.pendingFile) return false;
-    
+    const file = this.pendingFile;
+    if (!file) return false;
+
     // Vérifier la taille
-    if (this.pendingFile.size > this.maxFileSize) {
-      this.fileError.set(`Fichier trop volumineux (max ${this.formatFileSize(this.maxFileSize)})`);
+    if (file.size > this.maxFileSize) {
       return false;
     }
-    
+
     // Vérifier le type (simplifié)
-    const fileType = this.pendingFile.type;
-    const isValidType = this.acceptedFileTypes.some(type => {
+    const fileType = file.type || '';
+    const isValidType = this.acceptedFileTypes().some((type: string) => {
       if (type.endsWith('/*')) {
         const category = type.replace('/*', '');
         return fileType.startsWith(category);
       }
       return type === fileType;
     });
-    
-    if (!isValidType) {
-      this.fileError.set('Type de fichier non supporté');
-      return false;
-    }
-    
-    this.fileError.set(null);
-    return true;
+
+    return !!isValidType;
   });
 
   ngOnInit() {
@@ -521,7 +521,7 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
       });
   }
 
-  // ========== GESTION DES FICHIERS AMÉLIORÉE ==========
+  // ========== GESTION DES FICHIERS ==========
 
   toggleFileUpload() {
     this.showSendFile.update(val => !val);
@@ -563,22 +563,8 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
   handleFileSelection(file: File) {
     console.log('File selected:', file.name, file.type, file.size);
     
-    // Réinitialiser les erreurs
-    this.fileError.set(null);
-    
-    // Vérifier la taille
-    if (file.size > this.maxFileSize) {
-      this.fileError.set(`Fichier trop volumineux (max ${this.formatFileSize(this.maxFileSize)})`);
-      return;
-    }
-    
-    // Vérifier le type (optionnel - à adapter selon vos besoins)
-    // if (!this.isValidFileType(file)) {
-    //   this.fileError.set('Type de fichier non supporté');
-    //   return;
-    // }
-    
     this.pendingFile = file;
+    this.validatePendingFile();
     
     // Créer un aperçu pour les images
     if (this.isImageFile(file)) {
@@ -592,8 +578,28 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
     }
   }
 
+  // Validate pendingFile and set fileError signal accordingly
+  private validatePendingFile() {
+    if (!this.pendingFile) {
+      this.fileError.set(null);
+      return;
+    }
+
+    if (this.pendingFile.size > this.maxFileSize) {
+      this.fileError.set(`Fichier trop volumineux (max ${this.formatFileSize(this.maxFileSize)})`);
+      return;
+    }
+
+    if (!this.isValidFileType(this.pendingFile)) {
+      this.fileError.set('Type de fichier non supporté');
+      return;
+    }
+
+    this.fileError.set(null);
+  }
+
   isValidFileType(file: File): boolean {
-    return this.acceptedFileTypes.some(type => {
+    return this.acceptedFileTypes().some((type: string) => {
       if (type.endsWith('/*')) {
         const category = type.replace('/*', '');
         return file.type.startsWith(category);
@@ -630,118 +636,355 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
     const otherId = this.activeUserId();
     
     if (!this.pendingFile || !uid || !otherId) {
-      console.log('Cannot send file: missing data');
+      this.fileError.set('Données manquantes pour l\'envoi du fichier');
       return;
     }
     
     if (!this.isFileValid()) {
-      console.log('File validation failed');
+      this.fileError.set('Fichier non valide (taille ou type non supporté)');
       return;
     }
     
-    console.log('Sending file:', this.pendingFile.name);
+    const fileToSend = this.pendingFile;
+    console.log('Sending file:', fileToSend.name);
     this.uploading = true;
     this.uploadProgress = 0;
     this.fileError.set(null);
 
-    // Simuler la progression pour une meilleure UX
-    const interval = setInterval(() => {
-      if (this.uploadProgress < 90) {
-        this.uploadProgress = Math.min(this.uploadProgress + 5, 90);
-      }
-    }, 200);
+    // Use real XHR-based progress via privateChatService.sendFile wrapped with XHR
+    // Since privateChatService.sendFile returns an Observable<PrivateFileResponse> without progress,
+    // we use fileService.uploadWithProgress first then send the link, OR we manually track via XHR.
+    // Strategy: use a fake-but-fast progress based on XHR, falling back to the service call.
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+    formData.append('file', fileToSend);
+    formData.append('receiverId', otherId.toString());
+    formData.append('description', this.fileDesc || ' ');
 
-    this.privateChatService.sendFile(uid, otherId, this.pendingFile, this.fileDesc)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          clearInterval(interval);
-        })
-      )
-      .subscribe({
-        next: (result) => {
-          console.log('File sent successfully:', result);
-          clearInterval(interval);
-          this.uploadProgress = 100;
-          
-          // Ajouter le fichier à la liste des fichiers partagés
+    xhr.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) {
+        this.uploadProgress = Math.round((event.loaded / event.total) * 100);
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        this.uploadProgress = 100;
+        try {
+          const result = JSON.parse(xhr.responseText);
           this.sharedFiles.update(files => [result, ...files]);
-          
-          // Créer un message temporaire pour le fichier
+
           const fileMessage: PrivateChatResponse = {
-            id: result.messageId,
+            id: result.messageId || Date.now(),
             senderId1: uid,
             senderId2: otherId,
             senderName1: this.activeUserEmail() || '',
             senderName2: this.activeUserEmail() || '',
-            content: `📎 ${result.originalFileName}`,
+            content: `📎 ${result.originalFileName || fileToSend.name}`,
             timestamp: new Date().toISOString(),
             isRead: false
           };
-          
-          // Ajouter le message à la conversation
           this.messages.update(msgs => [...msgs, fileMessage]);
           this.shouldScroll = true;
-          
-          // Réinitialiser l'état
+
           setTimeout(() => {
             this.clearFileSelection();
             this.uploading = false;
             this.uploadProgress = 0;
             this.showSendFile.set(false);
-          }, 1000);
-          
-          // Recharger les messages pour être sûr
+          }, 800);
+
           setTimeout(() => {
-            if (this.activeUserId() === otherId) {
-              this.loadMessages(otherId);
-            }
+            if (this.activeUserId() === otherId) this.loadMessages(otherId);
           }, 2000);
+        } catch {
+          this.fileError.set('Erreur lors du traitement de la réponse serveur');
+          this.uploading = false;
+        }
+      } else {
+        this.fileError.set(`Erreur ${xhr.status}: ${xhr.responseText || 'Envoi échoué'}`);
+        this.uploading = false;
+        this.uploadProgress = 0;
+      }
+    });
+
+    xhr.addEventListener('error', () => {
+      this.fileError.set('Erreur réseau lors de l\'envoi');
+      this.uploading = false;
+      this.uploadProgress = 0;
+    });
+
+    const token = localStorage.getItem('access_token');
+    const { chatApiUrl } = (window as any).__env__ ?? {};
+    // Dynamically import environment at runtime via the service base URL
+    const base = (this.privateChatService as any).base ?? '';
+    xhr.open('POST', `${base}/send-file/${uid}`);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.send(formData);
+  }
+
+  // ========== TÉLÉCHARGEMENT DE FICHIERS ==========
+
+  /** Helpers pour lire la progression depuis le template */
+  getFileProgress(fileId: number): number | 'done' | null {
+    return this.fileDownloadProgress.get(fileId) ?? null;
+  }
+
+  getMsgProgress(msgId: number): number | 'done' | null {
+    return this.msgDownloadProgress.get(msgId) ?? null;
+  }
+
+  // Télécharger un fichier depuis la liste des fichiers partagés
+  downloadFile(file: PrivateFileResponse) {
+    const fileId = file.fileId || this.extractFileIdFromFile(file);
+    if (!fileId) {
+      this.showNotification('Impossible de télécharger le fichier : ID manquant', 'error');
+      return;
+    }
+    if (this.fileDownloadProgress.has(fileId)) return; // déjà en cours
+
+    this.fileDownloadProgress.set(fileId, 0);
+
+    this.fileService.downloadByIdWithProgress(fileId, file.originalFileName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (event) => {
+          if (event.progress !== undefined) {
+            this.fileDownloadProgress.set(fileId, event.progress);
+          }
+          if (event.done) {
+            this.fileDownloadProgress.set(fileId, 'done');
+            this.showNotification(`Téléchargement terminé : ${file.originalFileName}`, 'success');
+            setTimeout(() => this.fileDownloadProgress.delete(fileId), 2000);
+          }
         },
         error: (err) => {
-          console.error('Error sending file:', err);
-          clearInterval(interval);
-          this.uploading = false;
-          this.uploadProgress = 0;
-          this.fileError.set('Erreur lors de l\'envoi du fichier');
+          console.error('Error downloading file:', err);
+          this.showNotification('Erreur lors du téléchargement', 'error');
+          this.fileDownloadProgress.delete(fileId);
         }
       });
   }
 
-  // Télécharger un fichier
-  downloadFile(file: PrivateFileResponse) {
-    console.log('Downloading file:', file.originalFileName);
-    
-    // Utiliser l'URL de téléchargement fournie par le service
-    if (file.downloadUrl) {
-      window.open(file.downloadUrl, '_blank');
-    } else {
-      // Fallback: utiliser le service de fichiers
-      this.fileService.downloadById(file.fileId || 0)
+  // Télécharger un fichier directement depuis un message inline
+  downloadFileFromMessage(message: PrivateChatResponse) {
+    const msgId = message.id;
+    if (this.msgDownloadProgress.has(msgId)) return; // déjà en cours
+
+    // Chercher dans les fichiers partagés
+    const fileId = this.extractFileIdFromMessage(message);
+    const existingFile = fileId ? this.sharedFiles().find(f => f.fileId === fileId) : null;
+
+    if (existingFile) {
+      // Proxy vers downloadFile mais en trackant aussi msgId
+      this.msgDownloadProgress.set(msgId, 0);
+      const fid = existingFile.fileId!;
+      this.fileService.downloadByIdWithProgress(fid, existingFile.originalFileName)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (blob) => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = file.originalFileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+          next: (event) => {
+            if (event.progress !== undefined) this.msgDownloadProgress.set(msgId, event.progress);
+            if (event.done) {
+              this.msgDownloadProgress.set(msgId, 'done');
+              setTimeout(() => this.msgDownloadProgress.delete(msgId), 2000);
+            }
           },
-          error: (err) => console.error('Error downloading file:', err)
+          error: () => {
+            this.showNotification('Erreur lors du téléchargement', 'error');
+            this.msgDownloadProgress.delete(msgId);
+          }
         });
+      return;
+    }
+
+    // Pas de fileId → essayer de charger les fichiers partagés d'abord
+    if (!fileId) {
+      // Fallback : télécharger par nom extrait du contenu
+      const fileName = message.content.startsWith('📎')
+        ? message.content.substring(2).trim()
+        : 'fichier';
+      this.showNotification(`Téléchargement de ${fileName}...`, 'info');
+      this.msgDownloadProgress.set(msgId, 0);
+      this.fileService.downloadWithProgress(fileName, fileName)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (event) => {
+            if (event.progress !== undefined) this.msgDownloadProgress.set(msgId, event.progress);
+            if (event.done) {
+              this.msgDownloadProgress.set(msgId, 'done');
+              setTimeout(() => this.msgDownloadProgress.delete(msgId), 2000);
+            }
+          },
+          error: () => {
+            this.showNotification('Erreur lors du téléchargement', 'error');
+            this.msgDownloadProgress.delete(msgId);
+          }
+        });
+      return;
+    }
+
+    // fileId connu mais pas dans sharedFiles
+    this.msgDownloadProgress.set(msgId, 0);
+    const fileName = message.content.startsWith('📎') ? message.content.substring(2).trim() : `file-${fileId}`;
+    this.fileService.downloadByIdWithProgress(fileId, fileName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (event) => {
+          if (event.progress !== undefined) this.msgDownloadProgress.set(msgId, event.progress);
+          if (event.done) {
+            this.msgDownloadProgress.set(msgId, 'done');
+            setTimeout(() => this.msgDownloadProgress.delete(msgId), 2000);
+          }
+        },
+        error: () => {
+          this.showNotification('Erreur lors du téléchargement', 'error');
+          this.msgDownloadProgress.delete(msgId);
+        }
+      });
+  }
+
+  // Déclencher le téléchargement dans le navigateur (conservé pour compatibilité)
+  triggerDownload(blob: Blob, fileName: string) {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Méthodes legacy conservées pour compatibilité
+  downloadFileById(fileId: number, fileName: string) {
+    if (this.fileDownloadProgress.has(fileId)) return;
+    this.fileDownloadProgress.set(fileId, 0);
+    this.fileService.downloadByIdWithProgress(fileId, fileName)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (event) => {
+          if (event.progress !== undefined) this.fileDownloadProgress.set(fileId, event.progress);
+          if (event.done) {
+            this.fileDownloadProgress.set(fileId, 'done');
+            this.showNotification('Téléchargement terminé', 'success');
+            setTimeout(() => this.fileDownloadProgress.delete(fileId), 2000);
+          }
+        },
+        error: () => {
+          this.showNotification('Erreur lors du téléchargement', 'error');
+          this.fileDownloadProgress.delete(fileId);
+        }
+      });
+  }
+
+  downloadSmallFile(fileId: number, fileName: string) {
+    this.downloadFileById(fileId, fileName);
+  }
+
+  downloadLargeFile(fileId: number, fileName: string) {
+    this.downloadFileById(fileId, fileName);
+  }
+
+  // Prévisualiser un fichier (ouvrir dans un nouvel onglet)
+  previewFile(file: PrivateFileResponse) {
+    console.log('Previewing file:', file.originalFileName);
+    
+    // Pour les images, on peut les prévisualiser directement
+    if (this.isImageFile(file as any)) {
+      if (file.downloadUrl) {
+        window.open(file.downloadUrl, '_blank');
+      } else {
+        // Télécharger et ouvrir
+        this.downloadAndPreview(file);
+      }
+    } 
+    // Pour les PDF, on peut les ouvrir dans un nouvel onglet
+    else if (file.fileType === 'application/pdf') {
+      if (file.downloadUrl) {
+        window.open(file.downloadUrl, '_blank');
+      } else {
+        this.downloadAndPreview(file);
+      }
+    }
+    // Pour les autres fichiers, on télécharge
+    else {
+      this.downloadFile(file);
     }
   }
 
-  // Afficher un fichier (pour les images)
-  viewFile(file: PrivateFileResponse) {
-    if (this.isImageFile(file as any)) {
-      window.open(file.downloadUrl, '_blank');
-    } else {
-      this.downloadFile(file);
+  // Télécharger et ouvrir un fichier
+  downloadAndPreview(file: PrivateFileResponse) {
+    const fileId = file.fileId || 0;
+    if (!fileId) return;
+    
+    this.fileService.downloadById(fileId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          setTimeout(() => window.URL.revokeObjectURL(url), 100);
+        },
+        error: (err) => {
+          console.error('Error previewing file:', err);
+          this.showNotification('Erreur lors de la prévisualisation', 'error');
+        }
+      });
+  }
+
+  // Extraire l'ID du fichier depuis un message
+  extractFileIdFromMessage(message: PrivateChatResponse): number | null {
+    // Logique à adapter selon votre structure de données
+    // Par exemple, si le message contient un champ fileId
+    if ((message as any).fileId) {
+      return (message as any).fileId;
     }
+    
+    // Ou si l'ID est dans le contenu du message
+    const match = message.content.match(/\[fileId:(\d+)\]/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+    
+    return null;
+  }
+
+  // Extraire l'ID du fichier depuis un objet file
+  extractFileIdFromFile(file: PrivateFileResponse): number | null {
+    if (file.fileId) return file.fileId;
+    if ((file as any).id) return (file as any).id;
+    return null;
+  }
+
+  // Deviner le type de fichier à partir du nom
+  guessFileType(fileName: string): string {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    
+    const typeMap: { [key: string]: string } = {
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'txt': 'text/plain',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'zip': 'application/zip'
+    };
+    
+    return extension && typeMap[extension] ? typeMap[extension] : 'application/octet-stream';
+  }
+
+  // Afficher une notification
+  showNotification(message: string, type: 'success' | 'error' | 'info' = 'info') {
+    console.log(`[${type}] ${message}`);
+    this.notificationMessage.set({ text: message, type });
+    setTimeout(() => this.notificationMessage.set(null), 3000);
   }
 
   goToRooms() {

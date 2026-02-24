@@ -78,7 +78,49 @@
                 <span class="msg-sender">{{ msg.sender.email }}</span>
               }
               @if (!msg.isDeleted) {
-                <p class="msg-text">{{ msg.content }}</p>
+                @if (isFileMessage(msg.content)) {
+                  <!-- File message with Telegram-style download button -->
+                  <div class="file-msg">
+                    <button
+                      class="download-btn"
+                      [class.downloading]="getDownloadProgress(msg.id) !== null && getDownloadProgress(msg.id) !== 'done'"
+                      [class.done]="getDownloadProgress(msg.id) === 'done'"
+                      (click)="downloadFile(msg.id, msg.content)"
+                      [title]="'Télécharger ' + extractFileName(msg.content)"
+                    >
+                      @if (getDownloadProgress(msg.id) === null) {
+                        <!-- Idle: download icon -->
+                        <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                          <path d="M12 3v13M7 11l5 5 5-5"/>
+                          <path d="M4 20h16"/>
+                        </svg>
+                      } @else if (getDownloadProgress(msg.id) === 'done') {
+                        <!-- Done: checkmark -->
+                        <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                      } @else {
+                        <!-- In progress: circular progress -->
+                        <svg class="dl-ring" viewBox="0 0 36 36">
+                          <circle class="dl-ring-bg" cx="18" cy="18" r="14" fill="none" stroke-width="3"/>
+                          <circle class="dl-ring-fill" cx="18" cy="18" r="14" fill="none" stroke-width="3"
+                            [style.stroke-dashoffset]="88 - (88 * (+getDownloadProgress(msg.id)!) / 100)"
+                          />
+                        </svg>
+                        <!-- Cancel icon in center -->
+                        <svg class="dl-cancel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                      }
+                    </button>
+                    <div class="file-msg-info">
+                      <span class="file-msg-name">{{ extractFileName(msg.content) }}</span>
+                      <span class="file-msg-size">{{ extractFileSize(msg.content) }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="msg-text">{{ msg.content }}</p>
+                }
               } @else {
                 <p class="msg-deleted">🗑 Message supprimé</p>
               }
