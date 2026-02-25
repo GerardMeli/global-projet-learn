@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;400;500;600&display=swap');
+@import 'app/shared/styles/variables';
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+h1, h2, h3 { font-family: var(--font-display); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 28px; border: none; border-radius: var(--radius-pill);
+  font-family: var(--font-body); font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: var(--transition); text-decoration: none;
+
+  &--primary {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+    color: white; box-shadow: 0 2px 8px rgba(76,175,80,0.35);
+    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(76,175,80,0.4); }
+  }
+  &--danger {
+    background: linear-gradient(135deg, var(--color-danger), #c82333);
+    color: white;
+    &:hover { transform: translateY(-1px); }
+  }
+  &--ghost {
+    background: transparent; color: var(--color-text-muted); border: 1.5px solid var(--color-border);
+    &:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  }
+  &--full { width: 100%; }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+}
+
+.card {
+  background: var(--color-surface); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card); overflow: hidden;
+}
+
+.form-group {
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;
+
+  label { font-size: 13px; font-weight: 500; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  input, select {
+    padding: 12px 16px; border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 15px;
+    color: var(--color-text); background: var(--color-surface); transition: var(--transition);
+    &:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(76,175,80,0.12); }
+    &.ng-invalid.ng-touched { border-color: var(--color-danger); }
+  }
+
+  .field-error { font-size: 12px; color: var(--color-danger); }
+}
+
+.alert {
+  padding: 14px 18px; border-radius: var(--radius-sm); font-size: 14px;
+  border-left: 4px solid;
+  &--danger { background: var(--color-danger-light); border-color: var(--color-danger); color: #721c24; }
+  &--success { background: var(--color-primary-light); border-color: var(--color-primary); color: #155724; }
+  &--warning { background: var(--color-warning-light); border-color: var(--color-warning); color: #856404; }
+  &--info { background: var(--color-info-light); border-color: var(--color-info); color: #0c5460; }
+}
+
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 500;
+  &--active { background: var(--color-primary-light); color: var(--color-primary-dark); }
+  &--pending { background: var(--color-warning-light); color: #e65100; }
+  &--suspended { background: #fff3cd; color: #856404; }
+  &--blocked, &--deleted { background: var(--color-danger-light); color: var(--color-danger); }
+  &--inactive { background: var(--color-surface-alt); color: var(--color-text-muted); }
+  &--admin { background: var(--color-accent-light); color: var(--color-accent); }
+  &--user { background: var(--color-primary-light); color: var(--color-primary-dark); }
+  &--support { background: var(--color-info-light); color: var(--color-info-dark); }
+}
+
+.spinner {
+  width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.35s ease forwards; }

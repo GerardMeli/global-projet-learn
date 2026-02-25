@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Status Update</title>
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+
+    <div style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Account Status Updated</h1>
+    </div>
+
+    <div style="padding: 40px 30px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hello <span th:text="${email}" style="font-weight: bold;"></span>,</p>
+
+        <p style="font-size: 16px; margin-bottom: 25px;">Your account status has been updated by an administrator.</p>
+
+        <div th:switch="${status}" style="margin: 30px 0;">
+            <div th:case="'ACTIVE'" style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 25px; border-radius: 5px;">
+                <span style="font-size: 32px; display: block; text-align: center; margin-bottom: 15px;">✅</span>
+                <h3 style="color: #155724; margin-top: 0; text-align: center;">Account Activated</h3>
+                <p style="color: #155724; margin-bottom: 0; text-align: center;">Your account is now active and you can log in normally.</p>
+            </div>
+
+            <div th:case="'SUSPENDED'" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 25px; border-radius: 5px;">
+                <span style="font-size: 32px; display: block; text-align: center; margin-bottom: 15px;">⚠️</span>
+                <h3 style="color: #856404; margin-top: 0; text-align: center;">Account Suspended</h3>
+                <p style="color: #856404; margin-bottom: 15px; text-align: center;">Your account has been temporarily suspended.</p>
+            </div>
+
+            <div th:case="'BLOCKED'" style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 25px; border-radius: 5px;">
+                <span style="font-size: 32px; display: block; text-align: center; margin-bottom: 15px;">🔒</span>
+                <h3 style="color: #721c24; margin-top: 0; text-align: center;">Account Blocked</h3>
+                <p style="color: #721c24; margin-bottom: 15px; text-align: center;">Your account has been blocked.</p>
+            </div>
+
+            <div th:case="'DELETED'" style="background-color: #e2e3e5; border-left: 4px solid #6c757d; padding: 25px; border-radius: 5px;">
+                <span style="font-size: 32px; display: block; text-align: center; margin-bottom: 15px;">🗑️</span>
+                <h3 style="color: #383d41; margin-top: 0; text-align: center;">Account Deleted</h3>
+                <p style="color: #383d41; margin-bottom: 15px; text-align: center;">Your account has been marked for deletion.</p>
+            </div>
+        </div>
+
+        <div th:if="${reason != null and !reason.isEmpty()}" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 30px 0;">
+            <p style="margin: 0; font-size: 15px; color: #495057;">
+                <strong>Reason provided:</strong><br>
+                <span th:text="${reason}" style="font-style: italic;"></span>
+            </p>
+        </div>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a th:href="'mailto:' + ${supportEmail}"
+               style="background-color: #6c757d; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 50px; font-size: 15px; display: inline-block;">
+                Contact Support
+            </a>
+        </div>
+    </div>
+
+    <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+        <p style="margin: 0; font-size: 14px; color: #6c757d;">
+            If you believe this is an error, please contact our support team.<br>
+            <a th:href="'mailto:' + ${supportEmail}" style="color: #6c757d; text-decoration: none;" th:text="${supportEmail}"></a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

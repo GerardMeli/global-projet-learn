@@ -1,0 +1,310 @@
+<div class="chat-shell">
+
+  <!-- LEFT PANEL TOGGLE -->
+  <button class="toggle-btn toggle-left" (click)="leftOpen.set(!leftOpen())" [class.active]="leftOpen()">
+    <span class="toggle-icon">{{ leftOpen() ? '◀' : '▶' }}</span>
+    <span class="toggle-label">Salons</span>
+  </button>
+
+  <!-- LEFT PANEL: Room List -->
+  <aside class="panel panel-left" [class.open]="leftOpen()">
+    <div class="panel-header">
+      <h2>💬 Salons</h2>
+      <!-- <button class="btn-icon" (click)="openCreateRoom()">＋</button> -->
+    </div>
+
+    <div class="search-box">
+      <input [(ngModel)]="roomSearch" placeholder="Rechercher un salon..." class="search-input" />
+    </div>
+
+    <div class="room-tabs">
+      <button [class.active]="roomFilter() === 'all'" (click)="roomFilter.set('all')">Tous</button>
+      <button [class.active]="roomFilter() === 'public'" (click)="roomFilter.set('public')">Public</button>
+      <button [class.active]="roomFilter() === 'private'" (click)="roomFilter.set('private')">Privé</button>
+    </div>
+
+    <div class="room-list">
+      @for (room of filteredRooms(); track room.id) {
+        <div class="room-item" [class.active]="activeRoomId() === room.id" (click)="selectRoom(room)">
+          <div class="room-avatar">{{ room.name[0].toUpperCase() }}</div>
+          <div class="room-info">
+            <span class="room-name">{{ room.name }}</span>
+            <span class="room-meta">
+              <span class="room-type-badge" [class.public]="room.type === 'PUBLIC'">{{ room.type === 'PUBLIC' ? '🌐' : '🔒' }}</span>
+              {{ room.participantCount }} membres
+            </span>
+          </div>
+        </div>
+      }
+      @if (filteredRooms().length === 0) {
+        <div class="empty-state">Aucun salon trouvé</div>
+      }
+    </div>
+
+    <div class="panel-footer">
+      <button class="btn-private" (click)="goToPrivate()">
+        💌 Messages privés
+        @if (totalUnread() > 0) { <span class="badge">{{ totalUnread() }}</span> }
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <main class="chat-main">
+    @if (activeRoom()) {
+      <!-- Chat Header -->
+      <header class="chat-header">
+        <div class="chat-title">
+          <span class="chat-avatar">{{ activeRoom()!.name[0].toUpperCase() }}</span>
+          <div>
+            <h3>{{ activeRoom()!.name }}</h3>
+            <span class="chat-subtitle">{{ activeRoom()!.participantCount }} participants</span>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button class="btn-icon" title="Fichiers" (click)="showFilesPanel = !showFilesPanel">📎</button>
+        </div>
+      </header>
+
+      <!-- Messages -->
+      <div class="messages-area" #messagesContainer>
+        @for (msg of messages(); track msg.id) {
+          <div class="message" [class.own]="msg.sender.id === currentUserId()">
+            @if (msg.sender.id !== currentUserId()) {
+              <div class="msg-avatar">{{ msg.sender.email[0].toUpperCase() }}</div>
+            }
+            <div class="msg-bubble">
+              @if (msg.sender.id !== currentUserId()) {
+                <span class="msg-sender">{{ msg.sender.email }}</span>
+              }
+              @if (!msg.isDeleted) {
+                @if (isFileMessage(msg.content)) {
+                  <!-- File message with Telegram-style download button -->
+                  <div class="file-msg">
+                    <button
+                      class="download-btn"
+                      [class.downloading]="getDownloadProgress(msg.id) !== null && getDownloadProgress(msg.id) !== 'done'"
+                      [class.done]="getDownloadProgress(msg.id) === 'done'"
+                      (click)="downloadFile(msg.id, msg.content)"
+                      [title]="'Télécharger ' + extractFileName(msg.content)"
+                    >
+                      @if (getDownloadProgress(msg.id) === null) {
+                        <!-- Idle: download icon -->
+                        <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                          <path d="M12 3v13M7 11l5 5 5-5"/>
+                          <path d="M4 20h16"/>
+                        </svg>
+                      } @else if (getDownloadProgress(msg.id) === 'done') {
+                        <!-- Done: checkmark -->
+                        <svg class="dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path d="M5 13l4 4L19 7"/>
+                        </svg>
+                      } @else {
+                        <!-- In progress: circular progress -->
+                        <svg class="dl-ring" viewBox="0 0 36 36">
+                          <circle class="dl-ring-bg" cx="18" cy="18" r="14" fill="none" stroke-width="3"/>
+                          <circle class="dl-ring-fill" cx="18" cy="18" r="14" fill="none" stroke-width="3"
+                            [style.stroke-dashoffset]="88 - (88 * (+getDownloadProgress(msg.id)!) / 100)"
+                          />
+                        </svg>
+                        <!-- Cancel icon in center -->
+                        <svg class="dl-cancel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                          <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                      }
+                    </button>
+                    <div class="file-msg-info">
+                      <span class="file-msg-name">{{ extractFileName(msg.content) }}</span>
+                      <span class="file-msg-size">{{ extractFileSize(msg.content) }}</span>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="msg-text">{{ msg.content }}</p>
+                }
+              } @else {
+                <p class="msg-deleted">🗑 Message supprimé</p>
+              }
+              <span class="msg-time">{{ formatTime(msg.timestamp) }}</span>
+            </div>
+            @if (msg.sender.id === currentUserId()) {
+              <div class="msg-actions">
+                <button (click)="deleteMessage(msg.id)" class="btn-msg-action">🗑</button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (typingUsers().length > 0) {
+          <div class="typing-indicator">
+            <span>{{ typingUsers().join(', ') }} est en train d'écrire</span>
+            <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+          </div>
+        }
+      </div>
+
+      <!-- File Upload Panel -->
+      @if (showFilesPanel) {
+        <div class="file-panel">
+          <div class="file-panel-header">
+            <span>📎 Envoyer un fichier</span>
+            <button (click)="showFilesPanel = false">✕</button>
+          </div>
+          <div class="file-drop-zone" (dragover)="$event.preventDefault()" (drop)="onFileDrop($event)" (click)="fileInput.click()">
+            <input #fileInput type="file" (change)="onFileSelect($event)" hidden multiple />
+            <div class="drop-content">
+              <span class="drop-icon">📤</span>
+              <p>Glissez-déposez ou cliquez pour choisir</p>
+              <span class="drop-hint">Images, PDF, documents...</span>
+            </div>
+          </div>
+          @if (pendingFile) {
+            <div class="pending-file">
+              <span>{{ pendingFile.name }}</span>
+              <input [(ngModel)]="fileDescription" placeholder="Description (optionnel)" class="file-desc-input" />
+              <button class="btn-send-file" (click)="sendFile()">Envoyer</button>
+              <button class="btn-cancel" (click)="pendingFile = null">Annuler</button>
+            </div>
+          }
+          @if (uploadProgress > 0 && uploadProgress < 100) {
+            <div class="upload-progress">
+              <div class="progress-bar" [style.width.%]="uploadProgress"></div>
+              <span>{{ uploadProgress }}%</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Message Input -->
+      <div class="message-input-area">
+        @if (isCurrentUserParticipant()) {
+          <button class="btn-attach" (click)="showFilesPanel = !showFilesPanel">📎</button>
+          <textarea
+            [(ngModel)]="messageText"
+            (keydown.enter)="$event.preventDefault(); sendMessage()"
+            (input)="onTyping()"
+            placeholder="Écrivez un message... (Entrée pour envoyer)"
+            class="message-input"
+            rows="1"
+          ></textarea>
+          <button class="btn-send" (click)="sendMessage()" [disabled]="!messageText.trim()">
+            <span>➤</span>
+          </button>
+        } @else {
+          <!-- User is not a participant -->
+          <div class="not-participant-warning">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-text">Vous n'êtes pas participant de ce salon. Demandez à être ajouté pour pouvoir discuter.</span>
+            <button class="btn-request-join" (click)="requestJoinRoom()">Demander l'accès</button>
+          </div>
+        }
+      </div>
+
+    } @else {
+      <div class="no-room-selected">
+        <div class="welcome-icon">💬</div>
+        <h3>Sélectionnez un salon</h3>
+        <p>Choisissez un salon dans la liste de gauche pour commencer à discuter</p>
+        <button class="btn-primary" (click)="leftOpen.set(true)">Voir les salons</button>
+      </div>
+    }
+
+    <!-- Add after <main class="chat-main"> -->
+  @if (error()) {
+    <div class="error-banner">
+      <span>{{ error() }}</span>
+      <button (click)="error.set(null)">✕</button>
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Chargement...</span>
+    </div>
+  }
+  </main>
+
+  <!-- RIGHT PANEL TOGGLE -->
+  <button class="toggle-btn toggle-right" (click)="rightOpen.set(!rightOpen())" [class.active]="rightOpen()" [disabled]="!activeRoom()">
+    <span class="toggle-label">Membres</span>
+    <span class="toggle-icon">{{ rightOpen() ? '▶' : '◀' }}</span>
+  </button>
+
+  <!-- RIGHT PANEL: Participants -->
+  <aside class="panel panel-right" [class.open]="rightOpen()">
+    <div class="panel-header">
+      <h2>👥 Membres</h2>
+      <span class="count-badge">{{ participants().length }}</span>
+    </div>
+
+    <div class="participants-list">
+      @for (p of participants(); track p.id) {
+        @if (p.user.id !== currentUserId()) {
+          <div class="participant-item">
+            <div class="part-avatar">{{ p.user.email[0].toUpperCase() }}</div>
+            <div class="part-info">
+              <span class="part-name">{{ p.user.email }}</span>
+              <span class="part-role role-{{ p.role.toLowerCase() }}">{{ p.role }}</span>
+            </div>
+            <div class="part-actions">
+              <button class="btn-icon-sm" title="Voir le profil" (click)="viewProfile(p.user.id)">👤</button>
+              <button class="btn-icon-sm" title="Message privé" (click)="startPrivateChat(p.user.id)">💌</button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+
+    @if (activeRoom()) {
+      <div class="panel-section">
+        <h4>Ajouter un membre</h4>
+        <div class="add-member-list">
+          @for (user of availableUsers(); track user.id) {
+            <div class="add-user-item">
+              <span>{{ user.email }}</span>
+              <button class="btn-add" (click)="addParticipant(user.id)">＋</button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </aside>
+
+  <!-- Create Room Modal -->
+  @if (showCreateModal) {
+    <div class="modal-overlay" (click)="showCreateModal = false">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3>Créer un salon</h3>
+        <input [(ngModel)]="newRoomName" placeholder="Nom du salon" class="modal-input" />
+        <div class="radio-group">
+          <label><input type="radio" [(ngModel)]="newRoomType" value="PUBLIC" /> 🌐 Public</label>
+          <label><input type="radio" [(ngModel)]="newRoomType" value="PRIVATE" /> 🔒 Privé</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-primary" (click)="createRoom()">Créer</button>
+          <button class="btn-secondary" (click)="showCreateModal = false">Annuler</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Profile Modal -->
+  @if (viewingUserId !== null) {
+    <div class="modal-overlay" (click)="viewingUserId = null">
+      <div class="modal profile-modal" (click)="$event.stopPropagation()">
+        <div class="profile-header">
+          <div class="profile-big-avatar">{{ viewingUserEmail?.[0]?.toUpperCase() }}</div>
+          <h3>{{ viewingUserEmail }}</h3>
+          <span class="user-id-badge">ID: {{ viewingUserId }}</span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-primary" (click)="startPrivateChat(viewingUserId!)">💌 Message privé</button>
+          <button class="btn-secondary" (click)="viewingUserId = null">Fermer</button>
+        </div>
+      </div>
+    </div>
+  }
+  <!-- 🔥 OBLIGATOIRE POUR LES ROUTES ENFANTS -->
+  <!-- <router-outlet></router-outlet> -->
+
+</div>
