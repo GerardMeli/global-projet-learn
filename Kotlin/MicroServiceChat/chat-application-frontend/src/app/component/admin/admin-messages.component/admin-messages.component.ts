@@ -9,8 +9,8 @@ import { MessageService } from '../../../core/services/chat/message.service';
   selector: 'app-admin-messages',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: './admin-messages.html',
-  styles: ['./admin-messages.scss']
+  templateUrl: './admin-messages.html',
+  styleUrls: ['./admin-messages.component.scss']
 })
 export class AdminMessagesComponent implements OnInit {
   messages: MessageResponse[] = [];

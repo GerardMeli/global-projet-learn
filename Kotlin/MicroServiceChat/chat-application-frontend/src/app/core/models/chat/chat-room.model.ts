@@ -20,6 +20,9 @@ export interface ChatRoomResponse {
   name: string;
   type: ChatRoomType;
   participantCount: number;
+  description?: string;
+  messageCount?: number;
+  createdAt?: string;
 }
 
 export interface ChatRoomDetailResponse {

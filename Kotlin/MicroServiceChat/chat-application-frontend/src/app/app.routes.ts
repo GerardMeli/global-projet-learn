@@ -131,8 +131,8 @@ export const routes: Routes = [
     path: 'admin',
     canActivate: [AuthGuard, AdminGuard],
     loadChildren: () =>
-      import('./component/admin/admin-routing.module')
-        .then(m => m.AdminRoutingModule),
+      import('./component/admin/admin-dashboard/admin-dashboard.module')
+        .then(m => m.AdminDashboardModule),
     data: {
       title: 'Administration',
       breadcrumb: 'Admin',

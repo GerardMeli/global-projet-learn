@@ -4,14 +4,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AdminFilesComponent } from './admin-files.component';
+import { AdminFilesRoutingModule } from './admin-files-routing.module';
 
 @NgModule({
-//   declarations: [AdminFilesComponent],
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule
-  ],
-//   exports: [AdminFilesComponent]
+    RouterModule,
+    AdminFilesRoutingModule,
+    AdminFilesComponent
+  ]
 })
 export class AdminFilesModule { }

@@ -13,8 +13,8 @@ import { TokenService } from '../../../core/services/users/token.service';
   selector: 'app-profile',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: './user-list.html',
-  styles: ['./profile.scss']
+  templateUrl: './profile.html',
+  styleUrls: ['./profile.scss']
 })
 export class ProfileComponent implements OnInit {
   profile: UserProfileResponse | null = null;

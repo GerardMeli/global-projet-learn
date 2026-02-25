@@ -11,14 +11,6 @@ const routes: Routes = [
       title: 'Files Management',
       breadcrumb: 'Files'
     }
-  },
-  {
-    path: ':id',
-    loadChildren: () => import('./admin-files.module').then(m => m.AdminFilesModule),
-    data: {
-      title: 'File Details',
-      breadcrumb: 'File Details'
-    }
   }
 ];
 

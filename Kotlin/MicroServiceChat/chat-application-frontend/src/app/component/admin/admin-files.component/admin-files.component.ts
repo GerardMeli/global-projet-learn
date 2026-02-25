@@ -13,8 +13,8 @@ import { FileManagerService } from '../../../core/services/file/file.service';
   selector: 'app-admin-files',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: './admin-files.html',
-  styles: ['./admin-files.scss']
+  templateUrl: './admin-files.html',
+  styleUrls: ['./admin-files.scss']
 })
 export class AdminFilesComponent implements OnInit {
   stats: FileStatsResponse | null = null;

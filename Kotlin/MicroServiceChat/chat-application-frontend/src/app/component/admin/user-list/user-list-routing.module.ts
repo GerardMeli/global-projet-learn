@@ -3,6 +3,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from '../../../core/guards/auth.guard';
 import { AdminGuard } from '../../../core/guards/admin.guard';
+import { UserListComponent } from './user-list';
 
 const routes: Routes = [
   {

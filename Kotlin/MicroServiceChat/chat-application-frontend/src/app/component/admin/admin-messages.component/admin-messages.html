@@ -96,7 +96,7 @@
               </td>
               <td class="content-cell">
                 <span class="message-content" [title]="message.content">
-                  {{ message.content | slice:0:50 }}{{ message.content?.length > 50 ? '...' : '' }}
+                  {{ (message.content || '') | slice:0:50 }}{{ (message.content || '').length > 50 ? '...' : '' }}
                 </span>
               </td>
               <td>

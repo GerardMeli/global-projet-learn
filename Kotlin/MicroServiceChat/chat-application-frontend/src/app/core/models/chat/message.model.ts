@@ -19,6 +19,11 @@ export interface MessageResponse {
   id: number;
   content: string;
   sender: UserSimpleResponse;
+  /** Optional compatibility fields for templates */
+  senderId?: number;
+  fileName?: string | null;
+  createdAt?: string;
+  deleted?: boolean;
   chatRoomId: number;
   timestamp: string;
   messageType: MessageType;

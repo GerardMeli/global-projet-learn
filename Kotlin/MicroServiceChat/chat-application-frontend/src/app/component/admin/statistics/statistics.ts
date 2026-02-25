@@ -50,8 +50,8 @@ interface SystemStats {
   selector: 'app-statistics',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: './statistics.html',
-  styles: ['./statistics.scss']
+  templateUrl: './statistics.html',
+  styleUrls: ['./statistics.scss']
 })
 export class StatisticsComponent implements OnInit {
   stats: SystemStats | null = null;

@@ -4,14 +4,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AdminChatRoomsComponent } from './admin-chat-rooms.component';
+import { AdminChatRoomsRoutingModule } from './admin-chat-rooms-routing.module';
 
 @NgModule({
-//   declarations: [AdminChatRoomsComponent],
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule
-  ],
-//   exports: [AdminChatRoomsComponent]
+    RouterModule,
+    AdminChatRoomsRoutingModule,
+    AdminChatRoomsComponent
+  ]
 })
 export class AdminChatRoomsModule { }

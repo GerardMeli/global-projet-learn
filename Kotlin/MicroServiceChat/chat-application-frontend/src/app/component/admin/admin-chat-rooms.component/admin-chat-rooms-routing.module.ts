@@ -11,14 +11,6 @@ const routes: Routes = [
       title: 'Chat Rooms Management',
       breadcrumb: 'Chat Rooms'
     }
-  },
-  {
-    path: ':id',
-    loadChildren: () => import('./admin-chat-rooms.module').then(m => m.AdminChatRoomsModule),
-    data: {
-      title: 'Chat Room Details',
-      breadcrumb: 'Room Details'
-    }
   }
 ];
 

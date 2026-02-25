@@ -1,6 +1,9 @@
 // user-list.component.ts
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { AdminService } from '../../../core/services/users/admin.service';
 import { UserProfileResponse } from '../../../core/models/users/profile.model';
 import { TokenService } from '../../../core/services/users/token.service';
@@ -8,6 +11,8 @@ import { UserStatus, UserRole } from '../../../core/models/users/enums.model';
 
 @Component({
   selector: 'app-user-list',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './user-list.html',
   styleUrls: ['./user-list.scss']
 })

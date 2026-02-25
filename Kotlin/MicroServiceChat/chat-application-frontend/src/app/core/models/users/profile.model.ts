@@ -22,6 +22,7 @@ export interface UserProfileResponse {
   theme: Theme;
   emailNotifications: boolean;
   createdAt: string;           // LocalDateTime → ISO string
+  updatedAt?: string;          // LocalDateTime → ISO string (optional)
   failedLoginAttempts: number;
 }
 

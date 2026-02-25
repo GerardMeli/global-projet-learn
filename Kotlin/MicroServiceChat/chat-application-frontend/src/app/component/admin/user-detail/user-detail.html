@@ -281,12 +281,11 @@
                 [disabled]="!roleUpdate.role || updating || roleUpdate.role === user.role"
                 [attr.aria-busy]="updating"
               >
-                @if (updating) {
-                  <span class="spinner-small"></span>
-                } @else {
+                <ng-container *ngIf="updating"><span class="spinner-small"></span></ng-container>
+                <ng-container *ngIf="!updating">
                   <span class="material-icons" aria-hidden="true">admin_panel_settings</span>
                   Mettre à jour le rôle
-                }
+                </ng-container>
               </button>
             </div>
           </div>
@@ -356,14 +355,11 @@
           [disabled]="saving || !hasChanges()"
           [attr.aria-busy]="saving"
         >
-          @if (saving) {
-            <span class="spinner-small"></span>
-          } @else {
-            <span class="material-icons" aria-hidden="true">save</span>
-          }
+          <ng-container *ngIf="saving"><span class="spinner-small"></span></ng-container>
+          <ng-container *ngIf="!saving"><span class="material-icons" aria-hidden="true">save</span></ng-container>
           {{ saving ? 'Enregistrement...' : 'Enregistrer les modifications' }}
         </button>
       </div>
     </div>
-  }
+  </div>
 </div>

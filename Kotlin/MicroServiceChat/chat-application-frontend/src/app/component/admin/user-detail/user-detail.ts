@@ -12,10 +12,12 @@ import { UserStatus, UserRole, Language, Theme } from '../../../core/models/user
 import { AdminService } from '../../../core/services/users/admin.service';
 import { TokenService } from '../../../core/services/users/token.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-user-detail',
-  imports: [CommonModule],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './user-detail.html',
   styleUrls: ['./user-detail.scss']
 })

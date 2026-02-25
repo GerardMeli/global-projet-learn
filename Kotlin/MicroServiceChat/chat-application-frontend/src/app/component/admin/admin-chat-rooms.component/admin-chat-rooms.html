@@ -111,7 +111,7 @@
               </td>
               <td class="description-cell">
                 <span class="description" [title]="room.description || 'No description'">
-                  {{ room.description || '—' | slice:0:50 }}{{ room.description?.length > 50 ? '...' : '' }}
+                  {{ (room.description || '—') | slice:0:50 }}{{ (room.description || '').length > 50 ? '...' : '' }}
                 </span>
               </td>
               <td>

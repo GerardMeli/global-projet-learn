@@ -4,14 +4,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AdminMessagesComponent } from './admin-messages.component';
+import { AdminMessagesRoutingModule } from './admin-messages-routing.module';
 
 @NgModule({
-//   declarations: [AdminMessagesComponent],
   imports: [
     CommonModule,
     FormsModule,
-    RouterModule
-  ],
-//   exports: [AdminMessagesComponent]
+    RouterModule,
+    AdminMessagesRoutingModule,
+    AdminMessagesComponent
+  ]
 })
 export class AdminMessagesModule { }

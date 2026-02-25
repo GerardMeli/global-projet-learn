@@ -9,8 +9,8 @@ import { filter } from 'rxjs/operators';
   selector: 'app-admin-dashboard',
   standalone: true,
   imports: [CommonModule, RouterModule],
-  template: './admin-dashboard.html',
-  styles: ['./admin-dashboard.scss']
+  templateUrl: './admin-dashboard.html',
+  styleUrls: ['./admin-dashboard.scss']
 })
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
