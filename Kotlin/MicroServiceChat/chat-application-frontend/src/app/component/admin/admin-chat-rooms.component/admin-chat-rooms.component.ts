@@ -1,4 +1,3 @@
-// admin-chat-rooms.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +6,9 @@ import { ChatParticipantService } from '../../../core/services/chat/chat-partici
 import { ChatRoomResponse, ChatRoomCreateRequest } from '../../../core/models/chat/chat-room.model';
 import { ChatRoomService } from '../../../core/services/chat/chat-room.service';
 import { MessageService } from '../../../core/services/chat/message.service';
-import { ProfileService } from '../../../core/services/users/profile.service';
+import { UserProfileResponse } from '../../../core/models/users/profile.model';
+import { AdminService } from '../../../core/services/users/admin.service';
+import { ParticipantRole } from '../../../core/models/chat/chat.mdel';
 
 @Component({
   selector: 'app-admin-chat-rooms',
@@ -33,8 +34,8 @@ export class AdminChatRoomsComponent implements OnInit {
     description: ''
   };
   selectedUserIds: Set<number> = new Set();
-  allUsers: any[] = [];
-  filteredUsers: any[] = [];
+  allUsers: UserProfileResponse[] = [];
+  filteredUsers: UserProfileResponse[] = [];
   userSearchTerm = '';
   creatingRoom = false;
   
@@ -66,7 +67,7 @@ export class AdminChatRoomsComponent implements OnInit {
     private chatRoomService: ChatRoomService,
     private participantService: ChatParticipantService,
     private messageService: MessageService,
-    private profileService: ProfileService
+    private adminService: AdminService
   ) {}
 
   ngOnInit(): void {
@@ -115,7 +116,7 @@ export class AdminChatRoomsComponent implements OnInit {
         publicRooms: publicRooms?.length || 0,
         privateRooms: privateRooms?.length || 0,
         totalParticipants: participants?.length || 0,
-        totalMessages: 0 // Will be calculated from each room
+        totalMessages: 0
       };
 
       // Calculate total messages
@@ -135,8 +136,7 @@ export class AdminChatRoomsComponent implements OnInit {
   filterRooms(): void {
     this.filteredRooms = this.rooms.filter(room => {
       const matchesSearch = !this.searchTerm || 
-        room.name.toLowerCase().includes(this.searchTerm.toLowerCase())
-        // room.description?.toLowerCase().includes(this.searchTerm.toLowerCase());
+        room.name.toLowerCase().includes(this.searchTerm.toLowerCase());
       
       const matchesType = !this.typeFilter || room.type === this.typeFilter;
       
@@ -178,7 +178,6 @@ export class AdminChatRoomsComponent implements OnInit {
   }
 
   showMessages(room: ChatRoomResponse): void {
-    // Navigate to messages view or open modal
     console.log('Show messages for room:', room.id);
   }
 
@@ -187,7 +186,6 @@ export class AdminChatRoomsComponent implements OnInit {
   }
 
   editRoom(room: ChatRoomResponse): void {
-    // Navigate to edit form
     console.log('Edit room:', room.id);
   }
 
@@ -238,13 +236,19 @@ export class AdminChatRoomsComponent implements OnInit {
   }
 
   loadAllUsers(): void {
-    this.profileService.getAllUsers().subscribe({
-      next: (users) => {
-        this.allUsers = users;
+    this.adminService.getAllUsers().subscribe({
+      next: (response) => {
+        // AdminService.getAllUsers() retourne ApiResponse<UserProfileResponse[]>
+        if (response && response.data) {
+          this.allUsers = response.data;
+        } else {
+          this.allUsers = [];
+        }
         this.filterUsers();
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Failed to load users', error);
+        this.allUsers = [];
       }
     });
   }
@@ -290,7 +294,7 @@ export class AdminChatRoomsComponent implements OnInit {
         this.rooms.push(newRoom);
         this.filterRooms();
         this.closeCreateRoomModal();
-        this.loadData(); // Reload stats
+        this.loadData();
         this.error = '';
       },
       error: (error) => {
@@ -327,29 +331,34 @@ export class AdminChatRoomsComponent implements OnInit {
     const roomId = this.roomForAddingParticipants.id;
     const userIds = Array.from(this.selectedUserIds);
     let addedCount = 0;
+    let hasError = false;
 
     userIds.forEach(userId => {
       this.participantService.add({
         userId,
         chatRoomId: roomId,
-        role: 'MEMBER' as any
+        role: ParticipantRole.MEMBER
       }).subscribe({
         next: () => {
           addedCount++;
-          if (addedCount === userIds.length) {
-            // All participants added
+          if (addedCount === userIds.length && !hasError) {
             this.closeAddParticipantsModal();
             this.showParticipants(this.roomForAddingParticipants!);
           }
         },
         error: (error) => {
           console.error('Failed to add participant', error);
+          hasError = true;
+          this.error = 'Failed to add some participants';
         }
       });
     });
   }
 
   getParticipantInitials(participant: any): string {
+    if (participant.user?.firstName && participant.user?.lastName) {
+      return (participant.user.firstName[0] + participant.user.lastName[0]).toUpperCase();
+    }
     return `U${participant.userId}`.slice(0, 2).toUpperCase();
   }
 
@@ -362,5 +371,12 @@ export class AdminChatRoomsComponent implements OnInit {
       'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
     ];
     return colors[userId % colors.length];
+  }
+
+  getUserDisplayName(user: UserProfileResponse): string {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    return user.email;
   }
 }
