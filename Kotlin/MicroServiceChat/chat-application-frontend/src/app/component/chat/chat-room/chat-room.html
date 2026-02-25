@@ -10,7 +10,7 @@
   <aside class="panel panel-left" [class.open]="leftOpen()">
     <div class="panel-header">
       <h2>💬 Salons</h2>
-      <button class="btn-icon" (click)="openCreateRoom()">＋</button>
+      <!-- <button class="btn-icon" (click)="openCreateRoom()">＋</button> -->
     </div>
 
     <div class="search-box">
@@ -176,18 +176,27 @@
 
       <!-- Message Input -->
       <div class="message-input-area">
-        <button class="btn-attach" (click)="showFilesPanel = !showFilesPanel">📎</button>
-        <textarea
-          [(ngModel)]="messageText"
-          (keydown.enter)="$event.preventDefault(); sendMessage()"
-          (input)="onTyping()"
-          placeholder="Écrivez un message... (Entrée pour envoyer)"
-          class="message-input"
-          rows="1"
-        ></textarea>
-        <button class="btn-send" (click)="sendMessage()" [disabled]="!messageText.trim()">
-          <span>➤</span>
-        </button>
+        @if (isCurrentUserParticipant()) {
+          <button class="btn-attach" (click)="showFilesPanel = !showFilesPanel">📎</button>
+          <textarea
+            [(ngModel)]="messageText"
+            (keydown.enter)="$event.preventDefault(); sendMessage()"
+            (input)="onTyping()"
+            placeholder="Écrivez un message... (Entrée pour envoyer)"
+            class="message-input"
+            rows="1"
+          ></textarea>
+          <button class="btn-send" (click)="sendMessage()" [disabled]="!messageText.trim()">
+            <span>➤</span>
+          </button>
+        } @else {
+          <!-- User is not a participant -->
+          <div class="not-participant-warning">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-text">Vous n'êtes pas participant de ce salon. Demandez à être ajouté pour pouvoir discuter.</span>
+            <button class="btn-request-join" (click)="requestJoinRoom()">Demander l'accès</button>
+          </div>
+        }
       </div>
 
     } @else {

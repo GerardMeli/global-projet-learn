@@ -4,9 +4,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router'; 
 import { ChatParticipantService } from '../../../core/services/chat/chat-participant.service';
-import { ChatRoomResponse } from '../../../core/models/chat/chat-room.model';
+import { ChatRoomResponse, ChatRoomCreateRequest } from '../../../core/models/chat/chat-room.model';
 import { ChatRoomService } from '../../../core/services/chat/chat-room.service';
 import { MessageService } from '../../../core/services/chat/message.service';
+import { ProfileService } from '../../../core/services/users/profile.service';
 
 @Component({
   selector: 'app-admin-chat-rooms',
@@ -23,6 +24,23 @@ export class AdminChatRoomsComponent implements OnInit {
   selectedRoom: ChatRoomResponse | null = null;
   roomParticipants: any[] = [];
   roomToDelete: ChatRoomResponse | null = null;
+  
+  // Create Room Modal
+  showCreateRoomModal = false;
+  newRoom = {
+    name: '',
+    type: 'PUBLIC',
+    description: ''
+  };
+  selectedUserIds: Set<number> = new Set();
+  allUsers: any[] = [];
+  filteredUsers: any[] = [];
+  userSearchTerm = '';
+  creatingRoom = false;
+  
+  // Add Participants Modal
+  showAddParticipantsModal = false;
+  roomForAddingParticipants: ChatRoomResponse | null = null;
   
   searchTerm = '';
   typeFilter = '';
@@ -47,11 +65,13 @@ export class AdminChatRoomsComponent implements OnInit {
   constructor(
     private chatRoomService: ChatRoomService,
     private participantService: ChatParticipantService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private profileService: ProfileService
   ) {}
 
   ngOnInit(): void {
     this.loadData();
+    this.loadAllUsers();
   }
 
   loadData(): void {
@@ -199,6 +219,134 @@ export class AdminChatRoomsComponent implements OnInit {
   closeModal(): void {
     this.selectedRoom = null;
     this.roomParticipants = [];
+  }
+
+  // ==================== CREATE ROOM ====================
+
+  openCreateRoomModal(): void {
+    this.newRoom = { name: '', type: 'PUBLIC', description: '' };
+    this.selectedUserIds.clear();
+    this.userSearchTerm = '';
+    this.filterUsers();
+    this.showCreateRoomModal = true;
+  }
+
+  closeCreateRoomModal(): void {
+    this.showCreateRoomModal = false;
+    this.newRoom = { name: '', type: 'PUBLIC', description: '' };
+    this.selectedUserIds.clear();
+  }
+
+  loadAllUsers(): void {
+    this.profileService.getAllUsers().subscribe({
+      next: (users) => {
+        this.allUsers = users;
+        this.filterUsers();
+      },
+      error: (error) => {
+        console.error('Failed to load users', error);
+      }
+    });
+  }
+
+  filterUsers(): void {
+    const searchTerm = this.userSearchTerm.toLowerCase();
+    this.filteredUsers = this.allUsers.filter(user => 
+      user.email?.toLowerCase().includes(searchTerm) ||
+      user.firstName?.toLowerCase().includes(searchTerm) ||
+      user.lastName?.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  toggleUserSelection(userId: number): void {
+    if (this.selectedUserIds.has(userId)) {
+      this.selectedUserIds.delete(userId);
+    } else {
+      this.selectedUserIds.add(userId);
+    }
+  }
+
+  isUserSelected(userId: number): boolean {
+    return this.selectedUserIds.has(userId);
+  }
+
+  createRoom(): void {
+    if (!this.newRoom.name.trim()) {
+      this.error = 'Room name is required';
+      return;
+    }
+
+    this.creatingRoom = true;
+    const userIds = Array.from(this.selectedUserIds);
+
+    const request: ChatRoomCreateRequest = {
+      name: this.newRoom.name.trim(),
+      type: this.newRoom.type as any,
+      userIds: userIds.length > 0 ? userIds : []
+    };
+
+    this.chatRoomService.create(request).subscribe({
+      next: (newRoom) => {
+        this.rooms.push(newRoom);
+        this.filterRooms();
+        this.closeCreateRoomModal();
+        this.loadData(); // Reload stats
+        this.error = '';
+      },
+      error: (error) => {
+        console.error('Failed to create room', error);
+        this.error = 'Failed to create room';
+      },
+      complete: () => {
+        this.creatingRoom = false;
+      }
+    });
+  }
+
+  // ==================== ADD PARTICIPANTS ====================
+
+  openAddParticipantsModal(room: ChatRoomResponse): void {
+    this.roomForAddingParticipants = room;
+    this.selectedUserIds.clear();
+    this.userSearchTerm = '';
+    this.filterUsers();
+    this.showAddParticipantsModal = true;
+  }
+
+  closeAddParticipantsModal(): void {
+    this.showAddParticipantsModal = false;
+    this.roomForAddingParticipants = null;
+    this.selectedUserIds.clear();
+  }
+
+  addParticipantsToRoom(): void {
+    if (!this.roomForAddingParticipants || this.selectedUserIds.size === 0) {
+      return;
+    }
+
+    const roomId = this.roomForAddingParticipants.id;
+    const userIds = Array.from(this.selectedUserIds);
+    let addedCount = 0;
+
+    userIds.forEach(userId => {
+      this.participantService.add({
+        userId,
+        chatRoomId: roomId,
+        role: 'MEMBER' as any
+      }).subscribe({
+        next: () => {
+          addedCount++;
+          if (addedCount === userIds.length) {
+            // All participants added
+            this.closeAddParticipantsModal();
+            this.showParticipants(this.roomForAddingParticipants!);
+          }
+        },
+        error: (error) => {
+          console.error('Failed to add participant', error);
+        }
+      });
+    });
   }
 
   getParticipantInitials(participant: any): string {

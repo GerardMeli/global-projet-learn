@@ -2,6 +2,10 @@
       <div class="section-header">
         <h2>Chat Rooms Management</h2>
         <div class="header-actions">
+          <button class="btn-primary" (click)="openCreateRoomModal()">
+            <span class="material-icons">add_circle</span>
+            Create Room
+          </button>
           <button class="btn-refresh" (click)="loadData()" [disabled]="loading">
             <span class="material-icons">refresh</span>
             Refresh
@@ -130,6 +134,9 @@
                   <button class="btn-icon view" (click)="viewRoom(room)" title="View Details">
                     <span class="material-icons">visibility</span>
                   </button>
+                  <button class="btn-icon add" (click)="openAddParticipantsModal(room)" title="Add Participants">
+                    <span class="material-icons">person_add</span>
+                  </button>
                   <button class="btn-icon edit" (click)="editRoom(room)" title="Edit">
                     <span class="material-icons">edit</span>
                   </button>
@@ -254,6 +261,153 @@
         <div class="modal-footer">
           <button class="btn-secondary" (click)="cancelDelete()">Cancel</button>
           <button class="btn-danger" (click)="deleteRoom()">Delete Room</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div class="modal-overlay" *ngIf="showCreateRoomModal" (click)="closeCreateRoomModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Create New Chat Room</h3>
+          <button class="btn-close" (click)="closeCreateRoomModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Room Name *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="newRoom.name" 
+              placeholder="Enter room name"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Room Type *</label>
+            <div class="radio-group">
+              <label>
+                <input type="radio" [(ngModel)]="newRoom.type" value="PUBLIC" />
+                <span>Public (Anyone can join)</span>
+              </label>
+              <label>
+                <input type="radio" [(ngModel)]="newRoom.type" value="PRIVATE" />
+                <span>Private (Invite only)</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Description (Optional)</label>
+            <textarea 
+              [(ngModel)]="newRoom.description" 
+              placeholder="Enter room description"
+              class="form-textarea"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Add Participants (Optional)</label>
+            <input 
+              type="text" 
+              [(ngModel)]="userSearchTerm"
+              (ngModelChange)="filterUsers()"
+              placeholder="Search users..."
+              class="form-input"
+            />
+            
+            <div class="users-list">
+              <div class="user-item" *ngFor="let user of filteredUsers">
+                <input 
+                  type="checkbox" 
+                  [checked]="isUserSelected(user.id)"
+                  (change)="toggleUserSelection(user.id)"
+                  [id]="'user-' + user.id"
+                />
+                <label [for]="'user-' + user.id">
+                  <span class="user-email">{{ user.email }}</span>
+                  <span class="user-name" *ngIf="user.firstName || user.lastName">
+                    ({{ user.firstName }} {{ user.lastName }})
+                  </span>
+                </label>
+              </div>
+              <div class="empty-list" *ngIf="filteredUsers.length === 0">
+                No users found
+              </div>
+            </div>
+
+            <div class="selected-users" *ngIf="selectedUserIds.size > 0">
+              <p>Selected: {{ selectedUserIds.size }} user(s)</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeCreateRoomModal()">Cancel</button>
+          <button class="btn-primary" (click)="createRoom()" [disabled]="creatingRoom || !newRoom.name.trim()">
+            <span *ngIf="!creatingRoom">Create Room</span>
+            <span *ngIf="creatingRoom">Creating...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Participants Modal -->
+    <div class="modal-overlay" *ngIf="showAddParticipantsModal" (click)="closeAddParticipantsModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Add Participants to {{ roomForAddingParticipants?.name }}</h3>
+          <button class="btn-close" (click)="closeAddParticipantsModal()">
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Search & Select Users</label>
+            <input 
+              type="text" 
+              [(ngModel)]="userSearchTerm"
+              (ngModelChange)="filterUsers()"
+              placeholder="Search users..."
+              class="form-input"
+            />
+            
+            <div class="users-list">
+              <div class="user-item" *ngFor="let user of filteredUsers">
+                <input 
+                  type="checkbox" 
+                  [checked]="isUserSelected(user.id)"
+                  (change)="toggleUserSelection(user.id)"
+                  [id]="'add-user-' + user.id"
+                />
+                <label [for]="'add-user-' + user.id">
+                  <span class="user-email">{{ user.email }}</span>
+                  <span class="user-name" *ngIf="user.firstName || user.lastName">
+                    ({{ user.firstName }} {{ user.lastName }})
+                  </span>
+                </label>
+              </div>
+              <div class="empty-list" *ngIf="filteredUsers.length === 0">
+                No users found
+              </div>
+            </div>
+
+            <div class="selected-users" *ngIf="selectedUserIds.size > 0">
+              <p>Selected: {{ selectedUserIds.size }} user(s)</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeAddParticipantsModal()">Cancel</button>
+          <button class="btn-primary" (click)="addParticipantsToRoom()" [disabled]="selectedUserIds.size === 0">
+            Add Participants
+          </button>
         </div>
       </div>
     </div>

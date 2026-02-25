@@ -112,17 +112,17 @@ export const routes: Routes = [
   // ─────────────────────────────────────────────────────────────────────
   // 📁 GESTION DE FICHIERS (protégé)
   // ─────────────────────────────────────────────────────────────────────
-  {
-    path: 'files',
-    canActivate: [AuthGuard],
-    loadChildren: () =>
-      import('./component/admin/admin-files.component/admin-files.module')
-        .then(m => m.AdminFilesModule),
-    data: {
-      title: 'Gestionnaire de fichiers',
-      breadcrumb: 'Fichiers'
-    }
-  },
+  // {
+  //   path: 'files',
+  //   canActivate: [AuthGuard],
+  //   loadChildren: () =>
+  //     import('./component/admin/admin-files.component/admin-files.module')
+  //       .then(m => m.AdminFilesModule),
+  //   data: {
+  //     title: 'Gestionnaire de fichiers',
+  //     breadcrumb: 'Fichiers'
+  //   }
+  // },
 
   // ─────────────────────────────────────────────────────────────────────
   // ⚙️ ADMINISTRATION (protégé + admin)
@@ -143,18 +143,18 @@ export const routes: Routes = [
   // ─────────────────────────────────────────────────────────────────────
   // 📊 STATISTIQUES (protégé + admin)
   // ─────────────────────────────────────────────────────────────────────
-  {
-    path: 'statistics',
-    canActivate: [AuthGuard, AdminGuard],
-    loadChildren: () =>
-      import('./component/admin/statistics/statistics.module')
-        .then(m => m.StatisticsModule),
-    data: {
-      title: 'Statistiques',
-      breadcrumb: 'Statistiques',
-      roles: ['ADMIN']
-    }
-  },
+  // {
+  //   path: 'statistics',
+  //   canActivate: [AuthGuard, AdminGuard],
+  //   loadChildren: () =>
+  //     import('./component/admin/statistics/statistics.module')
+  //       .then(m => m.StatisticsModule),
+  //   data: {
+  //     title: 'Statistiques',
+  //     breadcrumb: 'Statistiques',
+  //     roles: ['ADMIN']
+  //   }
+  // },
 
   // ─────────────────────────────────────────────────────────────────────
   // 🔄 REDIRECTION PAR DÉFAUT

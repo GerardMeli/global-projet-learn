@@ -15,14 +15,14 @@
           <div class="stat-icon total">📁</div>
           <div class="stat-content">
             <span class="stat-label">Total Files</span>
-            <span class="stat-value">{{ stats.data?.totalFiles || 0 }}</span>
+            <span class="stat-value">{{ stats.data.totalFiles || 0 }}</span>
           </div>
         </div>
         <div class="stat-card">
           <div class="stat-icon size">💾</div>
           <div class="stat-content">
             <span class="stat-label">Total Size</span>
-            <span class="stat-value">{{ stats.data?.totalSizeMB || '0 MB' }}</span>
+            <span class="stat-value">{{ stats.data.totalSizeMB || '0 MB' }}</span>
           </div>
         </div>
         <div class="stat-card">
@@ -168,7 +168,7 @@
             <span class="material-icons">warning</span>
           </div>
           <p class="warning-text">
-            Are you sure you want to delete <strong>{{ fileToDelete?.originalFileName || fileToDelete?.fileName }}</strong>?
+            Are you sure you want to delete <strong>{{ fileToDelete.originalFileName || fileToDelete.fileName }}</strong>?
           </p>
           <p class="warning-details">
             This action cannot be undone. The file will be permanently removed from the system.

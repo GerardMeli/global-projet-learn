@@ -635,8 +635,11 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
     const uid = this.currentUserId();
     const otherId = this.activeUserId();
     
+    console.log('sendFile() - uid:', uid, 'otherId:', otherId);
+    
     if (!this.pendingFile || !uid || !otherId) {
-      this.fileError.set('Données manquantes pour l\'envoi du fichier');
+      const msg = !uid ? 'Utilisateur non authentifié' : !otherId ? 'Aucun destinataire sélectionné' : 'Fichier manquant';
+      this.fileError.set(msg);
       return;
     }
     
@@ -646,82 +649,54 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
     }
     
     const fileToSend = this.pendingFile;
-    console.log('Sending file:', fileToSend.name);
+    console.log('Sending file:', fileToSend.name, 'Size:', fileToSend.size, 'Type:', fileToSend.type);
     this.uploading = true;
     this.uploadProgress = 0;
     this.fileError.set(null);
 
-    // Use real XHR-based progress via privateChatService.sendFile wrapped with XHR
-    // Since privateChatService.sendFile returns an Observable<PrivateFileResponse> without progress,
-    // we use fileService.uploadWithProgress first then send the link, OR we manually track via XHR.
-    // Strategy: use a fake-but-fast progress based on XHR, falling back to the service call.
-    const xhr = new XMLHttpRequest();
-    const formData = new FormData();
-    formData.append('file', fileToSend);
-    formData.append('receiverId', otherId.toString());
-    formData.append('description', this.fileDesc || ' ');
+    // Upload du fichier avec suivi de progression
+    this.privateChatService.sendFile(uid, otherId, fileToSend, this.fileDesc || ' ')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (fileResponse) => {
+          console.log('File uploaded successfully:', fileResponse);
+          this.uploadProgress = 100;
+          
+          // Ajouter à la liste des fichiers partagés
+          this.sharedFiles.update(files => [fileResponse, ...files]);
 
-    xhr.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) {
-        this.uploadProgress = Math.round((event.loaded / event.total) * 100);
-      }
-    });
-
-    xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        this.uploadProgress = 100;
-        try {
-          const result = JSON.parse(xhr.responseText);
-          this.sharedFiles.update(files => [result, ...files]);
-
+          // Ajouter le message de notification du fichier
           const fileMessage: PrivateChatResponse = {
-            id: result.messageId || Date.now(),
+            id: fileResponse.messageId || Date.now(),
             senderId1: uid,
             senderId2: otherId,
             senderName1: this.activeUserEmail() || '',
             senderName2: this.activeUserEmail() || '',
-            content: `📎 ${result.originalFileName || fileToSend.name}`,
+            content: `📎 ${fileToSend.name}`,
             timestamp: new Date().toISOString(),
             isRead: false
           };
           this.messages.update(msgs => [...msgs, fileMessage]);
           this.shouldScroll = true;
 
+          this.showNotification(`Fichier "${fileToSend.name}" envoyé`, 'success');
+          
           setTimeout(() => {
             this.clearFileSelection();
             this.uploading = false;
             this.uploadProgress = 0;
             this.showSendFile.set(false);
           }, 800);
-
-          setTimeout(() => {
-            if (this.activeUserId() === otherId) this.loadMessages(otherId);
-          }, 2000);
-        } catch {
-          this.fileError.set('Erreur lors du traitement de la réponse serveur');
+        },
+        error: (err) => {
+          console.error('Error sending file:', err);
+          const errorMsg = err?.error?.message || err?.message || 'Erreur lors de l\'envoi du fichier';
+          const statusMsg = err?.status ? ` (${err.status})` : '';
+          this.fileError.set(errorMsg + statusMsg);
           this.uploading = false;
+          this.uploadProgress = 0;
         }
-      } else {
-        this.fileError.set(`Erreur ${xhr.status}: ${xhr.responseText || 'Envoi échoué'}`);
-        this.uploading = false;
-        this.uploadProgress = 0;
-      }
-    });
-
-    xhr.addEventListener('error', () => {
-      this.fileError.set('Erreur réseau lors de l\'envoi');
-      this.uploading = false;
-      this.uploadProgress = 0;
-    });
-
-    const token = localStorage.getItem('access_token');
-    const { chatApiUrl } = (window as any).__env__ ?? {};
-    // Dynamically import environment at runtime via the service base URL
-    const base = (this.privateChatService as any).base ?? '';
-    xhr.open('POST', `${base}/send-file/${uid}`);
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.setRequestHeader('Accept', 'application/json');
-    xhr.send(formData);
+      });
   }
 
   // ========== TÉLÉCHARGEMENT DE FICHIERS ==========

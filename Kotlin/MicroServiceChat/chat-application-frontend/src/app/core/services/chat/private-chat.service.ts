@@ -3,12 +3,16 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PrivateChatRequest, PrivateChatResponse, UserContactDTO, MarkAsReadRequest, PrivateFileResponse } from '../../models/chat/private-chat.model';
+import { TokenService } from '../users/token.service';
 
 @Injectable({ providedIn: 'root' })
 export class PrivateChatService {
   private readonly base = `${environment.chatApiUrl}/api/private-chat`;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private tokenService: TokenService
+  ) {}
 
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('access_token');
@@ -56,21 +60,20 @@ export class PrivateChatService {
   /**
    * POST /api/private-chat/send-file/{senderId}
    * multipart/form-data — do NOT set Content-Type manually, browser sets it with boundary.
+   * Authorization is added by JWT interceptor.
    */
   sendFile(senderId: number, receiverId: number, file: File, description = ''): Observable<PrivateFileResponse> {
-    const token = localStorage.getItem('access_token');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('receiverId', receiverId.toString());
     formData.append('description', description);
+    
+    console.log(`📤 Uploading file to /api/private-chat/send-file/${senderId}: ${file.name} (${file.size} bytes) -> receiver ${receiverId}`);
+    
     return this.http.post<PrivateFileResponse>(
       `${this.base}/send-file/${senderId}`,
-      formData,
-      {
-        // No Content-Type header — let browser set multipart boundary automatically
-        headers: new HttpHeaders({ 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }),
-        withCredentials: true
-      }
+      formData
+      // Do NOT set headers here - let interceptor + browser handle Content-Type
     );
   }
 

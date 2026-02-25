@@ -25,7 +25,7 @@ import { environment } from '../../../environments/environment';
     FormsModule   // ✅ OBLIGATOIRE pour ngModel
   ],
   templateUrl: './chat-room.html',
-  styleUrls: ['./chat-room.scss']
+  styleUrls: ['./chat-room.scss', './chat-participants.scss']
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private destroy$ = new Subject<void>();
@@ -62,6 +62,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // Computed
   activeRoom = computed(() => this.rooms().find(r => r.id === this.activeRoomId()) ?? null);
   currentUserId = computed(() => this.tokenService.getCurrentUserId());
+  
+  isCurrentUserParticipant = computed(() => {
+    const userId = this.currentUserId();
+    const parts = this.participants();
+    return userId ? parts.some(p => p.user.id === userId) : false;
+  });
 
   filteredRooms = computed(() => {
     let list = this.rooms();
@@ -321,16 +327,27 @@ loadRooms() {
 
   sendMessage() {
     const text = this.messageText.trim();
-    if (!text || !this.activeRoomId()) return;
+    const roomId = this.activeRoomId();
+    
+    if (!text || !roomId) return;
+    
+    // ✅ VÉRIFICATION : L'utilisateur doit être participant pour envoyer un message
+    if (!this.isCurrentUserParticipant()) {
+      this.error.set('❌ Vous ne pouvez pas envoyer de messages. Vous devez être participant de ce salon.');
+      setTimeout(() => this.error.set(null), 5000);
+      return;
+    }
+    
+    console.log(`[Chat] Sending message to room ${roomId}`);
     
     // Send via WebSocket
-    this.wsService.sendMessage(this.activeRoomId()!, text);
+    this.wsService.sendMessage(roomId, text);
     this.messageText = '';
     
     // Stop typing indicator
     if (this.typingTimer) {
       clearTimeout(this.typingTimer);
-      this.wsService.sendTyping(this.activeRoomId()!, this.currentUserId()!, false);
+      this.wsService.sendTyping(roomId, this.currentUserId()!, false);
     }
   }
 
@@ -366,12 +383,6 @@ loadRooms() {
         this.messages.update(msgs => msgs.map(m => m.id === messageId ? updated : m));
       }
     });
-  }
-
-  openCreateRoom() {
-    this.showCreateModal = true;
-    this.newRoomName = '';
-    this.newRoomType = 'PUBLIC';
   }
 
   createRoom() {
@@ -443,6 +454,13 @@ loadRooms() {
 
 sendFile() {
   if (!this.pendingFile) return;
+  
+  // ✅ VÉRIFICATION : L'utilisateur doit être participant pour envoyer un fichier
+  if (!this.isCurrentUserParticipant()) {
+    this.error.set('❌ Vous ne pouvez pas envoyer de fichiers. Vous devez être participant de ce salon.');
+    setTimeout(() => this.error.set(null), 5000);
+    return;
+  }
   
   const fileToUpload = this.pendingFile; // Store reference before potential null
   this.uploadProgress = 0;
@@ -577,6 +595,40 @@ private formatFileSize(bytes: number): string {
           setTimeout(() => this.error.set(null), 4000);
         }
       });
+  }
+
+  requestJoinRoom() {
+    const roomId = this.activeRoomId();
+    const userId = this.currentUserId();
+    
+    if (!roomId || !userId) {
+      this.error.set('Erreur: Information manquante');
+      return;
+    }
+    
+    // Add current user as participant with MEMBER role
+    this.participantService.add({
+      userId,
+      chatRoomId: roomId,
+      role: 'MEMBER' as any
+    }).pipe(
+      takeUntil(this.destroy$),
+      catchError(err => {
+        console.error('[Chat] failed to join room', err);
+        this.error.set('Impossible de rejoindre le salon');
+        return of(null);
+      })
+    ).subscribe(p => {
+      if (p) {
+        this.participants.update(list => [...list, p]);
+        this.error.set(null);
+        setTimeout(() => {
+          const roomName = this.activeRoom()?.name || 'le salon';
+          this.error.set(`✅ Vous avez rejoint ${roomName}`);
+        }, 100);
+        setTimeout(() => this.error.set(null), 3000);
+      }
+    });
   }
 
   formatTime(timestamp: string): string {

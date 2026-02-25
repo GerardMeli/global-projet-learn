@@ -41,25 +41,40 @@ export class JwtInterceptor implements HttpInterceptor {
     // Clone the request and add headers
     let modifiedRequest = request;
     
+    // Check if the request body is FormData (for file uploads)
+    const isFormData = request.body instanceof FormData;
+    
     if (token) {
+      const headers: any = {
+        Authorization: `Bearer ${token}`,
+        'Accept': 'application/json'
+      };
+      
+      // Only set Content-Type for non-FormData requests
+      // FormData requests must let the browser set Content-Type with boundary
+      if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
       // Add authorization header and CORS headers
       modifiedRequest = request.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        setHeaders: headers,
         withCredentials: true // Important for CORS
       });
       
-      console.log(`🔐 Added token to request: ${request.method} ${request.url}`);
+      console.log(`🔐 Added token to request: ${request.method} ${request.url} ${isFormData ? '(FormData)' : ''}`);
     } else {
       // Even without token, add CORS headers
+      const headers: any = {
+        'Accept': 'application/json'
+      };
+      
+      if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+      }
+      
       modifiedRequest = request.clone({
-        setHeaders: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        setHeaders: headers,
         withCredentials: true
       });
       console.warn(`⚠️ No token for protected route: ${request.url}`);
@@ -76,6 +91,7 @@ export class JwtInterceptor implements HttpInterceptor {
           window.location.href = '/auth/login';
         } else if (error.status === 403) {
           console.error('🔒 403 error - forbidden access');
+          console.error('Response:', error.error);
           // You might want to show a notification here
         } else if (error.status === 0) {
           console.error('📡 Network/CORS error - check if backend is running and CORS is configured');

@@ -13,17 +13,17 @@ const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'dashboard',
+        redirectTo: 'statistics',
         pathMatch: 'full'
       },
-      {
-        path: 'dashboard',
-        component: AdminDashboardComponent,
-        data: {
-          title: 'Tableau de bord',
-          breadcrumb: 'Dashboard'
-        }
-      },
+      // {
+      //   path: 'dashboard',
+      //   component: AdminDashboardComponent,
+      //   data: {
+      //     title: 'Tableau de bord',
+      //     breadcrumb: 'Dashboard'
+      //   }
+      // },
       {
         path: 'users',
         loadChildren: () =>

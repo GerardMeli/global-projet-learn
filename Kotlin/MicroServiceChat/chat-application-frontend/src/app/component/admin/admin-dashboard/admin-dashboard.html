@@ -16,10 +16,15 @@
         </div>
         
         <nav class="sidebar-nav">
-          <a routerLink="/admin/dashboard" routerLinkActive="active" 
+          <!-- <a routerLink="/admin/dashboard" routerLinkActive="active" 
              [routerLinkActiveOptions]="{exact: true}" class="nav-item">
             <span class="material-icons">dashboard</span>
             <span class="nav-label" *ngIf="!sidebarCollapsed">Dashboard</span>
+          </a> -->
+
+          <a routerLink="/admin/statistics" routerLinkActive="active" class="nav-item">
+            <span class="material-icons">insights</span>
+            <span class="nav-label" *ngIf="!sidebarCollapsed">Statistics</span>
           </a>
           
           <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
@@ -40,11 +45,6 @@
           <a routerLink="/admin/files" routerLinkActive="active" class="nav-item">
             <span class="material-icons">folder</span>
             <span class="nav-label" *ngIf="!sidebarCollapsed">Files</span>
-          </a>
-          
-          <a routerLink="/admin/statistics" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">insights</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Statistics</span>
           </a>
           
           <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">

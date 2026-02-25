@@ -19,6 +19,20 @@
           </div>
         </div>
         <div class="stat-card">
+          <div class="stat-icon group">👥</div>
+          <div class="stat-content">
+            <span class="stat-label">Group Messages</span>
+            <span class="stat-value">{{ groupMessages }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon private">🔒</div>
+          <div class="stat-content">
+            <span class="stat-label">Private Messages</span>
+            <span class="stat-value">{{ privateMessages }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
           <div class="stat-icon files">📎</div>
           <div class="stat-content">
             <span class="stat-label">With Files</span>
@@ -42,14 +56,20 @@
             type="text" 
             [(ngModel)]="searchTerm"
             (ngModelChange)="filterMessages()"
-            placeholder="Search by content or sender..."
+            placeholder="Search by content, sender, receiver, or room..."
           >
         </div>
 
+        <select [(ngModel)]="messageTypeFilter" (change)="filterMessages()" class="filter-select">
+          <option value="all">All Messages</option>
+          <option value="group">Group Messages</option>
+          <option value="private">Private Messages</option>
+        </select>
+
         <select [(ngModel)]="roomFilter" (change)="filterMessages()" class="filter-select">
-          <option value="">All Rooms</option>
+          <option value="">All Rooms/Conversations</option>
           <option *ngFor="let roomId of uniqueRoomIds" [value]="roomId">
-            Room #{{ roomId }}
+            {{ getRoomLabel(roomId) }}
           </option>
         </select>
       </div>
@@ -73,10 +93,11 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Room</th>
-              <th>Sender</th>
-              <th>Content</th>
               <th>Type</th>
+              <th>Sender</th>
+              <th>Receiver / Room</th>
+              <th>Content</th>
+              <th>Message Type</th>
               <th>File</th>
               <th>Status</th>
               <th>Created</th>
@@ -84,48 +105,60 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let message of paginatedMessages" [class.deleted]="message.deleted">
+            <tr *ngFor="let message of paginatedMessages" [class.deleted]="message.isDeleted">
               <td>#{{ message.id }}</td>
               <td>
-                <span class="room-badge">Room #{{ message.roomId }}</span>
+                <span class="badge" [class]="message.isPrivate ? 'type-private' : 'type-group'">
+                  {{ message.isPrivate ? '🔒 Private' : '👥 Group' }}
+                </span>
               </td>
               <td>
                 <div class="sender-info">
-                  <span class="sender-id">User #{{ message.senderId }}</span>
+                  <span class="sender-name">{{ message.senderName }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="receiver-info">
+                  <span *ngIf="message.isPrivate" class="receiver-badge">
+                    {{ message.receiverName }}
+                  </span>
+                  <span *ngIf="!message.isPrivate" class="room-badge">
+                    {{ message.roomName }}
+                  </span>
                 </div>
               </td>
               <td class="content-cell">
                 <span class="message-content" [title]="message.content">
-                  {{ (message.content || '') | slice:0:50 }}{{ (message.content || '').length > 50 ? '...' : '' }}
+                  {{ (message.content || '') | slice:0:40 }}{{ (message.content || '').length > 40 ? '...' : '' }}
                 </span>
               </td>
               <td>
-                <span class="badge" [class]="'type-' + message.messageType.toLowerCase()">
+                <span class="badge" [class]="'msgtype-' + message.messageType.toLowerCase()">
                   {{ message.messageType }}
                 </span>
               </td>
               <td>
                 <span *ngIf="message.fileUrl" class="file-indicator" [title]="message.fileName">
                   <span class="material-icons">attach_file</span>
-                  <span class="file-name">{{ message.fileName | slice:0:15 }}</span>
+                  <span class="file-name">{{ message.fileName | slice:0:12 }}</span>
                 </span>
                 <span *ngIf="!message.fileUrl" class="no-file">—</span>
               </td>
               <td>
-                <span class="status-badge" [class.deleted]="message.deleted">
-                  {{ message.deleted ? 'Deleted' : 'Active' }}
+                <span class="status-badge" [class.deleted]="message.isDeleted">
+                  {{ message.isDeleted ? 'Deleted' : 'Active' }}
                 </span>
               </td>
-              <td>{{ message.createdAt | date:'medium' }}</td>
+              <td>{{ message.createdAt | date:'short' }}</td>
               <td>
                 <div class="action-buttons">
-                  <button *ngIf="!message.deleted" 
+                  <button *ngIf="!message.isDeleted" 
                           class="btn-icon delete" 
                           (click)="confirmDeleteMessage(message)"
                           title="Soft Delete">
                     <span class="material-icons">delete</span>
                   </button>
-                  <button *ngIf="message.deleted" 
+                  <button *ngIf="message.isDeleted" 
                           class="btn-icon restore" 
                           (click)="restoreMessage(message)"
                           title="Restore">
@@ -191,7 +224,7 @@
           <p class="warning-text">
             Are you sure you want to {{ permanentDelete ? 'permanently delete' : 'delete' }} this message?
           </p>
-          <p class="message-preview">"{{ messageToDelete?.content | slice:0:100 }}"</p>
+          <p class="message-preview">"{{ messageToDelete.content | slice:0:100 }}"</p>
           <p class="warning-details" *ngIf="permanentDelete">
             This action cannot be undone. The message will be permanently removed.
           </p>
