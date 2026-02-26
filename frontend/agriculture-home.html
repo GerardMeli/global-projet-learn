@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroTerre — Agriculture Indépendante</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --soil: #2C1810;
+    --earth: #5C3D2E;
+    --wheat: #D4A853;
+    --sage: #6B8F71;
+    --mist: #EBE8E0;
+    --cream: #F7F4ED;
+    --dark-green: #2D4A35;
+    --accent: #C8602A;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+  }
+
+  html { 
+    scroll-behavior: smooth;
+    font-size: 16px;
+  }
+
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--cream);
+    color: var(--soil);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ─── NAV AMÉLIORÉE ───────────────────────────────── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.6rem 4rem;
+    transition: var(--transition-smooth);
+  }
+
+  nav.scrolled {
+    background: rgba(44,24,16,0.95);
+    backdrop-filter: blur(12px);
+    padding: 1rem 4rem;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--cream);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    position: relative;
+    transition: var(--transition-smooth);
+  }
+  
+  .logo span { 
+    color: var(--wheat); 
+    font-style: italic;
+    transition: var(--transition-smooth);
+  }
+
+  .logo:hover {
+    transform: translateY(-2px);
+  }
+
+  .nav-menu {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-link {
+    color: rgba(235,232,224,0.85);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: var(--transition-smooth);
+    position: relative;
+    padding: 0.5rem 0;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 2px;
+    background: var(--wheat);
+    transition: width 0.3s ease;
+  }
+
+  .nav-link:hover { 
+    color: var(--wheat); 
+  }
+  
+  .nav-link:hover::after,
+  .nav-link.active::after { 
+    width: 100%; 
+  }
+  
+  .nav-link.active { 
+    color: var(--wheat); 
+    font-weight: 500;
+  }
+
+  /* Menu mobile */
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1000;
+  }
+
+  .menu-toggle span {
+    width: 30px;
+    height: 2px;
+    background: var(--cream);
+    transition: var(--transition-smooth);
+  }
+
+  .menu-toggle.open span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+  }
+
+  .menu-toggle.open span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-toggle.open span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+  }
+
+  /* ─── HERO AMÉLIORÉ ───────────────────────────────── */
+  #accueil {
+    min-height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, var(--dark-green) 0%, #1a3322 50%, var(--soil) 100%);
+    overflow: hidden;
+  }
+
+  #accueil::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: 
+      radial-gradient(circle at 70% 50%, rgba(212,168,83,0.15) 0%, transparent 50%),
+      radial-gradient(circle at 30% 80%, rgba(107,143,113,0.15) 0%, transparent 50%);
+    animation: pulse 8s ease-in-out infinite;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10rem 4rem 6rem;
+    max-width: 900px;
+  }
+
+  .hero-label {
+    font-size: 0.85rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--wheat);
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-label::before {
+    content: '';
+    position: absolute;
+    left: -40px; top: 50%;
+    width: 30px; height: 1px;
+    background: var(--wheat);
+    animation: slideIn 0.8s 0.4s forwards;
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    line-height: 1.1;
+    color: var(--cream);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+  
+  .hero-title em { 
+    font-style: italic; 
+    color: var(--wheat);
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-title em::after {
+    content: '';
+    position: absolute;
+    bottom: 5px; left: 0;
+    width: 100%; height: 2px;
+    background: var(--wheat);
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: slideIn 0.8s 0.8s forwards;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: rgba(235,232,224,0.8);
+    max-width: 550px;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .cta-group {
+    display: flex; 
+    gap: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary, .btn-outline {
+    padding: 1rem 2.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary {
+    background: var(--wheat);
+    color: var(--soil);
+    border: none;
+  }
+
+  .btn-primary:hover { 
+    background: var(--cream); 
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(212,168,83,0.3);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--cream);
+    border: 1px solid rgba(235,232,224,0.35);
+  }
+
+  .btn-outline:hover { 
+    border-color: var(--wheat); 
+    color: var(--wheat);
+    transform: translateY(-3px);
+    background: rgba(212,168,83,0.1);
+  }
+
+  .btn-primary::before, .btn-outline::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .btn-primary:hover::before, .btn-outline:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  .hero-aside {
+    position: absolute;
+    right: 4rem; top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    transform-origin: center;
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(235,232,224,0.25);
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2.5rem; left: 4rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    color: rgba(235,232,224,0.5);
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  
+  .scroll-line {
+    width: 60px; height: 1px;
+    background: rgba(235,232,224,0.2);
+    position: relative; 
+    overflow: hidden;
+  }
+  
+  .scroll-line::after {
+    content: '';
+    position: absolute; 
+    left: -100%; top: 0;
+    width: 100%; height: 100%;
+    background: var(--wheat);
+    animation: slide 2s ease-in-out infinite;
+  }
+
+  /* ─── STATS BAR AMÉLIORÉE ─────────────────────────── */
+  .stats-bar {
+    background: var(--dark-green);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 3rem 4rem;
+    gap: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stats-bar::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--wheat), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  .stat-item {
+    padding: 2rem;
+    border-right: 1px solid rgba(235,232,224,0.1);
+    text-align: center;
+    transition: var(--transition-smooth);
+  }
+
+  .stat-item:hover {
+    transform: translateY(-5px);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    color: var(--wheat);
+    display: block;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+    transition: var(--transition-smooth);
+  }
+
+  .stat-item:hover .stat-num {
+    transform: scale(1.1);
+    color: var(--cream);
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(235,232,224,0.6);
+  }
+
+  /* ─── SECTION COMMUNE AMÉLIORÉE ───────────────────── */
+  .section {
+    padding: 6rem 4rem;
+    position: relative;
+  }
+
+  .section-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 1rem;
+    position: relative;
+    display: inline-block;
+  }
+
+  .section-label::after {
+    content: '';
+    position: absolute;
+    right: -40px; top: 50%;
+    width: 30px; height: 1px;
+    background: var(--sage);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.6s ease;
+  }
+
+  .section:hover .section-label::after {
+    transform: scaleX(1);
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3rem);
+    color: var(--soil);
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-intro {
+    font-size: 1rem;
+    line-height: 1.9;
+    color: var(--earth);
+    max-width: 600px;
+    margin-bottom: 3rem;
+  }
+
+  /* ─── PRODUITS AMÉLIORÉS ─────────────────────────── */
+  #produits { 
+    background: var(--cream);
+  }
+
+  .produits-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 4rem;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+
+  .produits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .produit-card {
+    position: relative;
+    background: white;
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+
+  .produit-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 30px 60px rgba(44,24,16,0.15);
+  }
+
+  .produit-visual {
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .produit-visual-bg {
+    position: absolute; inset: 0;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .produit-card:hover .produit-visual-bg { 
+    transform: scale(1.1); 
+  }
+
+  .p1 .produit-visual-bg { background: linear-gradient(135deg, #c8a96e, #d4a853); }
+  .p2 .produit-visual-bg { background: linear-gradient(135deg, #6b8f71, #2d4a35); }
+  .p3 .produit-visual-bg { background: linear-gradient(135deg, #5c3d2e, #c8602a); }
+  .p4 .produit-visual-bg { background: linear-gradient(135deg, #2d4a35, #6b8f71); }
+  .p5 .produit-visual-bg { background: linear-gradient(135deg, #d4a853, #c8602a); }
+  .p6 .produit-visual-bg { background: linear-gradient(135deg, #5c3d2e, #2c1810); }
+
+  .produit-emoji {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+  }
+
+  .produit-card:hover .produit-emoji { 
+    transform: scale(1.2) rotate(-5deg); 
+  }
+
+  .produit-body { 
+    padding: 1.8rem; 
+  }
+
+  .produit-cat {
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 0.5rem;
+  }
+
+  .produit-body h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+    color: var(--soil);
+  }
+
+  .produit-body p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--earth);
+    margin-bottom: 1.2rem;
+  }
+
+  .produit-tag-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    padding: 0.3rem 0.8rem;
+    background: var(--mist);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--earth);
+    border-radius: 20px;
+    transition: var(--transition-smooth);
+  }
+
+  .tag:hover {
+    background: var(--wheat);
+    color: var(--soil);
+    transform: translateY(-2px);
+  }
+
+  /* ─── MÉTHODES AMÉLIORÉES ────────────────────────── */
+  #methodes { 
+    background: var(--mist);
+  }
+
+  .methodes-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: start;
+  }
+
+  .methode-item {
+    display: grid;
+    grid-template-columns: 70px 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(92,61,46,0.1);
+    transition: var(--transition-smooth);
+  }
+
+  .methode-item:hover {
+    transform: translateX(10px);
+  }
+
+  .methode-item:last-child { 
+    border-bottom: none; 
+    margin-bottom: 0; 
+    padding-bottom: 0; 
+  }
+
+  .methode-num {
+    width: 70px; height: 70px;
+    border: 2px solid var(--wheat);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--wheat);
+    flex-shrink: 0;
+    transition: var(--transition-smooth);
+  }
+
+  .methode-item:hover .methode-num {
+    background: var(--wheat);
+    color: var(--soil);
+  }
+
+  .methode-info h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: var(--soil);
+  }
+  
+  .methode-info p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--earth);
+  }
+
+  .methodes-visual {
+    position: sticky;
+    top: 6rem;
+  }
+
+  .methodes-big-card {
+    background: var(--dark-green);
+    padding: 3rem;
+    color: var(--cream);
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .methodes-big-card::before {
+    content: '🌿';
+    position: absolute;
+    right: -30px; top: -30px;
+    font-size: 12rem;
+    opacity: 0.1;
+    transform: rotate(15deg);
+  }
+
+  .methodes-big-card h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .methodes-big-card p {
+    font-size: 0.95rem;
+    line-height: 1.9;
+    color: rgba(235,232,224,0.8);
+    margin-bottom: 2rem;
+  }
+
+  .cert-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .badge {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid var(--wheat);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--wheat);
+    transition: var(--transition-smooth);
+    cursor: default;
+  }
+
+  .badge:hover {
+    background: var(--wheat);
+    color: var(--dark-green);
+    transform: translateY(-2px);
+  }
+
+  .methodes-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background: rgba(92,61,46,0.15);
+    margin-top: 2rem;
+  }
+
+  .methode-stat {
+    background: var(--cream);
+    padding: 1.8rem;
+    text-align: center;
+    transition: var(--transition-smooth);
+  }
+
+  .methode-stat:hover {
+    transform: scale(1.05);
+    background: var(--wheat);
+  }
+
+  .methode-stat:hover strong,
+  .methode-stat:hover span {
+    color: var(--soil);
+  }
+
+  .methode-stat strong {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    color: var(--dark-green);
+    margin-bottom: 0.5rem;
+  }
+
+  .methode-stat span {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--earth);
+  }
+
+  /* ─── TERRITOIRE AMÉLIORÉ ────────────────────────── */
+  #territoire { 
+    background: var(--cream); 
+  }
+
+  .territoire-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+  }
+
+  .map-container {
+    position: relative;
+    background: var(--mist);
+    padding: 2.5rem;
+    min-height: 450px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+  }
+
+  .map-container::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(92,61,46,0.05) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(92,61,46,0.05) 40px);
+  }
+
+  .map-svg {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 380px;
+    transition: transform 0.6s ease;
+  }
+
+  .map-container:hover .map-svg {
+    transform: scale(1.05);
+  }
+
+  .map-pin {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+  }
+
+  .map-pin:hover {
+    transform: translateY(-5px);
+  }
+
+  .map-pin-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid white;
+    box-shadow: 0 2px 10px rgba(200,96,42,0.5);
+    position: relative;
+  }
+
+  .map-pin-dot::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  .map-pin-label {
+    background: var(--soil);
+    color: var(--cream);
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.35rem 0.8rem;
+    white-space: nowrap;
+    border-radius: 20px;
+    transition: var(--transition-smooth);
+  }
+
+  .map-pin:hover .map-pin-label {
+    background: var(--accent);
+    color: white;
+  }
+
+  .pin1 { top: 38%; left: 44%; }
+  .pin2 { top: 55%; left: 32%; }
+  .pin3 { top: 28%; left: 58%; }
+
+  .territoire-info h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    color: var(--soil);
+    position: relative;
+    display: inline-block;
+  }
+
+  .territoire-info h3::after {
+    content: '';
+    position: absolute;
+    bottom: -5px; left: 0;
+    width: 40px; height: 2px;
+    background: var(--wheat);
+    transition: width 0.3s ease;
+  }
+
+  .territoire-info h3:hover::after {
+    width: 100%;
+  }
+
+  .territoire-info p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: var(--earth);
+    margin-bottom: 2rem;
+  }
+
+  .zone-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+
+  .zone-card {
+    padding: 1.5rem;
+    background: var(--mist);
+    border-top: 3px solid var(--sage);
+    transition: var(--transition-smooth);
+    cursor: default;
+  }
+
+  .zone-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border-top-color: var(--wheat);
+  }
+
+  .zone-card h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--soil);
+  }
+  
+  .zone-card p {
+    font-size: 0.85rem;
+    color: var(--earth);
+    line-height: 1.6;
+  }
+
+  .territoire-climate {
+    margin-top: 2.5rem;
+    padding: 2rem;
+    background: var(--dark-green);
+    color: var(--cream);
+    display: flex;
+    gap: 3rem;
+    border-radius: 8px;
+    transition: var(--transition-smooth);
+  }
+
+  .territoire-climate:hover {
+    transform: scale(1.02);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+  }
+
+  .climate-item {
+    text-align: center;
+    flex: 1;
+  }
+  
+  .climate-item strong {
+    display: block;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--wheat);
+    margin-bottom: 0.5rem;
+  }
+  
+  .climate-item span {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(235,232,224,0.6);
+  }
+
+  /* ─── CONTACT AMÉLIORÉ ───────────────────────────── */
+  #contact { 
+    background: var(--soil);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #contact::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -50%;
+    width: 100%; height: 200%;
+    background: radial-gradient(circle, rgba(212,168,83,0.03) 0%, transparent 70%);
+    animation: rotate 30s linear infinite;
+  }
+
+  #contact .section-label { 
+    color: var(--wheat);
+  }
+  
+  #contact .section-title { 
+    color: var(--cream); 
+  }
+  
+  #contact .section-intro { 
+    color: rgba(235,232,224,0.7); 
+  }
+
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .contact-info-block {
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    transition: var(--transition-smooth);
+  }
+
+  .contact-info-block:hover {
+    transform: translateX(10px);
+  }
+
+  .contact-icon {
+    width: 50px; height: 50px;
+    background: rgba(212,168,83,0.1);
+    border: 1px solid rgba(212,168,83,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+    transition: var(--transition-smooth);
+    border-radius: 8px;
+  }
+
+  .contact-info-block:hover .contact-icon {
+    background: var(--wheat);
+    border-color: var(--wheat);
+    transform: rotate(5deg);
+  }
+
+  .contact-info-block h4 {
+    font-family: 'Playfair Display', serif;
+    color: var(--wheat);
+    font-size: 1rem;
+    margin-bottom: 0.35rem;
+  }
+  
+  .contact-info-block p {
+    font-size: 0.88rem;
+    color: rgba(235,232,224,0.7);
+    line-height: 1.7;
+  }
+
+  /* Formulaire amélioré */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .form-group.full { grid-column: 1 / -1; }
+
+  .form-group label {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(235,232,224,0.6);
+    transition: var(--transition-smooth);
+  }
+
+  .form-group:focus-within label {
+    color: var(--wheat);
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background: rgba(235,232,224,0.08);
+    border: 1px solid rgba(235,232,224,0.2);
+    color: var(--cream);
+    padding: 1rem 1.2rem;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: var(--transition-smooth);
+    width: 100%;
+    resize: vertical;
+    border-radius: 6px;
+  }
+
+  .form-group select option { 
+    background: var(--soil); 
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--wheat);
+    background: rgba(212,168,83,0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  }
+
+  .form-group input::placeholder,
+  .form-group textarea::placeholder {
+    color: rgba(235,232,224,0.3);
+    font-style: italic;
+  }
+
+  .form-submit {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .submit-btn {
+    padding: 1rem 3rem;
+    background: var(--wheat);
+    color: var(--soil);
+    border: none;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    border-radius: 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .submit-btn:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  .submit-btn:hover { 
+    background: var(--cream); 
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(212,168,83,0.4);
+  }
+
+  .form-note {
+    font-size: 0.8rem;
+    color: rgba(235,232,224,0.4);
+    line-height: 1.6;
+  }
+
+  .form-success {
+    display: none;
+    padding: 1.5rem;
+    background: rgba(107,143,113,0.2);
+    border: 1px solid var(--sage);
+    color: var(--sage);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-top: 1.5rem;
+    border-radius: 6px;
+    animation: slideUp 0.5s ease;
+  }
+
+  /* ─── FOOTER AMÉLIORÉ ────────────────────────────── */
+  footer {
+    background: #1a0f0a;
+    color: rgba(235,232,224,0.4);
+    padding: 3rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--wheat), transparent);
+    animation: shimmer 3s infinite;
+  }
+
+  footer .logo { 
+    font-size: 1.3rem;
+    transition: var(--transition-smooth);
+  }
+
+  footer .logo:hover {
+    transform: translateY(-2px);
+    color: var(--wheat);
+  }
+
+  /* ─── CHAT AMÉLIORÉ ───────────────────────────────── */
+  .chat-launcher {
+    position: fixed;
+    bottom: 2rem; right: 2rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .chat-tooltip {
+    background: var(--soil);
+    color: var(--cream);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    border-left: 3px solid var(--wheat);
+    opacity: 0;
+    transform: translateX(10px);
+    transition: var(--transition-smooth);
+    pointer-events: none;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+  
+  .chat-launcher:hover .chat-tooltip { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+
+  .chat-btn {
+    width: 65px; height: 65px;
+    border-radius: 50%;
+    background: var(--dark-green);
+    border: 3px solid var(--wheat);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 40px rgba(44,24,16,0.4);
+    transition: var(--transition-smooth);
+    position: relative;
+  }
+  
+  .chat-btn:hover { 
+    transform: scale(1.15) rotate(5deg);
+    background: var(--soil);
+  }
+  
+  .chat-btn svg { 
+    width: 30px; 
+    height: 30px; 
+    fill: var(--wheat); 
+    transition: var(--transition-smooth);
+  }
+  
+  .chat-btn .icon-close { 
+    display: none; 
+    position: absolute; 
+  }
+  
+  .chat-btn.open .icon-chat { display: none; }
+  .chat-btn.open .icon-close { display: block; }
+
+  .chat-pulse {
+    position: absolute;
+    top: -2px; right: -2px;
+    width: 16px; height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 2px solid var(--cream);
+  }
+  
+  .chat-pulse::after {
+    content: '';
+    position: absolute; inset: -5px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  .chat-panel {
+    position: fixed;
+    bottom: 6rem; right: 2rem;
+    z-index: 999;
+    width: 450px; height: 600px;
+    background: var(--cream);
+    border: 1px solid rgba(44,24,16,0.2);
+    box-shadow: 0 30px 80px rgba(44,24,16,0.3);
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.9) translateY(20px);
+    transform-origin: bottom right;
+    opacity: 0;
+    pointer-events: none;
+    transition: var(--transition-smooth);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  
+  .chat-panel.open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: all;
+  }
+
+  .resize-handle {
+    position: absolute;
+    top: 0; left: 0;
+    width: 25px; height: 25px;
+    cursor: nw-resize;
+    z-index: 2;
+  }
+  
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 10px; height: 10px;
+    border-top: 2px solid var(--wheat);
+    border-left: 2px solid var(--wheat);
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+
+  .resize-handle:hover::before {
+    opacity: 1;
+  }
+
+  .chat-header {
+    background: var(--dark-green);
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    cursor: grab;
+    transition: background 0.3s;
+  }
+  
+  .chat-header:active { 
+    cursor: grabbing; 
+    background: var(--soil);
+  }
+
+  .chat-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--wheat);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  .chat-header-info { flex: 1; }
+  
+  .chat-header-info strong {
+    display: block;
+    color: var(--cream);
+    font-size: 1rem;
+  }
+  
+  .chat-online {
+    font-size: 0.75rem;
+    color: #7EC87A;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+  }
+  
+  .chat-online::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: #7EC87A;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .chat-controls { 
+    display: flex; 
+    gap: 0.5rem; 
+  }
+  
+  .ctrl-btn {
+    width: 32px; height: 32px;
+    border: none;
+    background: rgba(235,232,224,0.15);
+    color: var(--cream);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: var(--transition-smooth);
+  }
+  
+  .ctrl-btn:hover { 
+    background: var(--wheat);
+    color: var(--soil);
+    transform: scale(1.1);
+  }
+
+  .chat-iframe-wrapper { 
+    flex: 1; 
+    position: relative; 
+    overflow: hidden; 
+  }
+  
+  .chat-iframe-wrapper iframe { 
+    width: 100%; 
+    height: 100%; 
+    border: none; 
+  }
+
+  .chat-placeholder {
+    position: absolute; inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    color: var(--earth);
+    font-size: 0.95rem;
+    padding: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--cream), var(--mist));
+  }
+  
+  .chat-placeholder svg { 
+    width: 60px; 
+    height: 60px; 
+    opacity: 0.3;
+    animation: bounce 2s infinite;
+  }
+  
+  .chat-placeholder p { 
+    opacity: 0.7; 
+    line-height: 1.7;
+    max-width: 300px;
+  }
+  
+  .connect-btn {
+    padding: 0.8rem 2rem;
+    background: var(--dark-green);
+    color: var(--cream);
+    border: none;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: var(--transition-smooth);
+    border-radius: 30px;
+  }
+  
+  .connect-btn:hover { 
+    background: var(--soil);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(44,24,16,0.3);
+  }
+
+  /* ─── ANIMATIONS AMÉLIORÉES ───────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes slide {
+    to { left: 100%; }
+  }
+
+  @keyframes slideIn {
+    to { transform: scaleX(1); }
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── REVEAL ON SCROLL AMÉLIORÉ ──────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Délais pour les animations en cascade */
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-4 { transition-delay: 0.4s; }
+  .reveal-delay-5 { transition-delay: 0.5s; }
+
+  /* ─── RESPONSIVE AMÉLIORÉ ────────────────────────── */
+
+  /* Tablettes */
+  @media (max-width: 1024px) {
+    html { font-size: 15px; }
+    
+    nav { padding: 1.2rem 2rem; }
+    nav.scrolled { padding: 0.8rem 2rem; }
+    
+    .hero-content { padding: 8rem 2rem 4rem; }
+    .hero-aside { right: 2rem; }
+    .scroll-indicator { left: 2rem; }
+    
+    .section { padding: 5rem 2rem; }
+    
+    .methodes-layout,
+    .territoire-layout,
+    .contact-layout {
+      grid-template-columns: 1fr;
+      gap: 3rem;
+    }
+    
+    .methodes-visual { position: static; }
+    
+    .stats-bar { 
+      grid-template-columns: repeat(3, 1fr);
+      padding: 2rem;
+    }
+    
+    .produits-grid { 
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Mobiles */
+  @media (max-width: 768px) {
+    html { font-size: 14px; }
+    
+    nav { padding: 1rem; }
+    nav.scrolled { padding: 0.8rem 1rem; }
+    
+    .menu-toggle {
+      display: flex;
+    }
+    
+    .nav-menu {
+      position: fixed;
+      top: 0; right: -100%;
+      width: 80%;
+      max-width: 400px;
+      height: 100vh;
+      background: var(--soil);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 2rem;
+      transition: right 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -5px 0 30px rgba(0,0,0,0.3);
+      z-index: 950;
+    }
+    
+    .nav-menu.open {
+      right: 0;
+    }
+    
+    .nav-link {
+      font-size: 1.2rem;
+      color: var(--cream);
+    }
+    
+    .hero-content { 
+      padding: 6rem 1rem 3rem;
+      text-align: center;
+      align-items: center;
+    }
+    
+    .hero-label::before { display: none; }
+    
+    .hero-sub { 
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .cta-group {
+      justify-content: center;
+    }
+    
+    .hero-aside { display: none; }
+    
+    .scroll-indicator { left: 1rem; }
+    
+    .section { padding: 4rem 1rem; }
+    
+    .stats-bar { 
+      grid-template-columns: 1fr;
+      padding: 1.5rem;
+    }
+    
+    .stat-item { 
+      border-right: none;
+      border-bottom: 1px solid rgba(235,232,224,0.1);
+      padding: 1.5rem;
+    }
+    
+    .stat-item:last-child { border-bottom: none; }
+    
+    .produits-grid { 
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    .produits-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .methodes-layout {
+      gap: 2rem;
+    }
+    
+    .methode-item {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    .methode-num {
+      width: 50px;
+      height: 50px;
+      font-size: 1.2rem;
+    }
+    
+    .methodes-big-card {
+      padding: 2rem;
+    }
+    
+    .methodes-big-card h3 {
+      font-size: 1.5rem;
+    }
+    
+    .methodes-stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .territoire-layout {
+      gap: 2rem;
+    }
+    
+    .zone-cards {
+      grid-template-columns: 1fr;
+    }
+    
+    .territoire-climate {
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+    
+    .contact-layout {
+      gap: 2rem;
+    }
+    
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .contact-info-block {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.8rem;
+    }
+    
+    .form-submit {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    
+    .submit-btn {
+      width: 100%;
+      text-align: center;
+    }
+    
+    footer {
+      flex-direction: column;
+      gap: 1.5rem;
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+    
+    .chat-panel {
+      width: calc(100vw - 2rem);
+      height: 70vh;
+      right: 1rem;
+      bottom: 5rem;
+    }
+    
+    .chat-launcher {
+      bottom: 1rem;
+      right: 1rem;
+    }
+    
+    .chat-btn {
+      width: 55px;
+      height: 55px;
+    }
+    
+    .chat-tooltip { display: none; }
+  }
+
+  /* Petits mobiles */
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: 2.2rem;
+    }
+    
+    .hero-sub {
+      font-size: 1rem;
+    }
+    
+    .btn-primary, .btn-outline {
+      width: 100%;
+      text-align: center;
+    }
+    
+    .cta-group {
+      flex-direction: column;
+      width: 100%;
+    }
+    
+    .stat-num {
+      font-size: 2.8rem;
+    }
+    
+    .section-title {
+      font-size: 1.8rem;
+    }
+    
+    .produit-visual {
+      height: 180px;
+      font-size: 4rem;
+    }
+    
+    .produit-body {
+      padding: 1.2rem;
+    }
+    
+    .badge {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.7rem;
+    }
+    
+    .map-container {
+      padding: 1rem;
+      min-height: 350px;
+    }
+    
+    .chat-panel {
+      height: 60vh;
+    }
+  }
+</style>
+</head>
+<body>
+
+<nav id="navbar">
+  <a href="#accueil" class="logo">Agro<span>Terre</span></a>
+  <div class="menu-toggle" id="menuToggle" onclick="toggleMenu()">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <ul class="nav-menu" id="navMenu">
+    <li><a href="#produits" class="nav-link">Nos Produits</a></li>
+    <li><a href="#methodes" class="nav-link">Méthodes</a></li>
+    <li><a href="#territoire" class="nav-link">Territoire</a></li>
+    <li><a href="#contact" class="nav-link">Contact</a></li>
+  </ul>
+</nav>
+
+<section id="accueil">
+  <div class="hero-content">
+    <p class="hero-label reveal">Agriculture indépendante · Depuis 1987</p>
+    <h1 class="hero-title reveal">La terre,<br><em>cultivée</em><br>avec conscience.</h1>
+    <p class="hero-sub reveal">Nous pratiquons une agriculture ancrée dans le respect des sols, des cycles naturels et des hommes. Chaque récolte raconte une histoire d'engagement.</p>
+    <div class="cta-group reveal">
+      <a href="#produits" class="btn-primary">Découvrir nos produits</a>
+      <a href="#methodes" class="btn-outline">Notre démarche</a>
+    </div>
+  </div>
+  <span class="hero-aside">AgroTerre — Terroir & Savoir-faire</span>
+  <div class="scroll-indicator">
+    <div class="scroll-line"></div>
+    Défiler
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat-item reveal">
+    <span class="stat-num">340<small style="font-size:1.6rem">ha</small></span>
+    <span class="stat-label">Terres cultivées</span>
+  </div>
+  <div class="stat-item reveal reveal-delay-1">
+    <span class="stat-num">35+</span>
+    <span class="stat-label">Années d'expérience</span>
+  </div>
+  <div class="stat-item reveal reveal-delay-2">
+    <span class="stat-num">100%</span>
+    <span class="stat-label">Agriculture raisonnée</span>
+  </div>
+</div>
+
+<section id="produits" class="section">
+  <div class="produits-header">
+    <div>
+      <p class="section-label reveal">Nos productions</p>
+      <h2 class="section-title reveal">Du champ à votre table</h2>
+    </div>
+    <p class="section-intro reveal">Chaque produit est issu de nos terres et reflète notre engagement pour une agriculture de qualité, ancrée dans notre territoire.</p>
+  </div>
+
+  <div class="produits-grid">
+    <div class="produit-card p1 reveal">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🌾</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Céréales</p>
+        <h3>Blé tendre & Épeautre</h3>
+        <p>Variétés ancestrales sélectionnées pour leur goût et leur robustesse. Cultivées sans intrants chimiques de synthèse.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Sans glyphosate</span>
+          <span class="tag">Semences locales</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="produit-card p2 reveal reveal-delay-1">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🫒</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Oléagineux</p>
+        <h3>Tournesol & Colza</h3>
+        <p>Huiles vierges de première pression extraites à froid pour préserver tous les arômes et nutriments.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Pression à froid</span>
+          <span class="tag">Non OGM</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="produit-card p3 reveal reveal-delay-2">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🥬</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Maraîchage</p>
+        <h3>Légumes de saison</h3>
+        <p>Production en rotation sur nos parcelles maraîchères. Récoltes hebdomadaires disponibles en panier direct.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Saison</span>
+          <span class="tag">Circuit court</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="produit-card p4 reveal reveal-delay-3">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🌿</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Plantes aromatiques</p>
+        <h3>Herbes & Infusions</h3>
+        <p>Lavande, thym, mélisse et romarin cultivés en bordure de parcelles pour favoriser la biodiversité.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Séchage naturel</span>
+          <span class="tag">Artisanal</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="produit-card p5 reveal reveal-delay-4">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🍎</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Verger</p>
+        <h3>Fruits & Conserves</h3>
+        <p>Pommiers, poiriers et pruniers centenaires. Confitures et compotes préparées selon des recettes familiales.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Vieux vergers</span>
+          <span class="tag">Fait maison</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="produit-card p6 reveal reveal-delay-5">
+      <div class="produit-visual">
+        <div class="produit-visual-bg"></div>
+        <span class="produit-emoji">🐄</span>
+      </div>
+      <div class="produit-body">
+        <p class="produit-cat">Élevage</p>
+        <h3>Œufs & Produits laitiers</h3>
+        <p>Poules élevées en plein air et vaches nourries à l'herbe de nos prairies permanentes. Filière courte garantie.</p>
+        <div class="produit-tag-row">
+          <span class="tag">Plein air</span>
+          <span class="tag">Bien-être animal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="methodes" class="section">
+  <div class="methodes-layout">
+    <div>
+      <p class="section-label reveal">Notre savoir-faire</p>
+      <h2 class="section-title reveal">Des pratiques au<br><em>service du vivant</em></h2>
+      <p class="section-intro reveal">Chaque décision agronomique est guidée par une observation rigoureuse du sol, du climat et des équilibres écosystémiques.</p>
+
+      <div class="methode-item reveal">
+        <div class="methode-num">01</div>
+        <div class="methode-info">
+          <h3>Agroécologie & biodiversité</h3>
+          <p>Haies bocagères, bandes fleuries et jachères tournantes pour préserver les auxiliaires naturels et la faune du sol. Nos parcelles hébergent plus de 60 espèces d'insectes pollinisateurs recensées.</p>
+        </div>
+      </div>
+
+      <div class="methode-item reveal reveal-delay-1">
+        <div class="methode-num">02</div>
+        <div class="methode-info">
+          <h3>Travail du sol raisonné</h3>
+          <p>Labour minimal pour préserver la structure et la vie microbienne. Recours au semis direct sur couverture végétale depuis 2015, réduisant l'érosion de 70 % sur les parcelles concernées.</p>
+        </div>
+      </div>
+
+      <div class="methode-item reveal reveal-delay-2">
+        <div class="methode-num">03</div>
+        <div class="methode-info">
+          <h3>Gestion intégrée de l'eau</h3>
+          <p>Bassins de rétention, irrigation goutte-à-goutte et monitoring des nappes phréatiques. Réduction de la consommation d'eau de 45 % en dix ans grâce à des capteurs d'humidité en temps réel.</p>
+        </div>
+      </div>
+
+      <div class="methode-item reveal reveal-delay-3">
+        <div class="methode-num">04</div>
+        <div class="methode-info">
+          <h3>Compostage & circularité</h3>
+          <p>Valorisation de 100 % des résidus de culture et effluents d'élevage en compost mature. Zéro déchets organiques sortants de l'exploitation depuis 2019.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="methodes-visual">
+      <div class="methodes-big-card reveal">
+        <h3>Agriculture indépendante, libre de choisir ses pratiques</h3>
+        <p>Sans capitaux extérieurs ni injonctions industrielles, nous expérimentons librement ce qui fait sens pour nos sols et pour notre territoire. L'indépendance est notre première ressource.</p>
+        <div class="cert-badges">
+          <span class="badge">🌱 Agriculture Raisonnée</span>
+          <span class="badge">♻️ Zéro Déchet</span>
+          <span class="badge">🐝 Apiculteur partenaire</span>
+          <span class="badge">📊 Bilan carbone annuel</span>
+        </div>
+      </div>
+      <div class="methodes-stats reveal">
+        <div class="methode-stat">
+          <strong>−70%</strong>
+          <span>Érosion des sols</span>
+        </div>
+        <div class="methode-stat">
+          <strong>−45%</strong>
+          <span>Consommation eau</span>
+        </div>
+        <div class="methode-stat">
+          <strong>+60</strong>
+          <span>Espèces pollinisateurs</span>
+        </div>
+        <div class="methode-stat">
+          <strong>100%</strong>
+          <span>Compostage interne</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="territoire" class="section">
+  <div class="territoire-layout">
+    <div>
+      <p class="section-label reveal">Notre ancrage</p>
+      <h2 class="section-title reveal">Un terroir,<br><em>une identité</em></h2>
+      <p class="section-intro reveal">Installés en région Centre-Val de Loire, nos terres s'étendent sur trois communes entre plateau calcaire et vallée alluviale — un terroir d'exception pour la polyculture.</p>
+
+      <div class="territoire-info reveal">
+        <h3>📍 Plateau de Beauce</h3>
+        <p>280 hectares de limons profonds, idéaux pour les grandes cultures céréalières. Horizon labouré à 30 cm, sol aéré et drainant naturellement.</p>
+
+        <h3>📍 Vallée de la Cisse</h3>
+        <p>60 hectares de terres alluviales en bord de rivière, dédiés au maraîchage et aux vergers. Irrigation gravitaire depuis le bief historique.</p>
+      </div>
+
+      <div class="zone-cards">
+        <div class="zone-card reveal">
+          <h4>Sol argilo-calcaire</h4>
+          <p>pH 7.2 · Riche en calcium · Favorable aux légumineuses</p>
+        </div>
+        <div class="zone-card reveal reveal-delay-1">
+          <h4>Sol limoneux profond</h4>
+          <p>pH 6.8 · Forte capacité hydrique · Céréales, oléagineux</p>
+        </div>
+        <div class="zone-card reveal reveal-delay-2">
+          <h4>Prairie permanente</h4>
+          <p>30 ha classés · Pâturage extensif · Carbone stocké</p>
+        </div>
+        <div class="zone-card reveal reveal-delay-3">
+          <h4>Boisements & haies</h4>
+          <p>12 km de haies replantées depuis 2010</p>
+        </div>
+      </div>
+
+      <div class="territoire-climate reveal">
+        <div class="climate-item">
+          <strong>620mm</strong>
+          <span>Pluviométrie / an</span>
+        </div>
+        <div class="climate-item">
+          <strong>11.5°C</strong>
+          <span>Temp. moyenne</span>
+        </div>
+        <div class="climate-item">
+          <strong>1 850h</strong>
+          <span>Ensoleillement</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-container reveal">
+      <svg class="map-svg" viewBox="0 0 300 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 40 80 Q 80 40 140 55 Q 200 70 240 60 Q 270 65 275 90 Q 280 120 260 150 Q 250 170 230 185 Q 200 210 180 230 Q 160 250 140 255 Q 110 258 90 240 Q 65 220 50 195 Q 30 165 35 130 Z"
+          fill="rgba(45,74,53,0.08)" stroke="rgba(45,74,53,0.25)" stroke-width="1.5"/>
+        <path d="M 60 160 Q 110 145 160 155 Q 200 163 240 148"
+          stroke="rgba(107,143,113,0.5)" stroke-width="2" stroke-dasharray="4 3" fill="none"/>
+        <line x1="80" y1="60" x2="200" y2="200" stroke="rgba(92,61,46,0.12)" stroke-width="1"/>
+        <line x1="50" y1="140" x2="260" y2="120" stroke="rgba(92,61,46,0.12)" stroke-width="1"/>
+        <rect x="115" y="95" width="60" height="45" rx="2"
+          fill="rgba(212,168,83,0.18)" stroke="rgba(212,168,83,0.4)" stroke-width="1"/>
+        <rect x="80" y="148" width="50" height="35" rx="2"
+          fill="rgba(107,143,113,0.2)" stroke="rgba(107,143,113,0.4)" stroke-width="1"/>
+        <rect x="160" y="130" width="55" height="40" rx="2"
+          fill="rgba(212,168,83,0.12)" stroke="rgba(212,168,83,0.3)" stroke-width="1"/>
+        <text x="145" y="122" text-anchor="middle" fill="rgba(44,24,16,0.4)" font-size="7" font-family="serif">Beauce</text>
+        <text x="105" y="170" text-anchor="middle" fill="rgba(44,24,16,0.4)" font-size="7" font-family="serif">Cisse</text>
+      </svg>
+
+      <div class="map-pin pin1">
+        <div class="map-pin-dot"></div>
+        <div class="map-pin-label">Siège</div>
+      </div>
+      <div class="map-pin pin2">
+        <div class="map-pin-dot" style="background:var(--sage); box-shadow: 0 2px 8px rgba(107,143,113,0.4)"></div>
+        <div class="map-pin-label">Maraîchage</div>
+      </div>
+      <div class="map-pin pin3">
+        <div class="map-pin-dot" style="background:var(--wheat); box-shadow: 0 2px 8px rgba(212,168,83,0.4)"></div>
+        <div class="map-pin-label">Céréales</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="section">
+  <div class="contact-layout">
+    <div>
+      <p class="section-label reveal">Nous joindre</p>
+      <h2 class="section-title reveal">Parlons de<br><em>votre projet</em></h2>
+      <p class="section-intro reveal">Que vous soyez restaurateur, particulier, partenaire ou simple curieux — nous répondons à toutes les demandes dans un délai de 48h.</p>
+
+      <div class="contact-info-block reveal">
+        <div class="contact-icon">📍</div>
+        <div>
+          <h4>Adresse</h4>
+          <p>Ferme AgroTerre<br>Route des Champs, 41000<br>Blois, France</p>
+        </div>
+      </div>
+
+      <div class="contact-info-block reveal reveal-delay-1">
+        <div class="contact-icon">📞</div>
+        <div>
+          <h4>Téléphone</h4>
+          <p>+33 2 54 XX XX XX<br>Lun–Ven · 8h–18h</p>
+        </div>
+      </div>
+
+      <div class="contact-info-block reveal reveal-delay-2">
+        <div class="contact-icon">✉️</div>
+        <div>
+          <h4>Email</h4>
+          <p>contact@agroterre.fr<br>Réponse sous 48h</p>
+        </div>
+      </div>
+
+      <div class="contact-info-block reveal reveal-delay-3">
+        <div class="contact-icon">🛒</div>
+        <div>
+          <h4>Vente directe</h4>
+          <p>Marché de Blois · Samedi 8h–13h<br>AMAP locale · Paniers hebdomadaires</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="reveal">
+      <form id="contactForm" onsubmit="handleSubmit(event)" novalidate>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="prenom">Prénom</label>
+            <input type="text" id="prenom" placeholder="Marie" required>
+          </div>
+          <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" placeholder="Dupont" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="marie@exemple.fr" required>
+          </div>
+          <div class="form-group">
+            <label for="tel">Téléphone</label>
+            <input type="tel" id="tel" placeholder="+33 6 00 00 00 00">
+          </div>
+          <div class="form-group full">
+            <label for="sujet">Sujet</label>
+            <select id="sujet">
+              <option value="">Sélectionner un sujet…</option>
+              <option>Commande de produits</option>
+              <option>Partenariat restauration</option>
+              <option>Visite de la ferme</option>
+              <option>AMAP / Panier hebdomadaire</option>
+              <option>Presse & médias</option>
+              <option>Autre demande</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="message">Message</label>
+            <textarea id="message" rows="5" placeholder="Décrivez votre demande…" required></textarea>
+          </div>
+        </div>
+        <div class="form-submit">
+          <button type="submit" class="submit-btn">Envoyer le message</button>
+          <p class="form-note">Vos données ne sont jamais transmises à des tiers.</p>
+        </div>
+        <div class="form-success" id="formSuccess">
+          ✅ Votre message a bien été envoyé ! Nous vous répondrons dans les 48 heures.
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="#accueil" class="logo" style="text-decoration:none">Agro<span>Terre</span></a>
+  <p>© 2025 AgroTerre — Agriculture indépendante. Tous droits réservés.</p>
+  <p>📍 Centre-Val de Loire, France</p>
+</footer>
+
+<div class="chat-launcher" id="chatLauncher">
+  <div class="chat-tooltip">Contacter l'administration</div>
+  <button class="chat-btn" id="chatBtn" onclick="toggleChat()">
+    <div class="chat-pulse"></div>
+    <svg class="icon-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+    <svg class="icon-close" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+</div>
+
+<div class="chat-panel" id="chatPanel">
+  <div class="resize-handle" id="resizeHandle"></div>
+  <div class="chat-header" id="chatHeaderDrag">
+    <div class="chat-avatar">🌾</div>
+    <div class="chat-header-info">
+      <strong>Administration AgroTerre</strong>
+      <span class="chat-online">En ligne</span>
+    </div>
+    <div class="chat-controls">
+      <button class="ctrl-btn" onclick="minimizeChat()" title="Minimiser">−</button>
+      <button class="ctrl-btn" onclick="maximizeChat()" title="Agrandir">⤢</button>
+    </div>
+  </div>
+  <div class="chat-iframe-wrapper">
+    <div class="chat-placeholder" id="chatPlaceholder">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      <strong style="font-size:1.1rem;color:var(--soil)">Messagerie Administration</strong>
+      <p>Cliquez pour vous connecter à la conversation privée de l'administration.</p>
+      <button class="connect-btn" onclick="loadChat()">Ouvrir la messagerie</button>
+    </div>
+    <iframe id="chatIframe" src="" title="Conversation Administration" style="display:none"></iframe>
+  </div>
+</div>
+
+<script>
+  const ADMIN_CHAT_URL = 'http://localhost:3000/admin/conversation/private';
+  const navbar = document.getElementById('navbar');
+  const menuToggle = document.getElementById('menuToggle');
+  const navMenu = document.getElementById('navMenu');
+  const sections = ['accueil','produits','methodes','territoire','contact'];
+
+  let chatOpen = false;
+  let chatLoaded = false;
+  let isResizing = false, rX, rY, rW, rH;
+  let isDragging = false, dX, dY, pR, pB;
+
+  // Navbar scroll
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('scrolled', window.scrollY > 60);
+    updateActiveNav();
+  });
+
+  // Active nav link
+  function updateActiveNav() {
+    let current = 'accueil';
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.scrollY >= el.offsetTop - 150) current = id;
+    });
+    document.querySelectorAll('.nav-link').forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  }
+
+  // Mobile menu toggle
+  function toggleMenu() {
+    menuToggle.classList.toggle('open');
+    navMenu.classList.toggle('open');
+    document.body.style.overflow = navMenu.classList.contains('open') ? 'hidden' : '';
+  }
+
+  // Close mobile menu when clicking a link
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+      menuToggle.classList.remove('open');
+      navMenu.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+
+  // Scroll reveal
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        revealObserver.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  // Contact form
+  function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.querySelector('.submit-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Envoi…';
+    btn.disabled = true;
+    
+    setTimeout(() => {
+      document.getElementById('formSuccess').style.display = 'block';
+      document.getElementById('contactForm').reset();
+      btn.textContent = originalText;
+      btn.disabled = false;
+      
+      setTimeout(() => {
+        document.getElementById('formSuccess').style.display = 'none';
+      }, 5000);
+    }, 1500);
+  }
+
+  // Chat functions
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatPanel').classList.toggle('open', chatOpen);
+    document.getElementById('chatBtn').classList.toggle('open', chatOpen);
+    if (chatOpen && !chatLoaded) setTimeout(loadChat, 400);
+  }
+
+  function loadChat() {
+    if (chatLoaded) return;
+    const iframe = document.getElementById('chatIframe');
+    iframe.src = ADMIN_CHAT_URL;
+    iframe.style.display = 'block';
+    document.getElementById('chatPlaceholder').style.display = 'none';
+    chatLoaded = true;
+  }
+
+  function minimizeChat() {
+    chatOpen = false;
+    document.getElementById('chatPanel').classList.remove('open');
+    document.getElementById('chatBtn').classList.remove('open');
+  }
+
+  function maximizeChat() {
+    const panel = document.getElementById('chatPanel');
+    if (panel.style.width === '100vw') {
+      panel.style.cssText = '';
+      panel.classList.add('open');
+    } else {
+      panel.style.cssText = 'width:100vw;height:100vh;bottom:0;right:0;opacity:1;transform:scale(1);pointer-events:all';
+    }
+  }
+
+  // Resize panel
+  const panel = document.getElementById('chatPanel');
+  const handle = document.getElementById('resizeHandle');
+
+  handle.addEventListener('mousedown', e => {
+    isResizing = true;
+    rX = e.clientX; rY = e.clientY;
+    rW = panel.offsetWidth; rH = panel.offsetHeight;
+    e.preventDefault();
+  });
+
+  // Drag panel
+  const dragHandle = document.getElementById('chatHeaderDrag');
+
+  dragHandle.addEventListener('mousedown', e => {
+    if (e.target.closest('.chat-controls')) return;
+    isDragging = true;
+    dX = e.clientX; dY = e.clientY;
+    const rect = panel.getBoundingClientRect();
+    pR = window.innerWidth - rect.right;
+    pB = window.innerHeight - rect.bottom;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (isResizing) {
+      const w = Math.max(300, Math.min(window.innerWidth - 40, rW + (rX - e.clientX)));
+      const h = Math.max(400, Math.min(window.innerHeight - 100, rH + (rY - e.clientY)));
+      panel.style.width = w + 'px';
+      panel.style.height = h + 'px';
+    }
+    if (isDragging) {
+      panel.style.right = Math.max(0, pR - (e.clientX - dX)) + 'px';
+      panel.style.bottom = Math.max(0, pB - (e.clientY - dY)) + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', () => { 
+    isResizing = false; 
+    isDragging = false; 
+  });
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
