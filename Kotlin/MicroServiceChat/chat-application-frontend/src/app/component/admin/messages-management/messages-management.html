@@ -1,0 +1,240 @@
+<!-- admin-messages.component.html -->
+<div class="amsg-shell" (keydown.escape)="closeModal()">
+
+  <!-- Toasts -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" (click)="dismissToast(t.id)" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="$event.stopPropagation(); dismissToast(t.id)">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ── EN-TÊTE ─────────────────────────────────────────────────────────── -->
+  <div class="amsg-header">
+    <div>
+      <h2 class="amsg-title">Gestion des Messages</h2>
+      <p class="amsg-subtitle">Modérez et gérez tous les messages de la plateforme</p>
+    </div>
+    <button class="btn-ghost" (click)="loadMessages()" [disabled]="loading">
+      <span class="material-icons" [class.spin]="loading">refresh</span>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- ── STATS ──────────────────────────────────────────────────────────── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#eff6ff"><span class="material-icons" style="color:#2563eb">mail</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ totalCount }}</span><span class="stat-card__lbl">Total</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#f0fdf4"><span class="material-icons" style="color:#16a34a">group</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ groupMessages }}</span><span class="stat-card__lbl">Groupe</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#fffbeb"><span class="material-icons" style="color:#d97706">lock</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ privateMessages }}</span><span class="stat-card__lbl">Privés</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#f5f3ff"><span class="material-icons" style="color:#7c3aed">attach_file</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ withFiles }}</span><span class="stat-card__lbl">Avec fichiers</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#fef2f2"><span class="material-icons" style="color:#dc2626">delete</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ deletedCount }}</span><span class="stat-card__lbl">Supprimés</span></div>
+    </div>
+  </div>
+
+  <!-- ── FILTRES — réactifs ──────────────────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <span class="material-icons search-box__ico">search</span>
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchInput()"
+        placeholder="Rechercher par contenu, expéditeur, destinataire, salle…" class="search-box__input">
+      @if (searchTerm) {
+        <button class="search-box__clear" (click)="searchTerm=''; applyFilters()">
+          <span class="material-icons">close</span>
+        </button>
+      }
+    </div>
+    <select class="filter-select" [(ngModel)]="messageTypeFilter" (ngModelChange)="onFilterChange()">
+      <option value="all">Tous les types</option>
+      <option value="group">Messages groupe</option>
+      <option value="private">Messages privés</option>
+    </select>
+    <select class="filter-select" [(ngModel)]="roomFilter" (ngModelChange)="onFilterChange()">
+      <option value="">Toutes les salles</option>
+      @for (rid of uniqueRoomIds; track rid) {
+        <option [value]="rid">{{ getRoomLabel(rid) }}</option>
+      }
+    </select>
+  </div>
+
+  @if (hasActiveFilters) {
+    <div class="results-bar">
+      <span class="material-icons">filter_list</span>
+      <span>{{ filteredMessages.length }} résultat(s)
+        @if (searchTerm) { pour « <strong>{{ searchTerm }}</strong> » }
+      </span>
+      <button class="results-bar__clear" (click)="searchTerm=''; roomFilter=''; messageTypeFilter='all'; applyFilters()">Effacer</button>
+    </div>
+  }
+
+  <!-- ── CHARGEMENT ─────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="state-box" role="status"><div class="loader-ring"></div><p>Chargement des messages…</p></div>
+  }
+
+  <!-- ── TABLEAU ────────────────────────────────────────────────────────── -->
+  @if (!loading && filteredMessages.length > 0) {
+    <div class="table-wrap">
+      <table class="data-table" aria-label="Liste des messages">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Type</th>
+            <th>Expéditeur</th>
+            <th>Destinataire / Salle</th>
+            <th>Contenu</th>
+            <th>Type msg.</th>
+            <th>Fichier</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of paginatedMessages; track trackByMsg($index, m)) {
+            <tr class="data-row" [class.data-row--deleted]="m.isDeleted">
+              <td class="td-id">#{{ m.id }}</td>
+              <td>
+                <span class="badge" [class]="m.isPrivate ? 'badge--private' : 'badge--group'">
+                  {{ m.isPrivate ? '🔒 Privé' : '👥 Groupe' }}
+                </span>
+              </td>
+              <td class="td-sender">{{ m.senderName }}</td>
+              <td>
+                @if (m.isPrivate) {
+                  <span class="badge badge--receiver">{{ m.receiverName }}</span>
+                } @else {
+                  <span class="badge badge--room">{{ m.roomName }}</span>
+                }
+              </td>
+              <td class="td-content">{{ (m.content || '') | slice:0:45 }}{{ (m.content || '').length > 45 ? '…' : '' }}</td>
+              <td>
+                <span class="badge badge--msgtype">{{ m.messageType }}</span>
+              </td>
+              <td>
+                @if (m.fileUrl) {
+                  <span class="file-chip" [title]="m.fileName || ''">
+                    <span class="material-icons">attach_file</span>
+                    {{ (m.fileName || '') | slice:0:12 }}
+                  </span>
+                } @else { <span class="td-none">—</span> }
+              </td>
+              <td>
+                <span class="status-dot" [class.status-dot--deleted]="m.isDeleted">
+                  {{ m.isDeleted ? 'Supprimé' : 'Actif' }}
+                </span>
+              </td>
+              <td class="td-date">{{ m.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+              <td>
+                <div class="action-btns">
+                  @if (!m.isDeleted) {
+                    <button class="btn-ico btn-ico--del" (click)="openDelete(m)" title="Supprimer (soft)">
+                      <span class="material-icons">delete</span>
+                    </button>
+                  } @else {
+                    <button class="btn-ico btn-ico--restore" (click)="restoreMessage(m)" title="Restaurer">
+                      <span class="material-icons">restore</span>
+                    </button>
+                  }
+                  <button class="btn-ico btn-ico--perm" (click)="openPermDelete(m)" title="Supprimer définitivement">
+                    <span class="material-icons">delete_forever</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <div class="pagination__info">
+          {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filteredMessages.length) }} sur {{ filteredMessages.length }}
+        </div>
+        <div class="pagination__controls">
+          <button class="btn-page" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pagination__pages">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn-page" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <select class="pagination__size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+            @for (s of pageSizeOptions; track s) { <option [value]="s">{{ s }}/page</option> }
+          </select>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Vide -->
+  @if (!loading && filteredMessages.length === 0) {
+    <div class="state-box">
+      <span class="material-icons state-box__icon">message</span>
+      <h3>Aucun message trouvé</h3>
+      @if (hasActiveFilters) {
+        <p>Essayez de modifier vos filtres.</p>
+        <button class="btn-ghost" (click)="searchTerm=''; roomFilter=''; messageTypeFilter='all'; applyFilters()">Effacer les filtres</button>
+      } @else {
+        <p>Aucun message dans la plateforme.</p>
+      }
+    </div>
+  }
+
+  <!-- ── MODALES ─────────────────────────────────────────────────────────── -->
+  @if (modalMode && messageToDelete) {
+    <div class="modal-overlay" (click)="closeModal()" role="dialog" aria-modal="true">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal__head" [class.modal__head--danger]="modalMode === 'permDelete'">
+          <h3 class="modal__title">
+            <span class="material-icons">{{ modalMode === 'permDelete' ? 'delete_forever' : 'delete' }}</span>
+            {{ modalMode === 'permDelete' ? 'Suppression définitive' : 'Supprimer le message' }}
+          </h3>
+          <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal__body modal__body--center">
+          <div class="confirm-ico confirm-ico--danger">
+            <span class="material-icons">{{ modalMode === 'permDelete' ? 'delete_forever' : 'warning' }}</span>
+          </div>
+          <p class="confirm-warn">
+            Êtes-vous sûr de vouloir {{ modalMode === 'permDelete' ? 'supprimer définitivement' : 'supprimer' }} ce message ?
+          </p>
+          <div class="msg-preview">
+            "{{ (messageToDelete.content || '') | slice:0:120 }}"
+          </div>
+          @if (modalMode === 'permDelete') {
+            <p class="confirm-sub">Cette action est irréversible.</p>
+          }
+        </div>
+        <div class="modal__foot">
+          <button class="btn-ghost" (click)="closeModal()" [disabled]="deleting">Annuler</button>
+          <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+            @if (deleting) { <span class="spinner-sm"></span> }
+            <span class="material-icons">{{ modalMode === 'permDelete' ? 'delete_forever' : 'delete' }}</span>
+            {{ deleting ? 'Suppression…' : (modalMode === 'permDelete' ? 'Supprimer définitivement' : 'Supprimer') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

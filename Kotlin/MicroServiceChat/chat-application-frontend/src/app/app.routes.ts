@@ -4,19 +4,6 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
-  // ─────────────────────────────────────────────────────────────────────
-  // 🏠 PAGE D'ACCUEIL (publique)
-  // ─────────────────────────────────────────────────────────────────────
-  {
-    path: '',
-    loadComponent: () =>
-      import('./component/home/home.component')
-        .then(m => m.HomeComponent),
-    data: {
-      title: 'Accueil',
-      breadcrumb: 'Accueil'
-    }
-  },
 
   // ─────────────────────────────────────────────────────────────────────
   // 🔐 AUTHENTIFICATION (publique)
@@ -31,130 +18,80 @@ export const routes: Routes = [
       breadcrumb: 'Auth'
     }
   },
-
-  // ─────────────────────────────────────────────────────────────────────
-  // 👤 PROFIL UTILISATEUR (protégé)
-  // ─────────────────────────────────────────────────────────────────────
   {
-    path: 'profile',
+    path: 'chat',
+    loadComponent: () => import('./component/chat-room/chat-room').then(m => m.ChatComponent),
     canActivate: [AuthGuard],
-    loadChildren: () =>
-      import('./component/admin/profile/profile.module')
-        .then(m => m.ProfileModule),
     data: {
-      title: 'Mon Profil',
-      breadcrumb: 'Profil'
+      title: 'Chat Room',
+      breadcrumb: 'Chat'
+    }
+  },
+  {
+    path: 'chat/:id',
+    loadComponent: () => import('./component/chat-room/chat-room').then(m => m.ChatComponent),
+    canActivate: [AuthGuard],
+    data: {
+      title: 'Chat Room',
+      breadcrumb: 'Chat'
+    }
+  },
+  {
+    path: 'private',
+    loadComponent: () => import('./component/private-chat/private-chat').then(m => m.PrivateChatComponent),
+    canActivate: [AuthGuard],
+    data: {
+      title: 'Private Chat',
+      breadcrumb: 'Private Chat'
+    }
+  },
+  {
+    path: 'private/:id',
+    loadComponent: () => import('./component/private-chat/private-chat').then(m => m.PrivateChatComponent),
+    canActivate: [AuthGuard],
+    data: {
+      title: 'Private Chat',
+      breadcrumb: 'Private Chat'
     }
   },
 
   // ─────────────────────────────────────────────────────────────────────
-  // 💬 CHAT (protégé)
-  // ─────────────────────────────────────────────────────────────────────
-  {
-    path: 'chat',
-    canActivate: [AuthGuard],
-    data: {
-      title: 'Chat',
-      breadcrumb: 'Chat'
-    },
-    children: [
-      // Redirection par défaut vers les salons publics
-      {
-        path: '',
-        redirectTo: 'room',
-        pathMatch: 'full'
-      },
-      // Salons de discussion publics/privés
-      {
-        path: 'room',
-        loadChildren: () =>
-          import('./component/chat/chat-room/chat-rooms.module')
-            .then(m => m.ChatRoomModule),
-        data: {
-          title: 'Salons de discussion',
-          breadcrumb: 'Salons'
-        }
-      },
-      {
-        path: 'room/:id',
-        loadChildren: () =>
-          import('./component/chat/chat-room/chat-rooms.module')
-            .then(m => m.ChatRoomModule),
-        data: {
-          title: 'Salon de discussion',
-          breadcrumb: 'Salon'
-        }
-      },
-      // Messages privés
-      {
-        path: 'private',
-        loadChildren: () =>
-          import('./component/chat/private-chat/private-chat.module')
-            .then(m => m.PrivateChatModule),
-        data: {
-          title: 'Messages privés',
-          breadcrumb: 'Messages privés'
-        }
-      },
-      {
-        path: 'private/:id',
-        loadChildren: () =>
-          import('./component/chat/private-chat/private-chat.module')
-            .then(m => m.PrivateChatModule),
-        data: {
-          title: 'Conversation privée',
-          breadcrumb: 'Conversation'
-        }
-      }
-    ]
-  },
-
-  // ─────────────────────────────────────────────────────────────────────
-  // 📁 GESTION DE FICHIERS (protégé)
-  // ─────────────────────────────────────────────────────────────────────
-  // {
-  //   path: 'files',
-  //   canActivate: [AuthGuard],
-  //   loadChildren: () =>
-  //     import('./component/admin/admin-files.component/admin-files.module')
-  //       .then(m => m.AdminFilesModule),
-  //   data: {
-  //     title: 'Gestionnaire de fichiers',
-  //     breadcrumb: 'Fichiers'
-  //   }
-  // },
-
-  // ─────────────────────────────────────────────────────────────────────
-  // ⚙️ ADMINISTRATION (protégé + admin)
+  // 👑 ADMIN (protégé)
   // ─────────────────────────────────────────────────────────────────────
   {
     path: 'admin',
+    loadChildren: () => import('./component/admin/admin-routing').then(m => m.AdminRoutingModule),
     canActivate: [AuthGuard, AdminGuard],
-    loadChildren: () =>
-      import('./component/admin/admin-dashboard/admin-dashboard.module')
-        .then(m => m.AdminDashboardModule),
     data: {
       title: 'Administration',
-      breadcrumb: 'Admin',
-      roles: ['ADMIN']
+      breadcrumb: 'Admin'
     }
   },
 
-  // ─────────────────────────────────────────────────────────────────────
-  // 📊 STATISTIQUES (protégé + admin)
-  // ─────────────────────────────────────────────────────────────────────
-  // {
-  //   path: 'statistics',
-  //   canActivate: [AuthGuard, AdminGuard],
-  //   loadChildren: () =>
-  //     import('./component/admin/statistics/statistics.module')
-  //       .then(m => m.StatisticsModule),
-  //   data: {
-  //     title: 'Statistiques',
-  //     breadcrumb: 'Statistiques',
-  //     roles: ['ADMIN']
-  //   }
-  // },
+  {
+    path: 'forbidden',
+    loadComponent: () => import('./component/auth/forbidden.component/forbidden.component').then(m => m.ForbiddenComponent),
+    data: {
+      title: 'Access Denied',
+      breadcrumb: 'Forbidden'
+    }
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./component/auth/profile/profile').then(m => m.ProfileComponent),
+    data: {
+      title: 'Profile',
+      breadcrumb: 'Profile'
+    }
+  },
+  {
+    path: 'unauthorized',
+    loadComponent: () => import('./component/auth/unauthorized/unauthorized').then(m => m.UnauthorizedComponent),
+    data: {
+      title: 'Access Denied',
+      breadcrumb: 'Unauthorized'
+    }
+  },
 
   // ─────────────────────────────────────────────────────────────────────
   // 🔄 REDIRECTION PAR DÉFAUT

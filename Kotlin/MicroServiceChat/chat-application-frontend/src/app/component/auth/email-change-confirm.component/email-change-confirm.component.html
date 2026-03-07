@@ -1,0 +1,74 @@
+<div class="chat-email-confirm">
+  <!-- Background -->
+  <div class="chat-bg">
+    <div class="email-ring"></div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="chat-container">
+    <div class="confirm-card">
+      <ng-container [ngSwitch]="state">
+        <!-- Loading -->
+        <div *ngSwitchCase="'loading'" class="confirm-state">
+          <div class="spinner-wrapper">
+            <mat-spinner diameter="48"></mat-spinner>
+          </div>
+          <h2>Updating your email</h2>
+          <p>Please wait while we confirm your new address...</p>
+          
+          <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div *ngSwitchCase="'success'" class="confirm-state success">
+          <div class="success-animation">
+            <div class="email-icon">
+              <mat-icon>mark_email_read</mat-icon>
+            </div>
+          </div>
+          
+          <h2>Email updated!</h2>
+          <p class="message">
+            Your email address has been changed successfully. Future notifications will go to your new address.
+          </p>
+          
+          <div class="action-buttons">
+            <button class="confirm-button primary" routerLink="/profile">
+              <mat-icon>person</mat-icon>
+              Go to profile
+            </button>
+            <button class="confirm-button secondary" routerLink="/chat">
+              <mat-icon>chat</mat-icon>
+              Back to chat
+            </button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div *ngSwitchCase="'error'" class="confirm-state error">
+          <div class="error-icon">
+            <mat-icon>timer_off</mat-icon>
+          </div>
+          
+          <h2>Link expired</h2>
+          <p class="message">{{ errorMessage || 'This email change link has expired or is invalid.' }}</p>
+          
+          <div class="action-buttons">
+            <button class="confirm-button primary" routerLink="/profile">
+              <mat-icon>refresh</mat-icon>
+              Request new link
+            </button>
+            <button class="confirm-button secondary" routerLink="/profile">
+              <mat-icon>arrow_back</mat-icon>
+              Back to profile
+            </button>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

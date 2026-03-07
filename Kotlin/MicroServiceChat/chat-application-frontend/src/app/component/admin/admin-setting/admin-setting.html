@@ -1,0 +1,683 @@
+<!-- admin-settings.component.html -->
+<div class="settings-shell">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TOASTS
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="toast-stack" role="alert" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}">
+        <span class="material-icons toast__icon">
+          {{ t.type === 'success' ? 'check_circle' : t.type === 'error' ? 'error' : t.type === 'warning' ? 'warning' : 'info' }}
+        </span>
+        <div class="toast__body">
+          <span class="toast__title">{{ t.title }}</span>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="removeToast(t.id)">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PAGE HEADER
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="page-header">
+    <div class="page-header__icon">
+      <span class="material-icons">settings</span>
+    </div>
+    <div>
+      <h1 class="page-header__title">Paramètres du système</h1>
+      <p class="page-header__sub">Configurez l'application FlowChat — les modifications prennent effet immédiatement.</p>
+    </div>
+    <div class="page-header__actions">
+      <button class="btn-ghost" (click)="clearCache()">
+        <span class="material-icons">cleaning_services</span>
+        Vider le cache
+      </button>
+      <button class="btn-ghost" (click)="exportConfig()">
+        <span class="material-icons">download</span>
+        Exporter config
+      </button>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         SIDEBAR TABS
+    ═══════════════════════════════════════════════════════════════════ -->
+    <aside class="settings-nav">
+      @for (tab of tabs; track trackByTab($index, tab)) {
+        <button
+          class="settings-nav__item"
+          [class.settings-nav__item--active]="activeTab === tab.id"
+          (click)="setTab(tab.id)"
+        >
+          <span class="material-icons settings-nav__icon">{{ tab.icon }}</span>
+          <span class="settings-nav__label">{{ tab.label }}</span>
+          <span class="material-icons settings-nav__arrow">chevron_right</span>
+        </button>
+      }
+    </aside>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         CONTENT PANELS
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div class="settings-content">
+
+      <!-- ─────────────────────────────────────────────────────────────
+           ONGLET 1 : GÉNÉRAL
+           ancre: #general
+      ──────────────────────────────────────────────────────────────── -->
+      @if (activeTab === 'general') {
+        <section id="general" class="settings-panel">
+          <div class="panel-head">
+            <div class="panel-head__icon panel-head__icon--blue">
+              <span class="material-icons">tune</span>
+            </div>
+            <div>
+              <h2 class="panel-head__title">Paramètres généraux</h2>
+              <p class="panel-head__sub">Identité et comportement global de l'application</p>
+            </div>
+          </div>
+
+          <form [formGroup]="generalForm" (ngSubmit)="saveGeneral()">
+
+            <!-- App identity -->
+            <div class="form-section">
+              <h3 class="form-section__title">Identité de l'application</h3>
+
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">
+                    Nom de l'application
+                    <span class="form-label__required">*</span>
+                  </label>
+                  <input
+                    class="form-input"
+                    type="text"
+                    formControlName="appName"
+                    placeholder="FlowChat"
+                    [class.form-input--error]="generalForm.get('appName')?.invalid && generalForm.get('appName')?.touched"
+                  />
+                  @if (generalForm.get('appName')?.invalid && generalForm.get('appName')?.touched) {
+                    <span class="form-error">Nom requis (min. 2 caractères)</span>
+                  }
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Email de support</label>
+                  <input
+                    class="form-input"
+                    type="email"
+                    formControlName="supportEmail"
+                    placeholder="support@example.com"
+                    [class.form-input--error]="generalForm.get('supportEmail')?.invalid && generalForm.get('supportEmail')?.touched"
+                  />
+                  @if (generalForm.get('supportEmail')?.invalid && generalForm.get('supportEmail')?.touched) {
+                    <span class="form-error">Email invalide</span>
+                  }
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea
+                  class="form-input form-input--textarea"
+                  formControlName="appDescription"
+                  rows="3"
+                  placeholder="Description courte de la plateforme…"
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- Limits -->
+            <div class="form-section">
+              <h3 class="form-section__title">Limites &amp; Capacités</h3>
+
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">Taille max. fichier (Mo)</label>
+                  <input class="form-input" type="number" formControlName="maxFileSize" min="1" max="500" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Participants max. par room</label>
+                  <input class="form-input" type="number" formControlName="maxRoomParticipants" min="2" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Feature toggles -->
+            <div class="form-section">
+              <h3 class="form-section__title">Fonctionnalités</h3>
+
+              <div class="toggle-list">
+                <div class="toggle-row">
+                  <div class="toggle-row__info">
+                    <span class="toggle-row__label">Salles publiques</span>
+                    <span class="toggle-row__desc">Permettre la création de salles accessibles à tous</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" formControlName="allowPublicRooms" />
+                    <span class="toggle-switch__track"></span>
+                  </label>
+                </div>
+
+                <div class="toggle-row">
+                  <div class="toggle-row__info">
+                    <span class="toggle-row__label">Accès invité</span>
+                    <span class="toggle-row__desc">Autoriser les utilisateurs sans compte à accéder en lecture</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" formControlName="allowGuestAccess" />
+                    <span class="toggle-switch__track"></span>
+                  </label>
+                </div>
+
+                <div class="toggle-row toggle-row--danger">
+                  <div class="toggle-row__info">
+                    <span class="toggle-row__label">Mode maintenance</span>
+                    <span class="toggle-row__desc">Suspend l'accès à l'application pour les utilisateurs non-admin</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" formControlName="maintenanceMode" />
+                    <span class="toggle-switch__track"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-foot">
+              <button type="submit" class="btn-primary" [disabled]="savingGeneral || generalForm.invalid">
+                @if (savingGeneral) { <span class="spinner-sm"></span> }
+                <span class="material-icons">save</span>
+                {{ savingGeneral ? 'Sauvegarde…' : 'Sauvegarder' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <!-- ─────────────────────────────────────────────────────────────
+           ONGLET 2 : NOTIFICATIONS
+           ancre: #notifications
+      ──────────────────────────────────────────────────────────────── -->
+      @if (activeTab === 'notifications') {
+        <section id="notifications" class="settings-panel">
+          <div class="panel-head">
+            <div class="panel-head__icon panel-head__icon--cyan">
+              <span class="material-icons">notifications</span>
+            </div>
+            <div>
+              <h2 class="panel-head__title">Notifications</h2>
+              <p class="panel-head__sub">Configuration SMTP et préférences de notification</p>
+            </div>
+          </div>
+
+          <!-- SMTP Config -->
+          <div class="form-section">
+            <h3 class="form-section__title">Configuration SMTP</h3>
+            <form [formGroup]="notifForm">
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">Serveur SMTP</label>
+                  <input class="form-input" type="text" formControlName="smtpHost" placeholder="smtp.example.com" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Port</label>
+                  <input class="form-input" type="number" formControlName="smtpPort" />
+                </div>
+              </div>
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">Utilisateur SMTP</label>
+                  <input class="form-input" type="text" formControlName="smtpUser" placeholder="noreply@example.com" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Mot de passe SMTP</label>
+                  <input class="form-input" type="password" formControlName="smtpPass" placeholder="••••••••" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Clé Push Notifications</label>
+                <input class="form-input" type="text" formControlName="pushKey" placeholder="Vapid public key…" />
+              </div>
+            </form>
+            <div class="smtp-actions">
+              <button class="btn-outline" (click)="testSmtp()">
+                <span class="material-icons">send</span>
+                Envoyer un email de test
+              </button>
+            </div>
+          </div>
+
+          <!-- Notification toggles -->
+          <div class="form-section">
+            <h3 class="form-section__title">Événements — Email</h3>
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Nouvel utilisateur</span>
+                  <span class="toggle-row__desc">Notifier les admins lors d'une nouvelle inscription</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.emailNewUser" (change)="toggleNotif('emailNewUser')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Suspension de compte</span>
+                  <span class="toggle-row__desc">Notifier l'utilisateur en cas de suspension</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.emailSuspend" (change)="toggleNotif('emailSuspend')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Suppression de compte</span>
+                  <span class="toggle-row__desc">Envoyer confirmation de suppression</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.emailDelete" (change)="toggleNotif('emailDelete')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section__title">Événements — Push &amp; Système</h3>
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Rapport hebdomadaire</span>
+                  <span class="toggle-row__desc">Résumé automatique chaque lundi</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.weeklySummary" (change)="toggleNotif('weeklySummary')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Alertes sécurité</span>
+                  <span class="toggle-row__desc">Notifier immédiatement en cas d'événement de sécurité</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.securityAlerts" (change)="toggleNotif('securityAlerts')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Alertes maintenance</span>
+                  <span class="toggle-row__desc">Rappels pour les mises à jour planifiées</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="notifToggles.maintenanceAlerts" (change)="toggleNotif('maintenanceAlerts')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-foot">
+            <button class="btn-primary" (click)="saveNotifications()" [disabled]="savingNotifications">
+              @if (savingNotifications) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ savingNotifications ? 'Sauvegarde…' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- ─────────────────────────────────────────────────────────────
+           ONGLET 3 : SÉCURITÉ
+           ancre: #security
+      ──────────────────────────────────────────────────────────────── -->
+      @if (activeTab === 'security') {
+        <section id="security" class="settings-panel">
+          <div class="panel-head">
+            <div class="panel-head__icon panel-head__icon--red">
+              <span class="material-icons">security</span>
+            </div>
+            <div>
+              <h2 class="panel-head__title">Sécurité</h2>
+              <p class="panel-head__sub">Politiques de sécurité, sessions et authentification</p>
+            </div>
+          </div>
+
+          <div class="alert-banner">
+            <span class="material-icons">shield</span>
+            <p>Les modifications de sécurité sont appliquées immédiatement. Les sessions actives peuvent être affectées.</p>
+          </div>
+
+          <!-- Security toggles -->
+          <div class="form-section">
+            <h3 class="form-section__title">Protections activées</h3>
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Double authentification (2FA)</span>
+                  <span class="toggle-row__desc">Exiger une validation 2FA pour les comptes administrateurs</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.twoFactor" (change)="toggleSec('twoFactor')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Whitelist IP</span>
+                  <span class="toggle-row__desc">Restreindre l'accès admin aux IP autorisées seulement</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.ipWhitelist" (change)="toggleSec('ipWhitelist')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Expiration de session</span>
+                  <span class="toggle-row__desc">Déconnecter automatiquement les sessions inactives</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.sessionTimeout" (change)="toggleSec('sessionTimeout')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Journal d'audit</span>
+                  <span class="toggle-row__desc">Enregistrer toutes les actions admin dans un journal</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.auditLog" (change)="toggleSec('auditLog')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Forcer HTTPS</span>
+                  <span class="toggle-row__desc">Rediriger tout le trafic HTTP vers HTTPS</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.forceHttps" (change)="toggleSec('forceHttps')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle-row__info">
+                  <span class="toggle-row__label">Rate Limiting</span>
+                  <span class="toggle-row__desc">Limiter le nombre de requêtes par IP et par endpoint</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" [checked]="secToggles.rateLimiting" (change)="toggleSec('rateLimiting')" />
+                  <span class="toggle-switch__track"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security params -->
+          <div class="form-section">
+            <h3 class="form-section__title">Paramètres avancés</h3>
+            <form [formGroup]="securityForm">
+              <div class="form-row form-row--3">
+                <div class="form-group">
+                  <label class="form-label">Expiration session (min)</label>
+                  <input class="form-input" type="number" formControlName="sessionTtl" min="5" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Tentatives max. login</label>
+                  <input class="form-input" type="number" formControlName="maxLoginAttempts" min="1" max="20" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Blocage (min)</label>
+                  <input class="form-input" type="number" formControlName="lockoutDuration" min="1" />
+                </div>
+              </div>
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">Longueur min. mot de passe</label>
+                  <input class="form-input" type="number" formControlName="passwordMinLen" min="6" max="32" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Expiration JWT (heures)</label>
+                  <input class="form-input" type="number" formControlName="jwtExpiry" min="1" />
+                </div>
+              </div>
+              @if (secToggles.ipWhitelist) {
+                <div class="form-group">
+                  <label class="form-label">IP autorisées (une par ligne)</label>
+                  <textarea class="form-input form-input--textarea" formControlName="allowedIps" rows="4" placeholder="192.168.1.0/24&#10;10.0.0.1"></textarea>
+                </div>
+              }
+            </form>
+          </div>
+
+          <div class="panel-foot">
+            <button class="btn-primary" (click)="saveSecurity()" [disabled]="savingSecurity">
+              @if (savingSecurity) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ savingSecurity ? 'Sauvegarde…' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- ─────────────────────────────────────────────────────────────
+           ONGLET 4 : APPARENCE
+           ancre: #appearance
+      ──────────────────────────────────────────────────────────────── -->
+      @if (activeTab === 'appearance') {
+        <section id="appearance" class="settings-panel">
+          <div class="panel-head">
+            <div class="panel-head__icon panel-head__icon--purple">
+              <span class="material-icons">palette</span>
+            </div>
+            <div>
+              <h2 class="panel-head__title">Apparence</h2>
+              <p class="panel-head__sub">Thème, langue et densité de l'interface</p>
+            </div>
+          </div>
+
+          <!-- Theme -->
+          <div class="form-section">
+            <h3 class="form-section__title">Thème</h3>
+            <div class="theme-grid">
+              @for (t of themes; track t.id) {
+                <button
+                  class="theme-card"
+                  [class.theme-card--active]="selectedTheme === t.id"
+                  (click)="selectedTheme = t.id"
+                >
+                  <span class="material-icons theme-card__icon">{{ t.icon }}</span>
+                  <span class="theme-card__label">{{ t.label }}</span>
+                  @if (selectedTheme === t.id) {
+                    <span class="material-icons theme-card__check">check_circle</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Language -->
+          <div class="form-section">
+            <h3 class="form-section__title">Langue de l'interface</h3>
+            <div class="lang-grid">
+              @for (l of languages; track l.id) {
+                <button
+                  class="lang-btn"
+                  [class.lang-btn--active]="selectedLang === l.id"
+                  (click)="selectedLang = l.id"
+                >
+                  {{ l.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Density -->
+          <div class="form-section">
+            <h3 class="form-section__title">Densité de l'affichage</h3>
+            <div class="density-grid">
+              @for (d of densities; track d.id) {
+                <button
+                  class="density-btn"
+                  [class.density-btn--active]="selectedDensity === d.id"
+                  (click)="selectedDensity = d.id"
+                >
+                  {{ d.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Colors & branding -->
+          <div class="form-section">
+            <h3 class="form-section__title">Couleurs &amp; Branding</h3>
+            <form [formGroup]="appearanceForm">
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">Couleur primaire</label>
+                  <div class="color-input-wrap">
+                    <input class="color-picker" type="color" formControlName="primaryColor" />
+                    <input class="form-input" type="text" formControlName="primaryColor" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Couleur d'accent</label>
+                  <div class="color-input-wrap">
+                    <input class="color-picker" type="color" formControlName="accentColor" />
+                    <input class="form-input" type="text" formControlName="accentColor" />
+                  </div>
+                </div>
+              </div>
+              <div class="form-row form-row--2">
+                <div class="form-group">
+                  <label class="form-label">URL du logo</label>
+                  <input class="form-input" type="url" formControlName="logoUrl" placeholder="https://…/logo.svg" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">URL du favicon</label>
+                  <input class="form-input" type="url" formControlName="faviconUrl" placeholder="https://…/favicon.ico" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">CSS personnalisé</label>
+                <textarea class="form-input form-input--code" formControlName="customCss" rows="5" placeholder="/* Votre CSS personnalisé */"></textarea>
+              </div>
+            </form>
+          </div>
+
+          <div class="panel-foot">
+            <button class="btn-primary" (click)="saveAppearance()" [disabled]="savingAppearance">
+              @if (savingAppearance) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ savingAppearance ? 'Sauvegarde…' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- ─────────────────────────────────────────────────────────────
+           ONGLET 5 : À PROPOS
+           ancre: #about
+      ──────────────────────────────────────────────────────────────── -->
+      @if (activeTab === 'about') {
+        <section id="about" class="settings-panel settings-panel--about">
+          <div class="panel-head">
+            <div class="panel-head__icon panel-head__icon--green">
+              <span class="material-icons">info</span>
+            </div>
+            <div>
+              <h2 class="panel-head__title">À propos du système</h2>
+              <p class="panel-head__sub">Informations techniques et état de l'environnement</p>
+            </div>
+          </div>
+
+          <!-- App badge -->
+          <div class="about-badge">
+            <div class="about-badge__logo">
+              <span class="material-icons">chat</span>
+            </div>
+            <div>
+              <h3 class="about-badge__name">{{ appInfo.name }}</h3>
+              <span class="about-badge__version">v{{ appInfo.version }}</span>
+              <span class="about-badge__env about-badge__env--{{ appInfo.environment.toLowerCase() }}">
+                {{ appInfo.environment }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Info table -->
+          <div class="form-section">
+            <h3 class="form-section__title">Informations techniques</h3>
+            <div class="info-table">
+              <div class="info-row">
+                <span class="info-row__key">Version</span>
+                <span class="info-row__val info-row__val--mono">{{ appInfo.version }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Build</span>
+                <span class="info-row__val info-row__val--mono">{{ appInfo.build }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Angular</span>
+                <span class="info-row__val info-row__val--mono">{{ appInfo.angular }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Node.js</span>
+                <span class="info-row__val info-row__val--mono">{{ appInfo.node }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Environnement</span>
+                <span class="info-row__val">
+                  <span class="env-badge env-badge--{{ appInfo.environment.toLowerCase() }}">{{ appInfo.environment }}</span>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Uptime</span>
+                <span class="info-row__val info-row__val--mono">{{ appInfo.uptime }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-row__key">Dernier déploiement</span>
+                <span class="info-row__val">{{ appInfo.lastDeploy }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="form-section">
+            <h3 class="form-section__title">Actions de maintenance</h3>
+            <div class="maintenance-actions">
+              <button class="maint-btn" (click)="clearCache()">
+                <span class="material-icons">cleaning_services</span>
+                <span>
+                  <strong>Vider le cache</strong>
+                  <small>Réinitialise le cache applicatif</small>
+                </span>
+              </button>
+              <button class="maint-btn" (click)="exportConfig()">
+                <span class="material-icons">download</span>
+                <span>
+                  <strong>Exporter la config</strong>
+                  <small>Télécharger la configuration en JSON</small>
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+      }
+
+    </div><!-- /settings-content -->
+  </div><!-- /settings-layout -->
+
+</div><!-- /settings-shell -->

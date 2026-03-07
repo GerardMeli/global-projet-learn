@@ -1,0 +1,143 @@
+// ✅ Modern styles for non-participant warning in message input area
+.not-participant-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 16px;
+  color: var(--text-primary);
+  font-size: 14px;
+  backdrop-filter: blur(10px);
+  animation: slideIn 0.3s ease;
+
+  .warning-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .warning-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: var(--warning);
+    animation: pulse 2s infinite;
+  }
+
+  .warning-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+      color: var(--warning);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    span {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+  }
+
+  .btn-request-join {
+    background: linear-gradient(135deg, var(--warning) 0%, #fbbf24 100%);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2);
+
+    mat-icon {
+      font-size: 18px;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.3);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .not-participant-warning {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px;
+
+    .warning-content {
+      width: 100%;
+    }
+
+    .btn-request-join {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .not-participant-warning {
+    padding: 16px;
+
+    .warning-content {
+      gap: 12px;
+    }
+
+    .warning-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    .warning-text {
+      strong {
+        font-size: 14px;
+      }
+
+      span {
+        font-size: 12px;
+      }
+    }
+  }
+}

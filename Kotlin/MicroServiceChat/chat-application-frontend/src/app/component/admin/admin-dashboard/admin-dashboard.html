@@ -1,116 +1,234 @@
-<div class="admin-dashboard" [class.sidebar-collapsed]="sidebarCollapsed">
-      <!-- Sidebar -->
-      <aside class="sidebar" [class.collapsed]="sidebarCollapsed">
-        <div class="sidebar-header">
-          <div class="logo-area">
-            <span class="logo-icon">⚡</span>
-            <h2 *ngIf="!sidebarCollapsed">Admin Panel</h2>
-          </div>
-          
-          <!-- Collapse Toggle -->
-          <button class="collapse-toggle" (click)="toggleSidebar()">
-            <span class="material-icons">
-              {{ sidebarCollapsed ? 'chevron_right' : 'chevron_left' }}
-            </span>
-          </button>
-        </div>
-        
-        <nav class="sidebar-nav">
-          <!-- <a routerLink="/admin/dashboard" routerLinkActive="active" 
-             [routerLinkActiveOptions]="{exact: true}" class="nav-item">
-            <span class="material-icons">dashboard</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Dashboard</span>
-          </a> -->
+<!-- admin-dashboard.component.html -->
+<div class="dash-shell">
 
-          <a routerLink="/admin/statistics" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">insights</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Statistics</span>
-          </a>
-          
-          <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">people</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Users</span>
-          </a>
-          
-          <a routerLink="/admin/chat-rooms" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">chat</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Chat Rooms</span>
-          </a>
-          
-          <a routerLink="/admin/messages" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">message</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Messages</span>
-          </a>
-          
-          <a routerLink="/admin/files" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">folder</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Files</span>
-          </a>
-          
-          <a routerLink="/admin/settings" routerLinkActive="active" class="nav-item">
-            <span class="material-icons">settings</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Settings</span>
-          </a>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       OVERLAY MOBILE
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (mobileOpen) {
+    <div class="mobile-overlay" (click)="closeMobileSidebar()"></div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <aside
+    class="sidebar"
+    [class.sidebar--collapsed]="sidebarCollapsed && !isMobile"
+    [class.sidebar--mobile-open]="mobileOpen"
+    role="navigation"
+    aria-label="Navigation principale"
+  >
+    <!-- ── Logo ─────────────────────────────────────────────────────────── -->
+    <div class="sidebar__head">
+      <div class="sidebar__logo">
+        <div class="sidebar__logo-icon">
+          <span class="material-icons">chat</span>
+        </div>
+        @if (!sidebarCollapsed || isMobile) {
+          <span class="sidebar__logo-text">FlowChat</span>
+        }
+      </div>
+      <button
+        class="sidebar__toggle"
+        (click)="toggleSidebar()"
+        [attr.aria-label]="sidebarCollapsed ? 'Développer la sidebar' : 'Réduire la sidebar'"
+      >
+        <span class="material-icons">
+          {{ isMobile ? 'close' : (sidebarCollapsed ? 'chevron_right' : 'chevron_left') }}
+        </span>
+      </button>
+    </div>
+
+    <!-- ── Navigation principale ────────────────────────────────────────── -->
+    <nav class="sidebar__nav">
+      @for (item of navItems; track item.route) {
+        <a
+          class="nav-link"
+          [routerLink]="item.route"
+          routerLinkActive="nav-link--active"
+          [title]="(sidebarCollapsed && !isMobile) ? item.label : ''"
+        >
+          <span class="material-icons nav-link__icon">{{ item.icon }}</span>
+          <span class="nav-link__label">{{ item.label }}</span>
+          @if (item.badge) {
+            <span class="nav-link__badge">{{ item.badge }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <!-- ── Ancres Home (visible seulement quand expanded) ───────────────── -->
+    @if (!sidebarCollapsed || isMobile) {
+      <div class="sidebar__anchors">
+        <p class="sidebar__anchors-title">
+          <span class="material-icons">anchor</span>
+          Navigation rapide
+        </p>
+        @for (a of homeAnchors; track a.anchor) {
+          <button
+            class="anchor-link"
+            (click)="scrollToAnchor(a.anchor)"
+            [title]="a.label"
+          >
+            <span class="material-icons anchor-link__icon">{{ a.icon }}</span>
+            <span class="anchor-link__label">{{ a.label }}</span>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ── Divider ───────────────────────────────────────────────────────── -->
+    <div class="sidebar__divider"></div>
+
+    <!-- ── Footer nav ───────────────────────────────────────────────────── -->
+    <div class="sidebar__footer">
+      @for (item of footerItems; track item.route) {
+        <a
+          class="nav-link"
+          [routerLink]="item.route"
+          routerLinkActive="nav-link--active"
+          [title]="(sidebarCollapsed && !isMobile) ? item.label : ''"
+        >
+          <span class="material-icons nav-link__icon">{{ item.icon }}</span>
+          <span class="nav-link__label">{{ item.label }}</span>
+        </a>
+      }
+
+      <!-- Déconnexion -->
+      <button
+        class="nav-link nav-link--logout"
+        (click)="openLogoutModal()"
+        [title]="(sidebarCollapsed && !isMobile) ? 'Déconnexion' : ''"
+      >
+        <span class="material-icons nav-link__icon">logout</span>
+        <span class="nav-link__label">Déconnexion</span>
+      </button>
+
+      <!-- Mini profil -->
+      @if (!sidebarCollapsed || isMobile) {
+        <div class="sidebar__profile">
+          <div class="sidebar__avatar">{{ getAdminInitials() }}</div>
+          <div class="sidebar__profile-info">
+            <span class="sidebar__profile-name">{{ getAdminName() }}</span>
+            <span class="sidebar__profile-role">Administrateur</span>
+          </div>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       CONTENU PRINCIPAL
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <main
+    class="dash-main"
+    [class.dash-main--expanded]="sidebarCollapsed && !isMobile"
+  >
+    <!-- ── Topbar ────────────────────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <button
+          class="topbar__menu-btn"
+          (click)="toggleSidebar()"
+          aria-label="Ouvrir le menu"
+        >
+          <span class="material-icons">menu</span>
+        </button>
+
+        <nav class="topbar__breadcrumb" aria-label="Fil d'ariane">
+          <span class="topbar__breadcrumb-root">Admin</span>
+          <span class="material-icons topbar__breadcrumb-sep">chevron_right</span>
+          <h1 class="topbar__title">{{ currentPageTitle }}</h1>
         </nav>
-        
-        <div class="sidebar-footer">
-          <a routerLink="/profile" class="profile-link">
-            <span class="material-icons">person</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">My Profile</span>
-          </a>
-          
-          <button class="logout-btn" (click)="confirmLogout()">
+      </div>
+
+      <div class="topbar__right">
+        <!-- Raccourcis ancres si on est sur home -->
+        @if (isHome) {
+          <div class="topbar__anchors">
+            @for (a of homeAnchors; track a.anchor) {
+              <button
+                class="topbar__anchor-chip"
+                (click)="scrollToAnchor(a.anchor)"
+                [title]="a.label"
+              >
+                <span class="material-icons">{{ a.icon }}</span>
+                <span>{{ a.label }}</span>
+              </button>
+            }
+          </div>
+        }
+
+        <a class="topbar__avatar" [routerLink]="'profile'" title="Mon profil">
+          {{ getAdminInitials() }}
+        </a>
+      </div>
+    </header>
+
+    <!-- ── Zone routée ───────────────────────────────────────────────────── -->
+    <div class="dash-body">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MODALE DÉCONNEXION
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (showLogoutModal) {
+    <div
+      class="modal-overlay"
+      (click)="closeLogoutModal()"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="logout-title"
+    >
+      <div class="modal" (click)="$event.stopPropagation()">
+
+        <div class="modal__head">
+          <div class="modal__head-icon">
             <span class="material-icons">logout</span>
-            <span class="nav-label" *ngIf="!sidebarCollapsed">Logout</span>
+          </div>
+          <div class="modal__head-text">
+            <h3 class="modal__title" id="logout-title">Confirmer la déconnexion</h3>
+            <p class="modal__subtitle">Cette action terminera votre session active.</p>
+          </div>
+          <button class="modal__close" (click)="closeLogoutModal()" aria-label="Fermer">
+            <span class="material-icons">close</span>
           </button>
         </div>
-      </aside>
 
-      <!-- Main Content -->
-      <main class="main-content" [class.expanded]="sidebarCollapsed">
-        <header class="content-header">
-          <div class="header-left">
-            <h1>{{ getPageTitle() }}</h1>
+        <div class="modal__body">
+          <div class="logout-warning">
+            <span class="material-icons">warning_amber</span>
+            <p>Êtes-vous sûr de vouloir vous déconnecter&nbsp;? Vous serez redirigé vers la page de connexion et devrez vous authentifier à nouveau pour accéder au panneau d'administration.</p>
           </div>
-          
-          <div class="header-actions">
-            <button class="notification-btn">
-              <span class="material-icons">notifications</span>
-              <span class="notification-badge">3</span>
-            </button>
-            
-            <a routerLink="/profile" class="user-menu">
-              <div class="user-avatar">A</div>
-            </a>
-          </div>
-        </header>
-        
-        <!-- Router Outlet for child components -->
-        <div class="content-body">
-          <router-outlet></router-outlet>
         </div>
-      </main>
 
-      <!-- Logout Confirmation Modal -->
-      <div class="modal-overlay" *ngIf="showLogoutModal" (click)="cancelLogout()">
-        <div class="modal-content" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h3>Confirm Logout</h3>
-            <button class="close-btn" (click)="cancelLogout()">
-              <span class="material-icons">close</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <span class="material-icons">logout</span>
-            <p>Are you sure you want to logout?</p>
-          </div>
-          <div class="modal-footer">
-            <button class="cancel-btn" (click)="cancelLogout()">Cancel</button>
-            <button class="logout-confirm-btn" (click)="logout()">
+        <div class="modal__foot">
+          <button
+            class="btn-cancel"
+            (click)="closeLogoutModal()"
+            [disabled]="loggingOut"
+          >
+            Annuler
+          </button>
+          <button
+            class="btn-danger"
+            (click)="confirmLogout()"
+            [disabled]="loggingOut"
+          >
+            @if (loggingOut) {
+              <span class="spinner-sm"></span>
+              Déconnexion…
+            } @else {
               <span class="material-icons">logout</span>
-              Logout
-            </button>
-          </div>
+              Se déconnecter
+            }
+          </button>
         </div>
+
       </div>
     </div>
+  }
+
+</div><!-- /dash-shell -->

@@ -1,0 +1,298 @@
+<!-- profile.component.html -->
+<div class="prf-shell">
+
+  <!-- Toasts -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" (click)="dismissToast(t.id)" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="$event.stopPropagation(); dismissToast(t.id)">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ── EN-TÊTE ─────────────────────────────────────────────────────────── -->
+  <div class="prf-header">
+    <div>
+      <h2 class="prf-title">Mon Profil</h2>
+      <p class="prf-subtitle">Gérez vos informations personnelles et préférences</p>
+    </div>
+    <button class="btn-danger-outline" (click)="logout()">
+      <span class="material-icons">logout</span>
+      Déconnexion
+    </button>
+  </div>
+
+  <!-- ── CHARGEMENT ─────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="state-box" role="status"><div class="loader-ring"></div><p>Chargement du profil…</p></div>
+  }
+
+  <!-- ── CONTENU ────────────────────────────────────────────────────────── -->
+  @if (!loading && profile) {
+
+    <!-- Carte avatar -->
+    <div class="profile-card">
+      <div class="profile-card__av">
+        <span class="profile-card__initials">{{ getInitials() }}</span>
+        <span class="profile-card__status" [class.profile-card__status--active]="profile.isActive"></span>
+      </div>
+      <div class="profile-card__info">
+        <h3 class="profile-card__name">{{ getFullName() }}</h3>
+        <p class="profile-card__email">{{ profile.email }}</p>
+        <div class="profile-card__badges">
+          <span class="badge badge--{{ profile.role.toLowerCase() }}">{{ profile.role }}</span>
+          <span class="badge badge--status--{{ profile.status.toLowerCase() }}">{{ profile.status }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="prf-layout">
+      <nav class="prf-nav">
+        <button class="nav-tab" [class.nav-tab--active]="activeTab === 'personal'"    (click)="activeTab = 'personal'">
+          <span class="material-icons">person</span><span>Informations</span>
+        </button>
+        <button class="nav-tab" [class.nav-tab--active]="activeTab === 'preferences'" (click)="activeTab = 'preferences'">
+          <span class="material-icons">tune</span><span>Préférences</span>
+        </button>
+        <button class="nav-tab" [class.nav-tab--active]="activeTab === 'security'"   (click)="activeTab = 'security'">
+          <span class="material-icons">security</span><span>Sécurité</span>
+        </button>
+        <button class="nav-tab" [class.nav-tab--active]="activeTab === 'email'"      (click)="activeTab = 'email'">
+          <span class="material-icons">email</span><span>Email</span>
+        </button>
+      </nav>
+
+      <div class="prf-panel">
+
+        <!-- ── INFORMATIONS PERSONNELLES ──────────────────────────────── -->
+        @if (activeTab === 'personal') {
+          <div class="panel-head">
+            <h3 class="panel-title">Informations personnelles</h3>
+            <p class="panel-desc">Mettez à jour vos informations de contact</p>
+          </div>
+          <div class="form-grid">
+            <div class="fg">
+              <label class="fg__lbl" for="firstName">Prénom</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">badge</span>
+                <input id="firstName" type="text" [(ngModel)]="personalInfo.firstName" placeholder="Votre prénom">
+              </div>
+            </div>
+            <div class="fg">
+              <label class="fg__lbl" for="lastName">Nom</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">badge</span>
+                <input id="lastName" type="text" [(ngModel)]="personalInfo.lastName" placeholder="Votre nom">
+              </div>
+            </div>
+            <div class="fg fg--full">
+              <label class="fg__lbl" for="phone">Téléphone</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">phone</span>
+                <input id="phone" type="tel" [(ngModel)]="personalInfo.phoneNumber" placeholder="Votre numéro">
+              </div>
+            </div>
+            <div class="fg fg--full">
+              <label class="fg__lbl" for="address">Adresse</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">home</span>
+                <textarea id="address" [(ngModel)]="personalInfo.address" placeholder="Votre adresse" rows="3"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-ghost" (click)="resetPersonalInfo()" [disabled]="saving">
+              <span class="material-icons">undo</span> Réinitialiser
+            </button>
+            <button class="btn-primary" (click)="updatePersonalInfo()" [disabled]="saving">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        }
+
+        <!-- ── PRÉFÉRENCES ─────────────────────────────────────────────── -->
+        @if (activeTab === 'preferences') {
+          <div class="panel-head">
+            <h3 class="panel-title">Préférences</h3>
+            <p class="panel-desc">Personnalisez votre expérience</p>
+          </div>
+          <div class="prefs-list">
+            <div class="pref-item">
+              <div class="pref-item__info">
+                <span class="pref-item__lbl">Langue</span>
+                <span class="pref-item__desc">Langue de l'interface</span>
+              </div>
+              <select class="pref-select" [(ngModel)]="preferences.language">
+                <option value="FR">Français</option>
+                <option value="EN">English</option>
+                <option value="ES">Español</option>
+                <option value="DE">Deutsch</option>
+              </select>
+            </div>
+            <div class="pref-item">
+              <div class="pref-item__info">
+                <span class="pref-item__lbl">Thème</span>
+                <span class="pref-item__desc">Apparence de l'application</span>
+              </div>
+              <select class="pref-select" [(ngModel)]="preferences.theme">
+                <option value="LIGHT">Clair</option>
+                <option value="DARK">Sombre</option>
+                <option value="SYSTEM">Système</option>
+              </select>
+            </div>
+            <div class="pref-item">
+              <div class="pref-item__info">
+                <span class="pref-item__lbl">Notifications email</span>
+                <span class="pref-item__desc">Recevoir des notifications par email</span>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" [(ngModel)]="preferences.emailNotifications">
+                <span class="toggle__track"><span class="toggle__thumb"></span></span>
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-ghost" (click)="resetPreferences()" [disabled]="saving">
+              <span class="material-icons">undo</span> Réinitialiser
+            </button>
+            <button class="btn-primary" (click)="updatePreferences()" [disabled]="saving">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        }
+
+        <!-- ── SÉCURITÉ ────────────────────────────────────────────────── -->
+        @if (activeTab === 'security') {
+          <div class="panel-head">
+            <h3 class="panel-title">Changer le mot de passe</h3>
+            <p class="panel-desc">Assurez la sécurité de votre compte</p>
+          </div>
+          <div class="form-grid">
+            <div class="fg fg--full">
+              <label class="fg__lbl" for="curPwd">Mot de passe actuel</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">lock</span>
+                <input id="curPwd" [type]="showCurrent ? 'text' : 'password'" [(ngModel)]="passwordData.currentPassword" placeholder="Mot de passe actuel">
+                <button class="fg__toggle" (click)="showCurrent = !showCurrent" type="button">
+                  <span class="material-icons">{{ showCurrent ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label class="fg__lbl" for="newPwd">Nouveau mot de passe</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">lock_outline</span>
+                <input id="newPwd" [type]="showNew ? 'text' : 'password'" [(ngModel)]="passwordData.newPassword" placeholder="Nouveau mot de passe">
+                <button class="fg__toggle" (click)="showNew = !showNew" type="button">
+                  <span class="material-icons">{{ showNew ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label class="fg__lbl" for="confPwd">Confirmer</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">lock_clock</span>
+                <input id="confPwd" [type]="showConfirm ? 'text' : 'password'" [(ngModel)]="passwordData.confirmPassword" placeholder="Confirmez le mot de passe">
+                <button class="fg__toggle" (click)="showConfirm = !showConfirm" type="button">
+                  <span class="material-icons">{{ showConfirm ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="pwd-rules">
+            <p class="pwd-rules__title">Exigences :</p>
+            <div class="pwd-rules__list">
+              <div class="pwd-rule" [class.pwd-rule--ok]="pwdLength">
+                <span class="material-icons">{{ pwdLength ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                Au moins 8 caractères
+              </div>
+              <div class="pwd-rule" [class.pwd-rule--ok]="pwdUpper">
+                <span class="material-icons">{{ pwdUpper ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                Une majuscule
+              </div>
+              <div class="pwd-rule" [class.pwd-rule--ok]="pwdLower">
+                <span class="material-icons">{{ pwdLower ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                Une minuscule
+              </div>
+              <div class="pwd-rule" [class.pwd-rule--ok]="pwdNumber">
+                <span class="material-icons">{{ pwdNumber ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                Un chiffre
+              </div>
+              <div class="pwd-rule" [class.pwd-rule--ok]="pwdMatch">
+                <span class="material-icons">{{ pwdMatch ? 'check_circle' : 'radio_button_unchecked' }}</span>
+                Les mots de passe correspondent
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-ghost" (click)="resetPasswordForm()" [disabled]="saving">
+              <span class="material-icons">clear</span> Effacer
+            </button>
+            <button class="btn-primary" (click)="changePassword()" [disabled]="!isPasswordValid() || saving">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">lock_reset</span>
+              {{ saving ? 'Mise à jour…' : 'Mettre à jour' }}
+            </button>
+          </div>
+        }
+
+        <!-- ── EMAIL ──────────────────────────────────────────────────── -->
+        @if (activeTab === 'email') {
+          <div class="panel-head">
+            <h3 class="panel-title">Changer d'adresse email</h3>
+            <p class="panel-desc">Modifiez votre adresse email de connexion</p>
+          </div>
+          <div class="form-grid">
+            <div class="fg fg--full">
+              <label class="fg__lbl">Email actuel</label>
+              <div class="fg__wrap fg__wrap--disabled">
+                <span class="fg__ico material-icons">email</span>
+                <input type="email" [value]="profile.email" disabled>
+              </div>
+            </div>
+            <div class="fg fg--full">
+              <label class="fg__lbl" for="newEmail">Nouvel email</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">mark_email_unread</span>
+                <input id="newEmail" type="email" [(ngModel)]="emailData.newEmail" placeholder="Nouvelle adresse email">
+              </div>
+            </div>
+            <div class="fg fg--full">
+              <label class="fg__lbl" for="emailPwd">Mot de passe</label>
+              <div class="fg__wrap">
+                <span class="fg__ico material-icons">password</span>
+                <input id="emailPwd" type="password" [(ngModel)]="emailData.password" placeholder="Votre mot de passe pour confirmer">
+              </div>
+            </div>
+          </div>
+          <div class="info-msg">
+            <span class="material-icons">info</span>
+            <div>
+              <strong>Important :</strong>
+              <p>Après avoir soumis, un lien de confirmation sera envoyé à votre nouvelle adresse. Le changement sera effectif après confirmation.</p>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" (click)="requestEmailChange()" [disabled]="!emailData.newEmail || !emailData.password || saving">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">send</span>
+              {{ saving ? 'Envoi…' : 'Demander le changement' }}
+            </button>
+          </div>
+        }
+
+      </div><!-- /prf-panel -->
+    </div><!-- /prf-layout -->
+  }
+
+</div><!-- /prf-shell -->

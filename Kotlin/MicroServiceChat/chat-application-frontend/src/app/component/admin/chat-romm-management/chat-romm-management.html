@@ -1,0 +1,425 @@
+<!-- admin-chat-rooms.component.html -->
+<div class="acr-shell" (keydown.escape)="closeModal()">
+
+  <!-- Toasts -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" (click)="dismissToast(t.id)" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="$event.stopPropagation(); dismissToast(t.id)" aria-label="Fermer">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       EN-TÊTE
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="acr-header">
+    <div class="acr-header__left">
+      <h2 class="acr-title">Chat Rooms</h2>
+      <p class="acr-subtitle">Gérez toutes les salles de discussion de l'application</p>
+    </div>
+    <div class="acr-header__actions">
+      <button class="btn-primary" (click)="openCreate()">
+        <span class="material-icons">add_circle</span>
+        Créer une salle
+      </button>
+      <button class="btn-ghost" (click)="loadData()" [disabled]="loading">
+        <span class="material-icons" [class.spin]="loading">refresh</span>
+        Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       STATS
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#eff6ff">
+        <span class="material-icons" style="color:#2563eb">forum</span>
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statTotal }}</span>
+        <span class="stat-card__lbl">Total salles</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#f0fdf4">
+        <span class="material-icons" style="color:#16a34a">public</span>
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statPublic }}</span>
+        <span class="stat-card__lbl">Publiques</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#fffbeb">
+        <span class="material-icons" style="color:#d97706">lock</span>
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statPrivate }}</span>
+        <span class="stat-card__lbl">Privées</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#f5f3ff">
+        <span class="material-icons" style="color:#7c3aed">group</span>
+      </div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ stats.participants }}</span>
+        <span class="stat-card__lbl">Participants</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       FILTRES — réactifs sans bouton
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <span class="material-icons search-box__ico">search</span>
+      <input
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchInput()"
+        placeholder="Rechercher par nom ou description…"
+        class="search-box__input"
+      >
+      @if (searchTerm) {
+        <button class="search-box__clear" (click)="searchTerm=''; applyFilters()" aria-label="Effacer">
+          <span class="material-icons">close</span>
+        </button>
+      }
+    </div>
+
+    <select class="filter-select" [(ngModel)]="typeFilter" (ngModelChange)="onFilterChange()">
+      <option value="">Tous les types</option>
+      <option value="PUBLIC">Publiques</option>
+      <option value="PRIVATE">Privées</option>
+    </select>
+  </div>
+
+  <!-- Bande résultats -->
+  @if (hasActiveFilters) {
+    <div class="results-bar">
+      <span class="material-icons">filter_list</span>
+      <span>{{ filteredRooms.length }} résultat(s)
+        @if (searchTerm) { pour « <strong>{{ searchTerm }}</strong> » }
+      </span>
+      <button class="results-bar__clear" (click)="searchTerm=''; typeFilter=''; applyFilters()">
+        Effacer les filtres
+      </button>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ÉTATS
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (loading) {
+    <div class="state-box" role="status"><div class="loader-ring"></div><p>Chargement des salles…</p></div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       TABLEAU
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (!loading && filteredRooms.length > 0) {
+    <div class="table-wrap">
+      <table class="data-table" aria-label="Liste des salles">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Participants</th>
+            <th>Messages</th>
+            <th>Créée le</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (room of paginatedRooms; track trackByRoom($index, room)) {
+            <tr class="data-row" (click)="openDetail(room)">
+              <td class="td-id">#{{ room.id }}</td>
+              <td>
+                <div class="room-cell">
+                  <div class="room-cell__ico" [style.background]="getGradient(room.id)">
+                    <span class="material-icons">{{ room.type === 'PUBLIC' ? 'public' : 'lock' }}</span>
+                  </div>
+                  <span class="room-cell__name">{{ room.name }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="badge" [class]="room.type === 'PUBLIC' ? 'badge--public' : 'badge--private'">
+                  {{ room.type === 'PUBLIC' ? 'Public' : 'Privé' }}
+                </span>
+              </td>
+              <td class="td-desc">{{ (room.description || '—') | slice:0:50 }}{{ (room.description || '').length > 50 ? '…' : '' }}</td>
+              <td>
+                <span class="count-pill" (click)="$event.stopPropagation(); openDetail(room)">
+                  {{ room.participantCount || 0 }}
+                </span>
+              </td>
+              <td>
+                <span class="count-pill">{{ room.messageCount || 0 }}</span>
+              </td>
+              <td class="td-date">{{ room.createdAt | date:'dd/MM/yy' }}</td>
+              <td>
+                <div class="action-btns" (click)="$event.stopPropagation()">
+                  <button class="btn-ico btn-ico--view"  (click)="openDetail(room)"           title="Voir les détails"><span class="material-icons">visibility</span></button>
+                  <button class="btn-ico btn-ico--add"   (click)="openAddParticipants(room)"  title="Ajouter des participants"><span class="material-icons">person_add</span></button>
+                  <button class="btn-ico btn-ico--del"   (click)="openDelete(room)"           title="Supprimer"><span class="material-icons">delete</span></button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <div class="pagination__info">
+          {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filteredRooms.length) }} sur {{ filteredRooms.length }}
+        </div>
+        <div class="pagination__controls">
+          <button class="btn-page" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pagination__pages">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="btn-page" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <select class="pagination__size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+            @for (s of pageSizeOptions; track s) { <option [value]="s">{{ s }}/page</option> }
+          </select>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Aucun résultat -->
+  @if (!loading && filteredRooms.length === 0) {
+    <div class="state-box">
+      <span class="material-icons state-box__icon">forum</span>
+      <h3>Aucune salle trouvée</h3>
+      @if (hasActiveFilters) {
+        <p>Essayez de modifier vos filtres.</p>
+        <button class="btn-ghost" (click)="searchTerm=''; typeFilter=''; applyFilters()">Effacer les filtres</button>
+      } @else {
+        <p>Aucune salle de discussion n'existe encore.</p>
+        <button class="btn-primary" (click)="openCreate()"><span class="material-icons">add</span> Créer une salle</button>
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       OVERLAY MODAL
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (modalMode) {
+    <div class="modal-overlay" (click)="closeModal()" role="dialog" aria-modal="true">
+      <div class="modal" (click)="$event.stopPropagation()">
+
+        <!-- ── DÉTAIL ────────────────────────────────────────────────── -->
+        @if (modalMode === 'detail' && selectedRoom) {
+          <div class="modal__head">
+            <h3 class="modal__title"><span class="material-icons">forum</span> {{ selectedRoom.name }}</h3>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+          <div class="modal__body">
+            <div class="detail-grid">
+              <div class="detail-row"><span class="detail-row__key">ID</span><span class="detail-row__val mono">#{{ selectedRoom.id }}</span></div>
+              <div class="detail-row"><span class="detail-row__key">Type</span>
+                <span class="badge" [class]="selectedRoom.type === 'PUBLIC' ? 'badge--public' : 'badge--private'">{{ selectedRoom.type }}</span>
+              </div>
+              <div class="detail-row"><span class="detail-row__key">Participants</span><span class="detail-row__val">{{ selectedRoom.participantCount || 0 }}</span></div>
+              <div class="detail-row"><span class="detail-row__key">Messages</span><span class="detail-row__val">{{ selectedRoom.messageCount || 0 }}</span></div>
+              <div class="detail-row detail-row--full"><span class="detail-row__key">Description</span><span class="detail-row__val">{{ selectedRoom.description || '—' }}</span></div>
+              <div class="detail-row"><span class="detail-row__key">Créée le</span><span class="detail-row__val">{{ selectedRoom.createdAt | date:'dd/MM/yyyy HH:mm' }}</span></div>
+            </div>
+
+            <h4 class="participants-title">
+              Participants
+              @if (loadingParticipants) { <span class="spinner-xs"></span> }
+              @else { ({{ roomParticipants.length }}) }
+            </h4>
+
+            @if (!loadingParticipants) {
+              <div class="participants-list">
+                @for (p of roomParticipants; track p.userId) {
+                  <div class="participant-item">
+                    <div class="participant-item__av" [style.background]="getGradient(p.userId)">{{ getInitials(p) }}</div>
+                    <div class="participant-item__info">
+                      <span class="participant-item__name">Utilisateur #{{ p.userId }}</span>
+                      <span class="badge badge--sm" [ngClass]="getRoleBadgeClass(p.role)">{{ p.role }}</span>
+                    </div>
+                    <span class="participant-item__date">{{ p.joinedAt | date:'dd/MM/yy' }}</span>
+                  </div>
+                }
+                @if (roomParticipants.length === 0) {
+                  <p class="empty-list">Aucun participant.</p>
+                }
+              </div>
+            }
+          </div>
+          <div class="modal__foot">
+            <button class="btn-ghost" (click)="closeModal()">Fermer</button>
+            <button class="btn-primary" (click)="openAddParticipants(selectedRoom)">
+              <span class="material-icons">person_add</span> Ajouter des participants
+            </button>
+          </div>
+        }
+
+        <!-- ── CRÉATION ─────────────────────────────────────────────── -->
+        @if (modalMode === 'create') {
+          <div class="modal__head">
+            <h3 class="modal__title"><span class="material-icons">add_circle</span> Créer une salle</h3>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+          <div class="modal__body">
+            <div class="form-grid">
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="r-name">Nom *</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">forum</span>
+                  <input id="r-name" type="text" [(ngModel)]="newRoom.name" placeholder="Nom de la salle">
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl">Type *</label>
+                <div class="radio-group">
+                  <label class="radio-opt" [class.radio-opt--active]="newRoom.type === 'PUBLIC'">
+                    <input type="radio" [(ngModel)]="newRoom.type" value="PUBLIC">
+                    <span class="material-icons">public</span>
+                    <div><strong>Public</strong><small>Tout le monde peut rejoindre</small></div>
+                  </label>
+                  <label class="radio-opt" [class.radio-opt--active]="newRoom.type === 'PRIVATE'">
+                    <input type="radio" [(ngModel)]="newRoom.type" value="PRIVATE">
+                    <span class="material-icons">lock</span>
+                    <div><strong>Privé</strong><small>Sur invitation uniquement</small></div>
+                  </label>
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="r-desc">Description (optionnel)</label>
+                <div class="fg__wrap">
+                  <textarea id="r-desc" [(ngModel)]="newRoom.description" placeholder="Décrivez la salle…" rows="2"></textarea>
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl">Participants initiaux (optionnel)</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">search</span>
+                  <input type="text" [(ngModel)]="userSearchTerm" (ngModelChange)="onUserSearchInput()" placeholder="Rechercher un utilisateur…">
+                </div>
+                <div class="users-list-wrap">
+                  @for (u of filteredUsers; track trackByUser($index, u)) {
+                    <label class="user-row" [class.user-row--selected]="isSelected(u.id)">
+                      <input type="checkbox" [checked]="isSelected(u.id)" (change)="toggleUser(u.id)" hidden>
+                      <div class="user-row__av" [style.background]="getGradient(u.id)">{{ (u.firstName?.charAt(0) || '') + (u.lastName?.charAt(0) || '') || 'U' }}</div>
+                      <div class="user-row__info">
+                        <span class="user-row__name">{{ getUserName(u) }}</span>
+                        <span class="user-row__email">{{ u.email }}</span>
+                      </div>
+                      <span class="material-icons user-row__check">{{ isSelected(u.id) ? 'check_box' : 'check_box_outline_blank' }}</span>
+                    </label>
+                  }
+                  @if (filteredUsers.length === 0) { <p class="empty-list">Aucun utilisateur trouvé.</p> }
+                </div>
+                @if (selectedUserIds.size > 0) {
+                  <div class="selected-count">
+                    <span class="material-icons">check_circle</span>
+                    {{ selectedUserIds.size }} utilisateur(s) sélectionné(s)
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="modal__foot">
+            <button class="btn-ghost" (click)="closeModal()" [disabled]="creatingRoom">Annuler</button>
+            <button class="btn-primary" (click)="createRoom()" [disabled]="creatingRoom || !newRoom.name.trim()">
+              @if (creatingRoom) { <span class="spinner-sm"></span> }
+              <span class="material-icons">add</span>
+              {{ creatingRoom ? 'Création…' : 'Créer la salle' }}
+            </button>
+          </div>
+        }
+
+        <!-- ── AJOUT PARTICIPANTS ───────────────────────────────────── -->
+        @if (modalMode === 'addParticipants' && roomForParticipants) {
+          <div class="modal__head">
+            <h3 class="modal__title"><span class="material-icons">person_add</span> Ajouter des participants</h3>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+          <div class="modal__body">
+            <p class="modal__subtitle">Salle : <strong>{{ roomForParticipants.name }}</strong></p>
+            <div class="fg__wrap" style="margin-bottom:12px">
+              <span class="fg__ico material-icons">search</span>
+              <input type="text" [(ngModel)]="userSearchTerm" (ngModelChange)="onUserSearchInput()" placeholder="Rechercher un utilisateur…">
+            </div>
+            <div class="users-list-wrap">
+              @for (u of filteredUsers; track trackByUser($index, u)) {
+                <label class="user-row" [class.user-row--selected]="isSelected(u.id)">
+                  <input type="checkbox" [checked]="isSelected(u.id)" (change)="toggleUser(u.id)" hidden>
+                  <div class="user-row__av" [style.background]="getGradient(u.id)">{{ (u.firstName?.charAt(0) || '') + (u.lastName?.charAt(0) || '') || 'U' }}</div>
+                  <div class="user-row__info">
+                    <span class="user-row__name">{{ getUserName(u) }}</span>
+                    <span class="user-row__email">{{ u.email }}</span>
+                  </div>
+                  <span class="material-icons user-row__check">{{ isSelected(u.id) ? 'check_box' : 'check_box_outline_blank' }}</span>
+                </label>
+              }
+              @if (filteredUsers.length === 0) { <p class="empty-list">Aucun utilisateur trouvé.</p> }
+            </div>
+            @if (selectedUserIds.size > 0) {
+              <div class="selected-count">
+                <span class="material-icons">check_circle</span>
+                {{ selectedUserIds.size }} utilisateur(s) sélectionné(s)
+              </div>
+            }
+          </div>
+          <div class="modal__foot">
+            <button class="btn-ghost" (click)="closeModal()" [disabled]="addingParticipants">Annuler</button>
+            <button class="btn-primary" (click)="addParticipants()" [disabled]="addingParticipants || selectedUserIds.size === 0">
+              @if (addingParticipants) { <span class="spinner-sm"></span> }
+              <span class="material-icons">person_add</span>
+              {{ addingParticipants ? 'Ajout…' : 'Ajouter' }}
+            </button>
+          </div>
+        }
+
+        <!-- ── SUPPRESSION ───────────────────────────────────────────── -->
+        @if (modalMode === 'delete' && roomToDelete) {
+          <div class="modal__head modal__head--danger">
+            <h3 class="modal__title"><span class="material-icons">delete_forever</span> Supprimer la salle</h3>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+          <div class="modal__body modal__body--center">
+            <div class="confirm-ico confirm-ico--danger">
+              <span class="material-icons">delete_forever</span>
+            </div>
+            <h3 class="confirm-name">{{ roomToDelete.name }}</h3>
+            <p class="confirm-warn">
+              Êtes-vous sûr de vouloir supprimer cette salle ?<br>
+              <strong>Tous les messages et participants seront définitivement perdus.</strong>
+            </p>
+          </div>
+          <div class="modal__foot">
+            <button class="btn-ghost" (click)="closeModal()" [disabled]="deletingRoom">Annuler</button>
+            <button class="btn-danger" (click)="confirmDelete()" [disabled]="deletingRoom">
+              @if (deletingRoom) { <span class="spinner-sm spinner-sm--white"></span> }
+              <span class="material-icons">delete_forever</span>
+              {{ deletingRoom ? 'Suppression…' : 'Supprimer définitivement' }}
+            </button>
+          </div>
+        }
+
+      </div><!-- /modal -->
+    </div><!-- /overlay -->
+  }
+
+</div><!-- /acr-shell -->
