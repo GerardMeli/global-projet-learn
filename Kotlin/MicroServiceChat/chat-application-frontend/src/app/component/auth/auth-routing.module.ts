@@ -24,6 +24,13 @@ const routes: Routes = [
     loadComponent: () => import('./reset-password.component/reset-password.component').then(m => m.ResetPasswordComponent),
     data: { animation: 'reset' }
   },
+   {
+    // ── NOUVEAU — Invitation admin : le user crée son mot de passe ──────────
+    // URL reçue par email : /auth/set-password?token=<jwt>
+    path: 'set-password',
+    loadComponent: () => import('./set-password.component/set-password.component').then(m => m.SetPasswordComponent),
+    data: { animation: 'set-password' }
+  },
   { 
     path: 'verify-email', 
     loadComponent: () => import('./verify-email.component/verify-email.component').then(m => m.VerifyEmailComponent),

@@ -191,6 +191,56 @@ class UserServiceImpl (
         usersRepository.deleteById(userId)
     }
 
+    // ── Admin: CREATE USER ────────────────────────────────────────────────────
+    /**
+     * Nouveau flux d'invitation :
+     *  1. Persiste le user avec le mot de passe temporaire fourni par l'admin (haché).
+     *  2. Génère un token password-reset JWT (24 h).
+     *  3. Envoie l'email "Créez votre mot de passe" → lien /auth/set-password?token=…
+     *
+     * Le welcome email est déclenché par AuthController.resetPassword()
+     * APRÈS que le user a réellement défini son mot de passe.
+     */
+    override fun createUser(request: AdminDto.CreateUserRequest): AdminDto.CreateUserResponse {
+        // 1. Unicité email
+        if (usersRepository.existsByEmail(request.email))
+            throw EmailAlreadyExistsException("Un compte existe déjà avec l'email : ${request.email}")
+
+        // 2. Construire l'entité
+        val user = Users(
+            id            = 0L,
+            email         = request.email,
+            firstName     = request.firstName,
+            lastName      = request.lastName,
+            password      = passwordEncoder.passwordEncoder().encode(request.password),
+            role          = request.role,
+            isActive      = request.isActive,
+            emailVerified = true,       // créé par admin → vérifié d'office
+            status        = UserStatus.ACTIVE,
+            phoneNumber   = request.phoneNumber,
+            address       = request.address,
+        )
+
+        // 3. Persister
+        val saved = usersRepository.save(user)
+
+        // 4. Générer token reset (24 h) et envoyer l'invitation "set-password"
+        val resetToken = tokenService.createPasswordResetToken(saved.id, saved.email)
+        emailService.sendSetPasswordInvitation(saved, resetToken)
+
+        // 5. Retourner la réponse
+        return AdminDto.CreateUserResponse(
+            id        = saved.id,
+            firstName = saved.firstName,
+            lastName  = saved.lastName,
+            email     = saved.email,
+            role      = saved.role,
+            status    = saved.status,
+            isActive  = saved.isActive,
+            createdAt = saved.createdAt,
+        )
+    }
+
     private fun findUserById(userId: Long): Users {
         return usersRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("User not found with id: $userId") }

@@ -1,0 +1,571 @@
+<!-- landing.component.html  (route: /)  -->
+<div class="land-shell">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       NAVBAR — adaptative selon le rôle
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <header class="lnav">
+    <div class="lnav__inner">
+
+      <!-- Brand -->
+      <a class="lnav__brand" routerLink="/home">
+        <div class="lnav__logo-icon">
+          <span class="material-icons">chat</span>
+        </div>
+        <span class="lnav__brand-name">FlowChat</span>
+      </a>
+
+      <!-- Links -->
+      <nav class="lnav__links">
+        <a class="lnav__link" href="#sec-features" (click)="scrollTo($event,'sec-features')">Fonctionnalités</a>
+        <!-- <a class="lnav__link" href="#sec-stats"    (click)="scrollTo($event,'sec-stats')">Chiffres</a> -->
+        <a class="lnav__link" href="#sec-how"      (click)="scrollTo($event,'sec-how')">Comment ça marche</a>
+        <a class="lnav__link" href="#sec-contact"  (click)="scrollTo($event,'sec-contact')">Contact</a>
+      </nav>
+
+      <!-- Actions — non connecté -->
+      @if (!isLoggedIn) {
+        <div class="lnav__actions">
+          <a class="lnav__login" routerLink="/auth/login">Connexion</a>
+          <a class="lnav__cta" routerLink="/auth/login">
+            <span class="material-icons">admin_panel_settings</span>
+            Espace Admin
+          </a>
+        </div>
+      }
+
+      <!-- Actions — Admin connecté -->
+      @if (isLoggedIn && isAdmin) {
+        <div class="lnav__actions">
+          <div class="lnav__user-chip lnav__user-chip--admin">
+            <span class="material-icons">shield</span>
+            <span>{{ userName || 'Admin' }}</span>
+          </div>
+          <a class="lnav__cta" routerLink="/admin/home">
+            <span class="material-icons">dashboard</span>
+            Dashboard
+          </a>
+        </div>
+      }
+
+      <!-- Actions — User connecté -->
+      @if (isLoggedIn && !isAdmin) {
+        <div class="lnav__actions">
+            <a class="lnav__pill-btn" routerLink="/profile">
+              <span class="material-icons">person</span>
+            <span>{{ userName || 'Mon compte' }}</span>
+            </a>
+          <a class="lnav__pill-btn" routerLink="/chat/rooms">
+            <span class="material-icons">forum</span>
+            Groupes
+          </a>
+          <a class="lnav__pill-btn lnav__pill-btn--accent" routerLink="/chat/private">
+            <span class="material-icons">chat_bubble_outline</span>
+            Privé
+          </a>
+        </div>
+      }
+
+      <!-- Burger mobile -->
+      <button class="lnav__burger" (click)="mobileMenuOpen = !mobileMenuOpen">
+        <span class="material-icons">{{ mobileMenuOpen ? 'close' : 'menu' }}</span>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    @if (mobileMenuOpen) {
+      <div class="lnav__mobile">
+        <a href="#sec-features" (click)="scrollTo($event,'sec-features')">Fonctionnalités</a>
+        <a href="#sec-stats"    (click)="scrollTo($event,'sec-stats')">Chiffres</a>
+        <a href="#sec-how"      (click)="scrollTo($event,'sec-how')">Comment ça marche</a>
+        <a href="#sec-contact"  (click)="scrollTo($event,'sec-contact')">Contact</a>
+        <div class="lnav__mobile-divider"></div>
+        @if (!isLoggedIn) {
+          <a routerLink="/auth/login">Connexion</a>
+          <a routerLink="/auth/login" class="lnav__mobile-cta">Espace Admin</a>
+        }
+        @if (isLoggedIn && isAdmin) {
+          <a routerLink="/admin/home"       class="lnav__mobile-cta">Dashboard Admin</a>
+        }
+        @if (isLoggedIn && !isAdmin) {
+          <a routerLink="/chat/rooms">Salles de groupe</a>
+          <a routerLink="/private"     class="lnav__mobile-cta">Messages privés</a>
+        }
+      </div>
+    }
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § HERO — adaptatif selon le rôle
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <section id="sec-hero" class="hero">
+    <div class="hero__bg">
+      <div class="hero__blob hero__blob--1"></div>
+      <div class="hero__blob hero__blob--2"></div>
+      <div class="hero__grid"></div>
+    </div>
+
+    <div class="hero__inner">
+
+      <!-- Badge selon contexte -->
+      @if (!isLoggedIn) {
+        <div class="hero__badge">
+          <span class="material-icons">bolt</span>
+          Plateforme de messagerie temps réel
+        </div>
+      }
+      @if (isLoggedIn && isAdmin) {
+        <div class="hero__badge hero__badge--admin">
+          <span class="material-icons">shield</span>
+          Espace Administrateur
+        </div>
+      }
+      @if (isLoggedIn && !isAdmin) {
+        <div class="hero__badge hero__badge--user">
+          <span class="material-icons">waving_hand</span>
+          Bon retour, {{ userName || 'sur FlowChat' }} !
+        </div>
+      }
+
+      <!-- Titre -->
+      @if (!isLoggedIn) {
+        <h1 class="hero__title">
+          Communiquez sans limites<br>
+          avec <span class="hero__title-accent">FlowChat</span>
+        </h1>
+        <p class="hero__desc">
+          Une plateforme de messagerie complète avec salles de discussion, chat privé,
+          partage de fichiers et un tableau de bord d'administration puissant.
+        </p>
+        <div class="hero__actions">
+          <a class="hero__cta-primary" routerLink="/auth/login">
+            <span class="material-icons">admin_panel_settings</span>
+            Accéder à l'administration
+          </a>
+          <a class="hero__cta-secondary" href="#sec-features" (click)="scrollTo($event,'sec-features')">
+            Découvrir les fonctionnalités
+            <span class="material-icons">expand_more</span>
+          </a>
+        </div>
+      }
+
+      @if (isLoggedIn && isAdmin) {
+        <h1 class="hero__title">
+          Bienvenue dans votre<br>
+          <span class="hero__title-accent">panneau d'administration</span>
+        </h1>
+        <p class="hero__desc">
+          Gérez la plateforme, les utilisateurs, les conversations et les fichiers depuis un espace centralisé.
+        </p>
+        <div class="hero__actions">
+          <a class="hero__cta-primary" routerLink="/admin/home">
+            <span class="material-icons">dashboard</span>
+            Tableau de bord
+          </a>
+          <a class="hero__cta-secondary" href="#sec-role-portal" (click)="scrollTo($event,'sec-role-portal')">
+            Accès rapide
+            <span class="material-icons">expand_more</span>
+          </a>
+        </div>
+        <!-- Pills -->
+      <div class="hero__pills">
+        <div class="hero__pill"><span class="material-icons" style="color:#16a34a">check_circle</span>Sécurisé par JWT</div>
+        <div class="hero__pill"><span class="material-icons" style="color:#2563eb">speed</span>Temps réel</div>
+        <div class="hero__pill"><span class="material-icons" style="color:#7c3aed">shield</span>Rôles & permissions</div>
+      </div>
+      }
+
+      @if (isLoggedIn && !isAdmin) {
+        <h1 class="hero__title">
+          Où voulez-vous<br>
+          <span class="hero__title-accent">commencer à chatter ?</span>
+        </h1>
+        <p class="hero__desc">
+          Rejoignez une salle de discussion ou envoyez un message privé à un membre de la communauté.
+        </p>
+        <div class="hero__actions">
+          <a class="hero__cta-primary" routerLink="/chat/rooms">
+            <span class="material-icons">forum</span>
+            Salles de groupe
+          </a>
+          <a class="hero__cta-secondary" routerLink="/private">
+            <span class="material-icons">chat_bubble_outline</span>
+            Messages privés
+          </a>
+        </div>
+      }
+
+      <div class="hero__pills">
+        <div class="hero__pill"><span class="material-icons" style="color:#16a34a">check_circle</span>Sécurisé par JWT</div>
+        <div class="hero__pill"><span class="material-icons" style="color:#2563eb">speed</span>Temps réel</div>
+        <div class="hero__pill"><span class="material-icons" style="color:#7c3aed">shield</span>Rôles & permissions</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § PORTAIL DE RÔLES — visible uniquement si connecté
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if (isLoggedIn) {
+    <section id="sec-role-portal" class="l-section role-portal">
+      <div class="l-inner">
+
+        <!-- ── ADMIN ─────────────────────────────────────────────────────── -->
+        @if (isAdmin) {
+          <div class="l-head">
+            <div class="l-head__tag l-head__tag--admin">
+              <span class="material-icons">shield</span>
+              Espace Admin
+            </div>
+            <h2 class="l-head__title">Accès rapide à l'administration</h2>
+            <p class="l-head__desc">Toutes les sections du panneau d'administration en un clic.</p>
+          </div>
+
+          <div class="portal-grid portal-grid--admin">
+            @for (link of adminLinks; track link.route) {
+              <a class="portal-card portal-card--admin" [routerLink]="link.route">
+                <div class="portal-card__ico" [style.background]="link.bg">
+                  <span class="material-icons" [style.color]="link.color">{{ link.icon }}</span>
+                </div>
+                <div class="portal-card__body">
+                  <span class="portal-card__label">{{ link.label }}</span>
+                  <span class="portal-card__desc">{{ link.desc }}</span>
+                </div>
+                <span class="material-icons portal-card__arrow">chevron_right</span>
+              </a>
+            }
+          </div>
+        }
+
+        <!-- ── USER ──────────────────────────────────────────────────────── -->
+        @if (!isAdmin) {
+          <div class="l-head">
+            <div class="l-head__tag l-head__tag--user">
+              <span class="material-icons">chat</span>
+              Espace Chat
+            </div>
+            <h2 class="l-head__title">Choisissez votre mode de communication</h2>
+            <p class="l-head__desc">Deux façons de rester connecté avec les autres membres.</p>
+          </div>
+
+          <div class="portal-grid portal-grid--user">
+            @for (link of userLinks; track link.route) {
+              <a class="user-card" [routerLink]="link.route">
+                <div class="user-card__badge" [style.color]="link.color" [style.background]="link.bg">
+                  {{ link.badge }}
+                </div>
+                <div class="user-card__ico" [style.background]="link.bg">
+                  <span class="material-icons" [style.color]="link.color">{{ link.icon }}</span>
+                </div>
+                <h3 class="user-card__title">{{ link.label }}</h3>
+                <p class="user-card__desc">{{ link.desc }}</p>
+                <ul class="user-card__list">
+                  @for (f of link.features; track f) {
+                    <li>
+                      <span class="material-icons">check_circle</span>
+                      {{ f }}
+                    </li>
+                  }
+                </ul>
+                <div class="user-card__cta" [style.background]="link.color">
+                  <span>Accéder</span>
+                  <span class="material-icons">arrow_forward</span>
+                </div>
+              </a>
+            }
+          </div>
+        }
+
+      </div>
+    </section>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § STATS
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if(isLoggedIn && isAdmin){
+      <section id="sec-stats" class="l-section l-section--gray">
+        <div class="l-inner">
+          <div class="stat-row">
+            @for (s of heroStats; track trackByStat($index, s)) {
+              <div class="stat-block" [class.stat-block--loading]="s.loading">
+                <div class="stat-block__ico" [style.background]="s.bg">
+                  <span class="material-icons" [style.color]="s.color">{{ s.icon }}</span>
+                </div>
+                @if (s.loading) {
+                  <div class="stat-block__skel"></div>
+                  <div class="stat-block__lbl">{{ s.label }}</div>
+                } @else {
+                  <div class="stat-block__num">{{ s.value }}</div>
+                  <div class="stat-block__lbl">{{ s.label }}</div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § FONCTIONNALITÉS
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <section id="sec-features" class="l-section">
+    <div class="l-inner">
+      <div class="l-head">
+        <div class="l-head__tag">Fonctionnalités</div>
+        <h2 class="l-head__title">Tout ce dont vous avez besoin</h2>
+        <p class="l-head__desc">Une suite complète d'outils de communication et d'administration pour votre organisation.</p>
+      </div>
+      <div class="feat-grid">
+        @for (f of features; track f.title) {
+          <div class="feat-card">
+            <div class="feat-card__ico" [style.background]="f.bg">
+              <span class="material-icons" [style.color]="f.color">{{ f.icon }}</span>
+            </div>
+            <h3 class="feat-card__title">{{ f.title }}</h3>
+            <p class="feat-card__desc">{{ f.desc }}</p>
+            <ul class="feat-card__list">
+              @for (item of f.items; track item) {
+                <li><span class="material-icons">check_circle</span>{{ item }}</li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § COMMENT ÇA MARCHE
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <section id="sec-how" class="l-section l-section--gray">
+    <div class="l-inner">
+      <div class="l-head">
+        <div class="l-head__tag">Mode d'emploi</div>
+        <h2 class="l-head__title">Simple à déployer, puissant à utiliser</h2>
+        <p class="l-head__desc">Démarrez en quelques minutes avec une configuration minimale.</p>
+      </div>
+      <div class="steps">
+        @for (step of steps; track step.num) {
+          <div class="step">
+            <div class="step__num" [style.background]="step.bg" [style.color]="step.color">{{ step.num }}</div>
+            <div class="step__card">
+              <div class="step__ico" [style.background]="step.bg">
+                <span class="material-icons" [style.color]="step.color">{{ step.icon }}</span>
+              </div>
+              <h3 class="step__title">{{ step.title }}</h3>
+              <p class="step__desc">{{ step.desc }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § ADMIN PREVIEW
+  ═══════════════════════════════════════════════════════════════════════ -->
+  @if(isLoggedIn && isAdmin) {
+    <section id="sec-admin" class="l-section">
+      <div class="l-inner">
+        <div class="admin-split">
+          <div class="admin-split__text">
+            <div class="l-head__tag">Tableau de bord</div>
+            <h2 class="admin-split__title">Un panneau d'administration complet</h2>
+            <p class="admin-split__desc">
+              Gérez tous les aspects de votre plateforme depuis une interface centralisée :
+              utilisateurs, salles de chat, messages, fichiers et statistiques.
+            </p>
+            <ul class="admin-split__list">
+              <li><span class="material-icons">check_circle</span>Gestion des utilisateurs et rôles</li>
+              <li><span class="material-icons">check_circle</span>Modération des salles et messages</li>
+              <li><span class="material-icons">check_circle</span>Médiathèque centralisée</li>
+              <li><span class="material-icons">check_circle</span>Statistiques en temps réel</li>
+              <li><span class="material-icons">check_circle</span>Paramètres système avancés</li>
+            </ul>
+            <a class="admin-split__cta" routerLink="/auth/login">
+              <span class="material-icons">launch</span>
+              Accéder au panneau admin
+            </a>
+          </div>
+          <div class="admin-split__preview">
+            <div class="preview-mock">
+              <div class="preview-mock__header">
+                <div class="preview-mock__dot" style="background:#ef4444"></div>
+                <div class="preview-mock__dot" style="background:#f59e0b"></div>
+                <div class="preview-mock__dot" style="background:#22c55e"></div>
+                <span class="preview-mock__url">admin.flowchat.app</span>
+              </div>
+              <div class="preview-mock__body">
+                <div class="preview-mock__sidebar">
+                  @for (nav of mockNav; track nav) {
+                    <div class="preview-mock__nav-item">
+                      <span class="material-icons">{{ nav }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="preview-mock__content">
+                  <div class="preview-mock__cards">
+                    <div class="preview-mock__card" style="background:#eff6ff;border-color:#bfdbfe">
+                      <span style="font-size:11px;font-weight:700;color:#2563eb">Utilisateurs</span>
+                      <span style="font-size:22px;font-weight:800;color:#1e3a8a">{{ heroStats[0].value }}</span>
+                    </div>
+                    <div class="preview-mock__card" style="background:#f0fdf4;border-color:#bbf7d0">
+                      <span style="font-size:11px;font-weight:700;color:#16a34a">Actifs</span>
+                      <span style="font-size:22px;font-weight:800;color:#14532d">{{ heroStats[1].value }}</span>
+                    </div>
+                    <div class="preview-mock__card" style="background:#f5f3ff;border-color:#ddd6fe">
+                      <span style="font-size:11px;font-weight:700;color:#7c3aed">Admins</span>
+                      <span style="font-size:22px;font-weight:800;color:#4c1d95">{{ heroStats[2].value }}</span>
+                    </div>
+                  </div>
+                  <div class="preview-mock__table">
+                    <div class="preview-mock__th"></div>
+                    @for (row of [1,2,3,4]; track row) {
+                      <div class="preview-mock__row">
+                        <div class="preview-mock__row-av"></div>
+                        <div class="preview-mock__row-lines">
+                          <div class="preview-mock__row-line preview-mock__row-line--long"></div>
+                          <div class="preview-mock__row-line preview-mock__row-line--short"></div>
+                        </div>
+                        <div class="preview-mock__row-badge"></div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       § CTA FINAL
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <section id="sec-contact" class="l-section l-section--cta">
+    <div class="l-inner">
+      <div class="cta-block">
+        <div class="cta-block__badge">
+          <span class="material-icons">rocket_launch</span>
+          Prêt à commencer ?
+        </div>
+        <h2 class="cta-block__title">Déployez FlowChat dès aujourd'hui</h2>
+        <p class="cta-block__desc">
+          Accédez au tableau de bord d'administration et commencez à gérer votre plateforme de messagerie.
+        </p>
+        <div class="cta-block__actions">
+          @if (isLoggedIn && isAdmin) {
+            <a class="cta-block__primary" routerLink="/admin/home">
+              <span class="material-icons">dashboard</span>
+              Tableau de bord
+            </a>
+          }
+          @if (isLoggedIn && !isAdmin) {
+            <a class="cta-block__primary" routerLink="/chat/rooms">
+              <span class="material-icons">forum</span>
+              Rejoindre un groupe
+            </a>
+          }
+          @if (!isLoggedIn) {
+            <a class="cta-block__primary" routerLink="/auth/login">
+              <span class="material-icons">admin_panel_settings</span>
+              Accéder à l'administration
+            </a>
+          }
+          <a class="cta-block__secondary" href="mailto:admin@flowchat.app">
+            <span class="material-icons">mail</span>
+            Contacter l'équipe
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       FOOTER — redesigné
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <footer class="lfooter">
+    <div class="lfooter__top">
+      <div class="lfooter__inner">
+
+        <!-- Colonne brand -->
+        <div class="lfooter__brand-col">
+          <div class="lfooter__brand">
+            <div class="lfooter__logo">
+              <span class="material-icons">chat</span>
+            </div>
+            <span class="lfooter__name">FlowChat</span>
+          </div>
+          <p class="lfooter__tagline">
+            Plateforme de messagerie temps réel avec administration centralisée, sécurité JWT et rôles distincts.
+          </p>
+          <div class="lfooter__socials">
+            <a class="lfooter__social" href="mailto:admin@flowchat.app" title="Email">
+              <span class="material-icons">mail</span>
+            </a>
+            <a class="lfooter__social" href="#" title="GitHub">
+              <span class="material-icons">code</span>
+            </a>
+            <a class="lfooter__social" href="#" title="Documentation">
+              <span class="material-icons">menu_book</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Colonnes liens -->
+        @for (col of footerCols; track col.title) {
+          <div class="lfooter__col">
+            <h4 class="lfooter__col-title">{{ col.title }}</h4>
+            <ul class="lfooter__col-links">
+              @for (link of col.links; track link.label) {
+                <li>
+                  @if (link.action === 'route') {
+                    <a [routerLink]="link.target">{{ link.label }}</a>
+                  }
+                  @if (link.action === 'scroll') {
+                    <a href="#" (click)="handleFooterLink($event, link)">{{ link.label }}</a>
+                  }
+                  @if (link.action === 'mail') {
+                    <a [href]="'mailto:' + link.target">{{ link.label }}</a>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        }
+
+      </div>
+    </div>
+
+    <!-- Footer bottom -->
+    <div class="lfooter__bottom">
+      <div class="lfooter__bottom-inner">
+        <p class="lfooter__copy">
+          &copy; {{ currentYear }} FlowChat. Tous droits réservés.
+        </p>
+        <div class="lfooter__badges">
+          <span class="lfooter__badge">
+            <span class="material-icons">security</span>
+            JWT Secured
+          </span>
+          <span class="lfooter__badge">
+            <span class="material-icons">api</span>
+            REST API
+          </span>
+          <span class="lfooter__badge">
+            <span class="material-icons">bolt</span>
+            Spring Boot
+          </span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll to top -->
+  <button class="scroll-top" (click)="scrollToTop()" title="Retour en haut">
+    <span class="material-icons">keyboard_arrow_up</span>
+  </button>
+
+</div>

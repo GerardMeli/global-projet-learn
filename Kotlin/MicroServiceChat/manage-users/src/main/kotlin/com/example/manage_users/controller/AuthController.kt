@@ -2,10 +2,11 @@ package com.example.manage_users.controller
 
 import com.example.manage_users.dto.EmailPwdDto
 import com.example.manage_users.dto.RegistrationDto
+import com.example.manage_users.repository.UsersRepository
 import com.example.manage_users.security.JwtProvider
 import com.example.manage_users.service.impl.AuthServiceImpl
-import com.example.manage_users.service.impl.UserServiceImpl
 import com.example.manage_users.service.interf.AuthService
+import com.example.manage_users.service.interf.EmailService
 import jakarta.servlet.http.HttpSession
 import jakarta.validation.Valid
 import org.slf4j.LoggerFactory
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.*
 class AuthController (
     private val authService: AuthService,
     private val jwtProvider: JwtProvider,
-    private val authServiceImpl: AuthServiceImpl
+    private val authServiceImpl: AuthServiceImpl,
+    private val usersRepository: UsersRepository,
+    private val emailService: EmailService
 ) {
 
        private val logger = LoggerFactory.getLogger(AuthController::class.java)
@@ -136,13 +139,51 @@ class AuthController (
         return ResponseEntity.ok().build()
     }
 
+    // ── Reset password / Set password ──────────────────────────────────────────
+    /**
+     * Partagé par deux flux :
+     *   1. « Mot de passe oublié » (reset classique via /auth/forgot-password).
+     *   2. « Invitation admin » — le user crée son mot de passe pour la 1re fois
+     *      depuis /auth/set-password?token=…
+     *
+     * Dans les deux cas, après succès :
+     *   → envoie le welcome email à l'utilisateur
+     *   → retourne { success, message } pour qu'Angular redirige vers /home
+     */
     @PostMapping("/reset-password")
-    fun resetPassword(@RequestBody request: EmailPwdDto.ResetPasswordRequest): ResponseEntity<Any> {
-        authService.resetPassword(request)
-        return ResponseEntity.ok(mapOf(
-            "success" to true,
-            "message" to "Password reset successfully"
-        ))
+    fun resetPassword(
+        @RequestBody request: EmailPwdDto.ResetPasswordRequest
+    ): ResponseEntity<Any> {
+        return try {
+            // 1. Valide le token et met à jour le mot de passe en BDD
+            authService.resetPassword(request)
+
+            // 2. Envoie le welcome email (non-bloquant en cas d'erreur)
+            try {
+                val email = jwtProvider.getEmailFromToken(request.token)
+                if (!email.isNullOrBlank()) {
+                    usersRepository.findByEmail(email).ifPresent { user ->
+                        emailService.sendWelcomeEmail(user)
+                        logger.info("✅ Welcome email dispatched to: ${user.email}")
+                    }
+                }
+            } catch (e: Exception) {
+                // N'interrompt pas la réponse si l'email échoue
+                logger.warn("⚠️ Could not dispatch welcome email after password set: ${e.message}")
+            }
+
+            ResponseEntity.ok(mapOf(
+                "success" to true,
+                "message" to "Mot de passe défini avec succès. Bienvenue sur FlowChat !"
+            ))
+
+        } catch (e: Exception) {
+            logger.error("Reset password error", e)
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(mapOf(
+                "success" to false,
+                "message" to (e.message ?: "Erreur lors de la réinitialisation du mot de passe")
+            ))
+        }
     }
 
     @PostMapping("/logout")

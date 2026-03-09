@@ -78,12 +78,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   // ── Ancres Home ────────────────────────────────────────────────────────────
   readonly homeAnchors: HomeAnchor[] = [
-    { label: 'Vue globale',  anchor: 'overview', icon: 'dashboard'         },
-    { label: 'Utilisateurs', anchor: 'users',    icon: 'group'             },
-    { label: 'Chat & Msgs',  anchor: 'chat',     icon: 'forum'             },
-    { label: 'Fichiers',     anchor: 'files',    icon: 'folder_open'       },
-    { label: 'Activité',     anchor: 'activity', icon: 'timeline'          },
-    { label: 'Actions',      anchor: 'actions',  icon: 'bolt'              },
+    { label: 'Vue globale',  anchor: 'sec-overview', icon: 'dashboard'   },
+    { label: 'Utilisateurs', anchor: 'sec-users',    icon: 'group'       },
+    { label: 'Chat & Msgs',  anchor: 'sec-chat',     icon: 'forum'       },
+    { label: 'Fichiers',     anchor: 'sec-files',    icon: 'folder_open' },
+    { label: 'Activité',     anchor: 'sec-activity', icon: 'timeline'    },
+    { label: 'Actions',      anchor: 'sec-config',   icon: 'settings'    },
   ];
 
   private readonly titleMap: Record<string, string> = {
@@ -159,15 +159,19 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Profile helpers ────────────────────────────────────────────────────────
+ // ── Profile helpers ────────────────────────────────────────────────────────
   getAdminInitials(): string {
     const t = this.tokenService.getCurrentUserClaims();
     return ((t?.firstName?.charAt(0) || '') + (t?.lastName?.charAt(0) || '')).toUpperCase() || 'A';
   }
 
+
+
   getAdminName(): string {
     const t = this.tokenService.getCurrentUserClaims();
     return [t?.firstName, t?.lastName].filter(Boolean).join(' ') || 'Administrateur';
   }
+
 
   // ── Logout ─────────────────────────────────────────────────────────────────
   openLogoutModal():  void { this.showLogoutModal = true;  this.cdr.markForCheck(); }
@@ -182,3 +186,5 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   onEscape(): void { if (this.showLogoutModal) this.closeLogoutModal(); }
 }
+
+

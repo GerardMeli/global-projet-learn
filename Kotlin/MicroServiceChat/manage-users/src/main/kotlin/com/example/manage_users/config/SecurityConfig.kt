@@ -81,7 +81,8 @@ class SecurityConfig(
                 authz
                     // Public routes
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ← ADD THIS FIRST
-                    .requestMatchers("/", "/login", "/register", "/favicon.ico").permitAll()
+                    .requestMatchers("/", "/login", "/favicon.ico").permitAll()
+//                    .requestMatchers( "/register").permitAll()
                     .requestMatchers("/resources/**", "/static/**", "/public/**", "/css/**", "/js/**").permitAll()
                     .requestMatchers("/error").permitAll()
 //                    .requestMatchers("/ws-chat/**").permitAll() // Allow WebSocket handshake
@@ -100,14 +101,18 @@ class SecurityConfig(
                     // OAuth2 endpoints
                     .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
 
-                    // Auth endpoints
-                    .requestMatchers("/api/auth/register").permitAll()
+                    // Auth endpoints (public)
+                    // ⚠️ /register est volontairement absent : seul l'admin peut créer des comptes
+                    //    via POST /api/admin/users/
                     .requestMatchers("/api/auth/login").permitAll()
                     .requestMatchers("/api/auth/refresh-token").permitAll()
                     .requestMatchers("/api/auth/verify-email").permitAll()
                     .requestMatchers("/api/auth/resend-verification").permitAll()
                     .requestMatchers("/api/auth/forgot-password").permitAll()
                     .requestMatchers("/api/auth/reset-password").permitAll()
+
+                    // Register : réservé aux admins uniquement
+                    .requestMatchers("/api/auth/register").hasRole("ADMIN")
 
                     // Profile endpoints (require authentication)
                     .requestMatchers("/api/profile/**").permitAll()

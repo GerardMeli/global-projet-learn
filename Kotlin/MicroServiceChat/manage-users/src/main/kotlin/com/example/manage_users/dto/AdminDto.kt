@@ -4,6 +4,7 @@ import com.example.manage_users.models.Language
 import com.example.manage_users.models.Theme
 import com.example.manage_users.models.UserRole
 import com.example.manage_users.models.UserStatus
+import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
@@ -64,5 +65,44 @@ class AdminDto {
         val reason: String? = null
     )
 
+    data class CreateUserRequest(
+        @field:NotBlank
+        val firstName: String,
+
+        @field:NotBlank
+        val lastName: String,
+
+        @field:jakarta.validation.constraints.Email
+        @field:NotBlank
+        val email: String,
+
+        @field:NotBlank
+        @field:Size(min = 6, max = 100)
+        val password: String? = null,
+
+        val role: UserRole = UserRole.USER,
+
+        @Pattern(
+            regexp = "^\\+237\\s6\\d{2}\\s\\d{3}\\s\\d{3}$",
+            message = "Invalid Cameroonian phone number format. Example: +237 698 520 147"
+        )
+        val phoneNumber: String? = null,
+
+        @field:Size(max = 45)
+        val address: String? = null,
+
+        val isActive: Boolean = true,
+    )
+
+    data class CreateUserResponse(
+        val id:        Long,
+        val firstName: String?,
+        val lastName:  String?,
+        val email:     String,
+        val role:      UserRole,
+        val status:    UserStatus,
+        val isActive:  Boolean,
+        val createdAt: LocalDateTime,
+    )
 
 }

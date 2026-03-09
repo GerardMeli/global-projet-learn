@@ -3,51 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm Email Change</title>
-</head>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
-<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+  <title>Confirmation de changement d'email - FlowChat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  <div style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); padding: 30px; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">Confirm Your Email Change</h1>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .email-container {
+      max-width: 560px;
+      width: 100%;
+      background: #1e293b;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 1px solid #334155;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      padding: 40px 30px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: rotate 20s infinite linear;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .header h1 {
+      color: white;
+      margin: 0;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .content {
+      padding: 48px 40px;
+      background: #1e293b;
+    }
+
+    .greeting {
+      font-size: 18px;
+      color: #f1f5f9;
+      margin-bottom: 24px;
+    }
+
+    .message {
+      color: #94a3b8;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .email-highlight {
+      background: linear-gradient(135deg, #2d3a4f 0%, #1e293b 100%);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin: 24px 0;
+    }
+
+    .email-label {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .new-email {
+      color: #f59e0b;
+      font-size: 24px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .confirm-box {
+      background: linear-gradient(135deg, #2d3a4f 0%, #1e293b 100%);
+      border: 1px solid #334155;
+      border-radius: 24px;
+      padding: 40px 30px;
+      text-align: center;
+      margin: 32px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .confirm-box::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
+      animation: pulse 4s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .confirm-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      position: relative;
+      z-index: 1;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .confirm-icon svg {
+      width: 40px;
+      height: 40px;
+      fill: none;
+      stroke: white;
+      stroke-width: 2;
+    }
+
+    .confirm-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      text-decoration: none;
+      padding: 16px 48px;
+      border-radius: 100px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.5);
+      position: relative;
+      z-index: 1;
+    }
+
+    .confirm-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px -5px rgba(245, 158, 11, 0.7);
+    }
+
+    .warning-box {
+      background: rgba(0, 0, 0, 0.2);
+      border-left: 4px solid #f59e0b;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 32px 0;
+    }
+
+    .warning-box p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .warning-box .expiry {
+      color: #f59e0b;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .link-box {
+      background: #2d3a4f;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 24px 0;
+    }
+
+    .link-box p {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .link-box .link {
+      color: #f59e0b;
+      word-break: break-all;
+      font-size: 12px;
+      font-family: monospace;
+    }
+
+    .footer {
+      background: #0f172a;
+      padding: 32px 40px;
+      text-align: center;
+      border-top: 1px solid #334155;
+    }
+
+    .footer p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin: 0 0 8px;
+    }
+
+    .footer a {
+      color: #f59e0b;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #f59e0b, transparent);
+      margin: 20px auto;
+    }
+
+    @media (max-width: 480px) {
+      .content {
+        padding: 32px 24px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .new-email {
+        font-size: 20px;
+      }
+
+      .confirm-button {
+        padding: 14px 32px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="email-container">
+  <!-- Header -->
+  <div class="header">
+    <h1>Confirmer le changement d'email</h1>
   </div>
 
-  <div style="padding: 40px 30px;">
-    <p style="font-size: 18px; margin-bottom: 20px;">Hello,</p>
+  <!-- Content -->
+  <div class="content">
+    <p class="greeting">Bonjour,</p>
 
-    <p style="font-size: 16px; margin-bottom: 25px;">We received a request to change the email address associated with your account to:</p>
+    <p class="message">
+      Nous avons reçu une demande de changement d'adresse email pour votre compte FlowChat.
+    </p>
 
-    <div style="background-color: #e8f5e9; padding: 20px; border-radius: 10px; text-align: center; margin: 30px 0;">
-      <span style="font-size: 20px; font-weight: bold; color: #4CAF50;" th:text="${email}"></span>
+    <!-- Email Highlight -->
+    <div class="email-highlight">
+      <div class="email-label">Nouvelle adresse email :</div>
+      <div class="new-email" th:text="${email}"></div>
     </div>
 
-    <p style="font-size: 16px; margin-bottom: 25px;">Click the button below to confirm this change:</p>
+    <p class="message">
+      Pour confirmer ce changement, veuillez cliquer sur le bouton ci-dessous :
+    </p>
 
-    <div style="text-align: center; margin: 35px 0;">
-      <a th:href="${confirmUrl}"
-         style="background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); color: white; padding: 15px 40px;
-                          text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: bold; display: inline-block;
-                          box-shadow: 0 2px 5px rgba(76, 175, 80, 0.3);">
-        Confirm Email Change
+    <!-- Confirm Box -->
+    <div class="confirm-box">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+      </div>
+
+      <a th:href="${confirmUrl}" class="confirm-button">
+        Confirmer le changement
       </a>
     </div>
 
-    <div style="background-color: #fff3e0; border-left: 4px solid #FF9800; padding: 20px; margin: 30px 0;">
-      <p style="margin: 0; font-size: 14px; color: #666;">
-        <strong>⚠️ This link expires in 1 hour</strong><br>
-        If you didn't request this change, no action is needed and you can safely ignore this email.
+    <!-- Warning Box -->
+    <div class="warning-box">
+      <p>
+        <strong>⚠️ Ce lien expire dans 1 heure</strong><br><br>
+        Si vous n'êtes pas à l'origine de cette demande, aucune action n'est nécessaire.
+        Votre adresse email actuelle restera inchangée.
       </p>
+      <div class="expiry">⏰ Expire dans 60 minutes</div>
     </div>
 
-    <p style="font-size: 14px; color: #6c757d; margin-top: 30px; word-break: break-all;">
-      Alternative link: <span th:text="${confirmUrl}" style="color: #FF9800;"></span>
-    </p>
+    <!-- Alternative Link -->
+    <div class="link-box">
+      <p>Si le bouton ne fonctionne pas, copiez ce lien :</p>
+      <div class="link" th:text="${confirmUrl}"></div>
+    </div>
   </div>
 
-  <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-    <p style="margin: 0; font-size: 14px; color: #6c757d;">
-      Need help? Contact us at <a href="mailto:support@example.com" style="color: #FF9800; text-decoration: none;">support@example.com</a>
-    </p>
+  <!-- Footer -->
+  <div class="footer">
+    <p>Besoin d'aide ? Contactez-nous à <a href="mailto:support@flowchat.com">support@flowchat.com</a></p>
+    <div class="footer-divider"></div>
+    <p class="copyright">© 2024 FlowChat. Tous droits réservés.</p>
   </div>
 </div>
 </body>

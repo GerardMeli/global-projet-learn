@@ -28,4 +28,6 @@ interface UsersService : UserDetailsService {
         currentUserId: Long,
         query: String
     ): List<ProfileDto.PrivateUserResponse>
+
+    fun createUser(request: AdminDto.CreateUserRequest): AdminDto.CreateUserResponse
 }

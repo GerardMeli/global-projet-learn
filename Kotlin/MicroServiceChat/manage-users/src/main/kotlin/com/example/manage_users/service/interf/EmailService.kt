@@ -26,4 +26,11 @@ interface EmailService {
 
     fun sendRoleChangeNotification(email: String, role: UserRole, reason: String?)
 
+    /**
+     * Envoyé quand un admin crée un compte utilisateur.
+     * Contient le lien « Définir mon mot de passe » pointant vers
+     * /auth/set-password?token=<jwt_reset> (valide 24 h).
+     */
+    fun sendSetPasswordInvitation(user: Users, token: String)
+
 }

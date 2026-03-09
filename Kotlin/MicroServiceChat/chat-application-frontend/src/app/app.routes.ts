@@ -5,6 +5,15 @@ import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
 
+  {
+    path: 'home',
+    loadComponent: () => import('./component/landing-component/landing-component').then(m => m.LandingComponent),
+    data: {
+      title: 'Home',
+      breadcrumb: 'Home'
+    }
+  },
+
   // ─────────────────────────────────────────────────────────────────────
   // 🔐 AUTHENTIFICATION (publique)
   // ─────────────────────────────────────────────────────────────────────
@@ -79,6 +88,7 @@ export const routes: Routes = [
   {
     path: 'profile',
     loadComponent: () => import('./component/auth/profile/profile').then(m => m.ProfileComponent),
+    canActivate: [AuthGuard],
     data: {
       title: 'Profile',
       breadcrumb: 'Profile'
@@ -98,7 +108,7 @@ export const routes: Routes = [
   // ─────────────────────────────────────────────────────────────────────
   {
     path: '',
-    redirectTo: '/',
+    redirectTo: 'home',
     pathMatch: 'full'
   },
 

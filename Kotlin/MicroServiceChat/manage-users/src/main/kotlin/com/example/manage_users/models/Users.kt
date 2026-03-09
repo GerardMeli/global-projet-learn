@@ -32,7 +32,7 @@ data class Users (
     var lastName: String? = null,
 
     @Column(nullable = false)
-    var password: String,
+    var password: String? = null,
 
     @Column(name = "is_active")
     var isActive: Boolean = true,

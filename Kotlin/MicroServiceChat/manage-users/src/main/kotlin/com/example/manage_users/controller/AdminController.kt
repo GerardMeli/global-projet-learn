@@ -62,7 +62,39 @@ class AdminController (
         }
     }
 
+    // ── Créer un utilisateur (admin only) ─────────────────────────────────────
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/")
+    fun createUser(
+        @Valid @RequestBody request: AdminDto.CreateUserRequest
+    ): ResponseEntity<ApiResponse<AdminDto.CreateUserResponse>> {
+        return try {
+            val created = userService.createUser(request)
+            ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse(
+                    success = true,
+                    message = "Utilisateur créé avec succès",
+                    data = created
+                ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse(
+                    success = false,
+                    message = e.message ?: "Email déjà utilisé",
+                    data = null
+                ))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse(
+                    success = false,
+                    message = "Erreur lors de la création : ${e.message}",
+                    data = null
+                ))
+        }
+    }
+
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     fun getUserById(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
         return ResponseEntity.ok(response)

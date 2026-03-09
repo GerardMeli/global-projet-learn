@@ -1,8 +1,6 @@
 // admin-dashboard.component.scss
 // Shell parent : sidebar sombre + contenu clair
 
-@use 'sass:color';
-
 // ── Tokens ────────────────────────────────────────────────────────────────────
 $sb-bg:       #0f172a;   // fond sidebar
 $sb-hover:    #1e293b;   // hover nav link
@@ -74,11 +72,13 @@ $sidebar-sm:  64px;
   &--collapsed {
     width: $sidebar-sm;
     .nav-link__label, .nav-link__badge,
-    .sidebar__logo-text, .sidebar__profile { display: none; }
-    .sidebar__head { justify-content: center; padding: 0 0 0 0; }
-    .sidebar__logo { justify-content: center; }
-    .nav-link { justify-content: center; padding: 12px; gap: 0; }
-    .sidebar__toggle { display: none; }
+    .sidebar__logo-text, .sidebar__profile,
+    .sidebar__anchors, .nav-group-label     { display: none; }
+    .sidebar__head   { justify-content: center; padding: 14px 0; }
+    .sidebar__logo   { justify-content: center; }
+    .nav-link        { justify-content: center; padding: 12px; gap: 0; }
+    // ← toggle reste VISIBLE pour pouvoir rouvrir
+    .sidebar__toggle { display: flex; }
   }
 
   // Mobile hidden par défaut, ouvert via classe
@@ -280,44 +280,78 @@ $sidebar-sm:  64px;
   z-index: 90;
   background: $white;
   border-bottom: 1px solid $border;
-  padding: 0 32px;
+  padding: 0 24px;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   box-shadow: 0 1px 0 $border;
 
-  &__left  { display: flex; align-items: center; gap: 14px; }
-  &__right { display: flex; align-items: center; gap: 10px; }
+  &__left {
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
 
+  &__right {
+    display: flex; align-items: center; gap: 8px; overflow: hidden;
+  }
+
+  // Bouton burger mobile
   &__menu-btn {
-    width: 34px; height: 34px;
+    width: 34px; height: 34px; flex-shrink: 0;
     border: none; border-radius: 8px;
     background: $main-bg; color: $text3;
-    display: flex; align-items: center; justify-content: center;
+    display: none; align-items: center; justify-content: center;
     cursor: pointer; transition: all .16s;
     .material-icons { font-size: 21px; }
     &:hover { background: $primary; color: #fff; }
-    @media (min-width: 768px) { display: none; }
+    @media (max-width: 767px) { display: flex; }
   }
 
+  // Breadcrumb
+  &__breadcrumb {
+    display: flex; align-items: center; gap: 6px;
+  }
+  &__breadcrumb-root {
+    font-size: 13px; color: $text4; font-weight: 500;
+  }
+  &__breadcrumb-sep {
+    font-size: 16px; color: $text4;
+  }
   &__title {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: $text1;
-    letter-spacing: -.2px;
+    margin: 0; font-size: 17px; font-weight: 700; color: $text1; letter-spacing: -.2px;
+    white-space: nowrap;
   }
 
+  // Nav pills (ancres — section droite)
+  &__nav {
+    display: flex; align-items: center; gap: 4px;
+    overflow-x: auto; flex: 1;
+    padding: 0 4px;
+    scrollbar-width: none;
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  &__nav-pill {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    padding: 6px 11px; border: none; border-radius: 8px;
+    background: $main-bg; color: $text3;
+    font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: all .15s; font-family: inherit; white-space: nowrap;
+    .material-icons { font-size: 14px; }
+
+    &:hover   { background: $primary-bg; color: $primary; }
+    &--active { background: $primary-bg; color: $primary; }
+  }
+
+  // Avatar
   &__avatar {
-    width: 36px; height: 36px;
+    width: 34px; height: 34px; flex-shrink: 0;
     background: linear-gradient(135deg, $primary, $accent);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    color: #fff;
-    font-weight: 700;
-    font-size: 13px;
-    text-decoration: none;
+    color: #fff; font-weight: 700; font-size: 12px;
+    text-decoration: none; cursor: pointer;
     transition: transform .16s, box-shadow .16s;
     &:hover { transform: scale(1.08); box-shadow: 0 0 0 3px rgba($primary,.25); }
   }
@@ -408,7 +442,7 @@ $sidebar-sm:  64px;
   font-weight: 600; font-size: 13.5px; cursor: pointer;
   transition: all .16s; font-family: inherit;
   .material-icons { font-size: 17px; }
-  &:hover:not(:disabled) { background: color.adjust($danger, $lightness: -6%); }
+  &:hover:not(:disabled) { background: darken($danger, 6%); }
   &:disabled { opacity: .45; cursor: not-allowed; }
 }
 

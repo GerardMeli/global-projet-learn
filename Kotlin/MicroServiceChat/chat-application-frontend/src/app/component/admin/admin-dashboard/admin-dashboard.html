@@ -57,26 +57,6 @@
       }
     </nav>
 
-    <!-- ── Ancres Home (visible seulement quand expanded) ───────────────── -->
-    @if (!sidebarCollapsed || isMobile) {
-      <div class="sidebar__anchors">
-        <p class="sidebar__anchors-title">
-          <span class="material-icons">anchor</span>
-          Navigation rapide
-        </p>
-        @for (a of homeAnchors; track a.anchor) {
-          <button
-            class="anchor-link"
-            (click)="scrollToAnchor(a.anchor)"
-            [title]="a.label"
-          >
-            <span class="material-icons anchor-link__icon">{{ a.icon }}</span>
-            <span class="anchor-link__label">{{ a.label }}</span>
-          </button>
-        }
-      </div>
-    }
-
     <!-- ── Divider ───────────────────────────────────────────────────────── -->
     <div class="sidebar__divider"></div>
 
@@ -126,6 +106,7 @@
   >
     <!-- ── Topbar ────────────────────────────────────────────────────────── -->
     <header class="topbar">
+      <!-- ── Gauche : burger mobile + breadcrumb ─────────────────────────── -->
       <div class="topbar__left">
         <button
           class="topbar__menu-btn"
@@ -142,22 +123,19 @@
         </nav>
       </div>
 
+      <!-- ── Droite : nav pills + avatar ─────────────────────────────────── -->
       <div class="topbar__right">
-        <!-- Raccourcis ancres si on est sur home -->
-        @if (isHome) {
-          <div class="topbar__anchors">
-            @for (a of homeAnchors; track a.anchor) {
-              <button
-                class="topbar__anchor-chip"
-                (click)="scrollToAnchor(a.anchor)"
-                [title]="a.label"
-              >
-                <span class="material-icons">{{ a.icon }}</span>
-                <span>{{ a.label }}</span>
-              </button>
-            }
-          </div>
-        }
+        <nav class="topbar__nav" aria-label="Navigation rapide">
+          @for (a of homeAnchors; track a.anchor) {
+            <button
+              class="topbar__nav-pill"
+              (click)="scrollToAnchor(a.anchor)"
+            >
+              <span class="material-icons">{{ a.icon }}</span>
+              <span>{{ a.label }}</span>
+            </button>
+          }
+        </nav>
 
         <a class="topbar__avatar" [routerLink]="'profile'" title="Mon profil">
           {{ getAdminInitials() }}

@@ -94,7 +94,6 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
       });
   }
 
-  // ── Scroll ancres ──────────────────────────────────────────────────────────
   scrollTo(event: Event, id: string): void {
     event.preventDefault();
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -104,28 +103,23 @@ export class AdminHomeComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
   getInitials(u: RecentUser): string {
     return ((u.firstName?.charAt(0) || '') + (u.lastName?.charAt(0) || '')).toUpperCase() || 'U';
   }
   getFullName(u: RecentUser): string {
-    const p = [u.firstName, u.lastName].filter(Boolean);
-    return p.join(' ') || 'Utilisateur';
+    return [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Utilisateur';
   }
   getRoleBadgeClass(r: string): string {
     return ({ ADMIN:'badge--admin', USER:'badge--user', SUPPORT:'badge--support' } as any)[r] || '';
   }
   getStatusBadgeClass(s: string): string {
-    return ({
-      ACTIVE:'badge--active', PENDING:'badge--pending',
-      SUSPENDED:'badge--suspended', BLOCKED:'badge--blocked', DELETED:'badge--deleted',
-    } as any)[s] || '';
+    return ({ ACTIVE:'badge--active', PENDING:'badge--pending', SUSPENDED:'badge--suspended', BLOCKED:'badge--blocked', DELETED:'badge--deleted' } as any)[s] || '';
   }
   getStatusLabel(s: string): string {
-    return ({ACTIVE:'Actif',PENDING:'En attente',SUSPENDED:'Suspendu',BLOCKED:'Bloqué',DELETED:'Supprimé'} as any)[s] || s;
+    return ({ ACTIVE:'Actif', PENDING:'En attente', SUSPENDED:'Suspendu', BLOCKED:'Bloqué', DELETED:'Supprimé' } as any)[s] || s;
   }
   getRoleLabel(r: string): string {
-    return ({ADMIN:'Admin',USER:'Utilisateur',SUPPORT:'Support'} as any)[r] || r;
+    return ({ ADMIN:'Admin', USER:'Utilisateur', SUPPORT:'Support' } as any)[r] || r;
   }
 
   private readonly GRADIENTS = [

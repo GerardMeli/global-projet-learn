@@ -1,386 +1,454 @@
 <!-- admin-home.component.html -->
 <div class="ah-shell">
+  <div class="ah-main">
+    <div class="ah-body">
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       BARRE D'ANCRES — navigation intra-page sticky
-  ═══════════════════════════════════════════════════════════════════════ -->
-  <nav class="anchor-bar" aria-label="Sections de la page">
-    <a class="anchor-link" href="#sec-overview" (click)="scrollTo($event, 'sec-overview')">
-      <span class="material-icons">dashboard</span>
-      <span>Vue d'ensemble</span>
-    </a>
-    <div class="anchor-bar__sep"></div>
-    <a class="anchor-link" href="#sec-users" (click)="scrollTo($event, 'sec-users')">
-      <span class="material-icons">group</span>
-      <span>Utilisateurs</span>
-    </a>
-    <div class="anchor-bar__sep"></div>
-    <a class="anchor-link" href="#sec-chat" (click)="scrollTo($event, 'sec-chat')">
-      <span class="material-icons">forum</span>
-      <span>Chat</span>
-    </a>
-    <div class="anchor-bar__sep"></div>
-    <a class="anchor-link" href="#sec-files" (click)="scrollTo($event, 'sec-files')">
-      <span class="material-icons">folder_open</span>
-      <span>Fichiers &amp; Stats</span>
-    </a>
-    <div class="anchor-bar__sep"></div>
-    <a class="anchor-link" href="#sec-config" (click)="scrollTo($event, 'sec-config')">
-      <span class="material-icons">settings</span>
-      <span>Configuration</span>
-    </a>
-    <div class="anchor-bar__spacer"></div>
-    <button class="anchor-bar__refresh" (click)="loadData()" [disabled]="loading"
-      [title]="'Mis à jour : ' + (lastRefreshed | date:'HH:mm:ss')">
-      <span class="material-icons" [class.spin]="loading">refresh</span>
-      <span>{{ loading ? 'Chargement…' : (lastRefreshed | date:'HH:mm') }}</span>
-    </button>
-  </nav>
-
-  <!-- ── Chargement ─────────────────────────────────────────────────────── -->
-  @if (loading && !recentUsers.length) {
-    <div class="loading-state">
-      <div class="loading-state__ring"></div>
-      <p>Chargement du tableau de bord…</p>
-    </div>
-  }
-
-  <!-- ── Erreur ──────────────────────────────────────────────────────────── -->
-  @if (!loading && error) {
-    <div class="error-state">
-      <span class="material-icons">error_outline</span>
-      <div>
-        <strong>Impossible de charger les données</strong>
-        <p>{{ error }}</p>
-      </div>
-      <button class="btn-retry" (click)="loadData()">
-        <span class="material-icons">refresh</span> Réessayer
-      </button>
-    </div>
-  }
-
-  @if (!error) {
-
-    <!-- ════════════════════════════════════════════════════════════════════
-         § 1 — VUE D'ENSEMBLE
-    ═══════════════════════════════════════════════════════════════════════ -->
-    <section id="sec-overview" class="page-section" style="--accent:#2563eb">
-      <div class="section-hd">
-        <div class="section-hd__left">
-          <span class="section-hd__pill" style="background:#eff6ff;color:#2563eb">
-            <span class="material-icons">dashboard</span>
-          </span>
-          <div>
-            <h2 class="section-hd__title">Vue d'ensemble</h2>
-            <p class="section-hd__desc">Indicateurs clés de la plateforme en temps réel</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI cards -->
-      <div class="kpi-grid">
-        @for (s of stats; track trackByStat($index, s)) {
-          @if (s.route) {
-            <a class="kpi-card kpi-card--link" [routerLink]="s.route">
-              <div class="kpi-card__ico" [style.background]="s.bg">
-                <span class="material-icons" [style.color]="s.color">{{ s.icon }}</span>
-              </div>
-              <div class="kpi-card__body">
-                <span class="kpi-card__val">{{ s.value }}</span>
-                <span class="kpi-card__lbl">{{ s.label }}</span>
-              </div>
-              <span class="kpi-card__arrow material-icons" [style.color]="s.color">chevron_right</span>
-            </a>
-          } @else {
-            <div class="kpi-card">
-              <div class="kpi-card__ico" [style.background]="s.bg">
-                <span class="material-icons" [style.color]="s.color">{{ s.icon }}</span>
-              </div>
-              <div class="kpi-card__body">
-                <span class="kpi-card__val">{{ s.value }}</span>
-                <span class="kpi-card__lbl">{{ s.label }}</span>
-              </div>
-            </div>
-          }
-        }
-      </div>
-    </section>
-
-    <!-- ════════════════════════════════════════════════════════════════════
-         § 2 — UTILISATEURS
-    ═══════════════════════════════════════════════════════════════════════ -->
-    <section id="sec-users" class="page-section" style="--accent:#7c3aed">
-      <div class="section-hd">
-        <div class="section-hd__left">
-          <span class="section-hd__pill" style="background:#f5f3ff;color:#7c3aed">
-            <span class="material-icons">group</span>
-          </span>
-          <div>
-            <h2 class="section-hd__title">Utilisateurs</h2>
-            <p class="section-hd__desc">Comptes récemment créés sur la plateforme</p>
-          </div>
-        </div>
-        <a class="section-hd__cta" routerLink="../users">
-          Gérer tous les utilisateurs
-          <span class="material-icons">arrow_forward</span>
+      <!-- ══ ANCHOR BAR ════════════════════════════════════════════════════ -->
+      <nav class="anchor-bar" aria-label="Sections">
+        <a class="anchor-link" href="#sec-overview" (click)="scrollTo($event,'sec-overview')">
+          <span class="material-icons">dashboard</span>Vue d'ensemble
         </a>
-      </div>
+        <div class="anchor-bar__sep"></div>
+        <a class="anchor-link" href="#sec-users" (click)="scrollTo($event,'sec-users')">
+          <span class="material-icons">group</span>Utilisateurs
+        </a>
+        <div class="anchor-bar__sep"></div>
+        <a class="anchor-link" href="#sec-activity" (click)="scrollTo($event,'sec-activity')">
+          <span class="material-icons">timeline</span>Activité
+        </a>
+        <div class="anchor-bar__sep"></div>
+        <a class="anchor-link" href="#sec-chat" (click)="scrollTo($event,'sec-chat')">
+          <span class="material-icons">forum</span>Chat
+        </a>
+        <div class="anchor-bar__sep"></div>
+        <a class="anchor-link" href="#sec-files" (click)="scrollTo($event,'sec-files')">
+          <span class="material-icons">folder_open</span>Fichiers
+        </a>
+        <div class="anchor-bar__sep"></div>
+        <a class="anchor-link" href="#sec-config" (click)="scrollTo($event,'sec-config')">
+          <span class="material-icons">settings</span>Config
+        </a>
+        <div class="anchor-bar__spacer"></div>
+        <button class="anchor-bar__refresh" (click)="loadData()" [disabled]="loading"
+          [title]="'Mis à jour : ' + (lastRefreshed | date:'HH:mm:ss')">
+          <span class="material-icons" [class.spinning]="loading">refresh</span>
+          {{ loading ? 'Chargement…' : (lastRefreshed | date:'HH:mm') }}
+        </button>
+      </nav>
 
-      @if (recentUsers.length > 0) {
-        <div class="users-table-wrap">
-          <table class="users-table">
-            <thead>
-              <tr>
-                <th>Utilisateur</th>
-                <th>Rôle</th>
-                <th>Statut</th>
-                <th>Inscription</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (u of recentUsers; track trackByUser($index, u)) {
-                <tr class="users-row">
-                  <td>
-                    <div class="user-cell">
-                      <div class="user-cell__av" [style.background]="getGradient(u.id)">
-                        {{ getInitials(u) }}
-                      </div>
-                      <div class="user-cell__info">
-                        <span class="user-cell__name">{{ getFullName(u) }}</span>
-                        <span class="user-cell__email">{{ u.email }}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="badge" [ngClass]="getRoleBadgeClass(u.role)">
-                      {{ getRoleLabel(u.role) }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge" [ngClass]="getStatusBadgeClass(u.status)">
-                      {{ getStatusLabel(u.status) }}
-                    </span>
-                  </td>
-                  <td class="td-date">{{ u.createdAt | date:'dd MMM yyyy' }}</td>
-                  <td>
-                    <a class="row-btn" routerLink="../users" title="Gérer">
-                      <span class="material-icons">open_in_new</span>
-                    </a>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else if (!loading) {
-        <div class="empty-hint">
-          <span class="material-icons">person_off</span>
-          <p>Aucun utilisateur enregistré.</p>
+      <!-- ── Chargement ─────────────────────────────────────────────────── -->
+      @if (loading && !recentUsers.length) {
+        <div class="loading-state">
+          <div class="loading-state__ring"></div>
+          <p>Chargement du tableau de bord…</p>
         </div>
       }
-    </section>
 
-    <!-- ════════════════════════════════════════════════════════════════════
-         § 3 — CHAT & MESSAGERIE
-    ═══════════════════════════════════════════════════════════════════════ -->
-    <section id="sec-chat" class="page-section" style="--accent:#0891b2">
-      <div class="section-hd">
-        <div class="section-hd__left">
-          <span class="section-hd__pill" style="background:#ecfeff;color:#0891b2">
-            <span class="material-icons">forum</span>
-          </span>
+      <!-- ── Erreur ──────────────────────────────────────────────────────── -->
+      @if (!loading && error) {
+        <div class="error-state">
+          <span class="material-icons">error_outline</span>
           <div>
-            <h2 class="section-hd__title">Chat &amp; Messagerie</h2>
-            <p class="section-hd__desc">Salles de discussion et messages de la plateforme</p>
+            <strong>Impossible de charger les données</strong>
+            <p>{{ error }}</p>
           </div>
+          <button class="btn-retry" (click)="loadData()">
+            <span class="material-icons">refresh</span> Réessayer
+          </button>
         </div>
-      </div>
+      }
 
-      <div class="module-row">
-        <!-- Chat Rooms -->
-        <a class="module-card" routerLink="../rooms">
-          <div class="module-card__stripe" style="background:linear-gradient(135deg,#0891b2,#0ea5e9)"></div>
-          <div class="module-card__body">
-            <div class="module-card__ico-wrap" style="background:#ecfeff">
-              <span class="material-icons" style="color:#0891b2">forum</span>
+      @if (!error) {
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 1 — VUE D'ENSEMBLE
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-overview" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#eff6ff">
+                <span class="material-icons" style="color:#2563eb">dashboard</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Vue d'ensemble</h2>
+                <p class="section-hd__desc">Indicateurs clés de la plateforme en temps réel</p>
+              </div>
             </div>
-            <h3 class="module-card__title">Chat Rooms</h3>
-            <p class="module-card__desc">
-              Créez et gérez les salles publiques et privées. Ajoutez des participants, modifiez les métadonnées, supprimez des salles inactives.
-            </p>
-            <ul class="module-card__features">
-              <li><span class="material-icons">check</span>Salles publiques &amp; privées</li>
-              <li><span class="material-icons">check</span>Gestion des participants</li>
-              <li><span class="material-icons">check</span>Création &amp; suppression</li>
-            </ul>
           </div>
-          <div class="module-card__footer" style="color:#0891b2">
-            Ouvrir le module <span class="material-icons">arrow_forward</span>
-          </div>
-        </a>
 
-        <!-- Messages -->
-        <a class="module-card" routerLink="../messages">
-          <div class="module-card__stripe" style="background:linear-gradient(135deg,#be185d,#e11d48)"></div>
-          <div class="module-card__body">
-            <div class="module-card__ico-wrap" style="background:#fdf2f8">
-              <span class="material-icons" style="color:#be185d">chat_bubble_outline</span>
+          <div class="kpi-grid">
+            @for (s of stats; track trackByStat($index, s)) {
+              @if (s.route) {
+                <a class="kpi-card kpi-card--link" [routerLink]="s.route">
+                  <div class="kpi-card__ico" [style.background]="s.bg">
+                    <span class="material-icons" [style.color]="s.color">{{ s.icon }}</span>
+                  </div>
+                  <div class="kpi-card__body">
+                    <span class="kpi-card__val">{{ s.value }}</span>
+                    <span class="kpi-card__lbl">{{ s.label }}</span>
+                  </div>
+                  <div class="kpi-card__arrow">
+                    <span class="material-icons">chevron_right</span>
+                  </div>
+                </a>
+              } @else {
+                <div class="kpi-card">
+                  <div class="kpi-card__ico" [style.background]="s.bg">
+                    <span class="material-icons" [style.color]="s.color">{{ s.icon }}</span>
+                  </div>
+                  <div class="kpi-card__body">
+                    <span class="kpi-card__val">{{ s.value }}</span>
+                    <span class="kpi-card__lbl">{{ s.label }}</span>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 2 — UTILISATEURS
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-users" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#f5f3ff">
+                <span class="material-icons" style="color:#7c3aed">group</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Utilisateurs</h2>
+                <p class="section-hd__desc">Comptes récemment créés sur la plateforme</p>
+              </div>
             </div>
-            <h3 class="module-card__title">Messages</h3>
-            <p class="module-card__desc">
-              Modérez les messages de groupe et les conversations privées. Supprimez, restaurez ou analysez les contenus envoyés.
-            </p>
-            <ul class="module-card__features">
-              <li><span class="material-icons">check</span>Messages groupe &amp; privés</li>
-              <li><span class="material-icons">check</span>Suppression douce &amp; dure</li>
-              <li><span class="material-icons">check</span>Restauration de contenu</li>
-            </ul>
+            <a class="section-hd__cta" routerLink="../users">
+              Gérer tous les utilisateurs
+              <span class="material-icons">arrow_forward</span>
+            </a>
           </div>
-          <div class="module-card__footer" style="color:#be185d">
-            Ouvrir le module <span class="material-icons">arrow_forward</span>
-          </div>
-        </a>
-      </div>
-    </section>
 
-    <!-- ════════════════════════════════════════════════════════════════════
-         § 4 — FICHIERS & STATISTIQUES
-    ═══════════════════════════════════════════════════════════════════════ -->
-    <section id="sec-files" class="page-section" style="--accent:#d97706">
-      <div class="section-hd">
-        <div class="section-hd__left">
-          <span class="section-hd__pill" style="background:#fffbeb;color:#d97706">
-            <span class="material-icons">folder_open</span>
-          </span>
-          <div>
-            <h2 class="section-hd__title">Fichiers &amp; Statistiques</h2>
-            <p class="section-hd__desc">Gestion des médias uploadés et métriques système</p>
+          @if (recentUsers.length > 0) {
+            <div class="users-table-wrap">
+              <table class="users-table">
+                <thead>
+                  <tr>
+                    <th>Utilisateur</th>
+                    <th>Rôle</th>
+                    <th>Statut</th>
+                    <th>Inscription</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (u of recentUsers; track trackByUser($index, u)) {
+                    <tr class="users-table__row">
+                      <td>
+                        <div class="user-cell">
+                          <div class="user-cell__avatar" [style.background]="getGradient(u.id)">
+                            {{ getInitials(u) }}
+                          </div>
+                          <div class="user-cell__info">
+                            <div class="user-cell__name">{{ getFullName(u) }}</div>
+                            <div class="user-cell__email">{{ u.email }}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge" [class]="'badge--' + u.role.toLowerCase()">
+                          {{ getRoleLabel(u.role) }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge" [class]="'badge--' + u.status.toLowerCase()">
+                          {{ getStatusLabel(u.status) }}
+                        </span>
+                      </td>
+                      <td class="td-date">{{ u.createdAt | date:'dd/MM/yyyy' }}</td>
+                      <td>
+                        <a class="row-btn" routerLink="../users" title="Gérer">
+                          <span class="material-icons">open_in_new</span>
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (!loading) {
+            <div class="empty-state">
+              <span class="material-icons">group_off</span>
+              <p>Aucun utilisateur enregistré.</p>
+            </div>
+          }
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 3 — ACTIVITÉ RÉCENTE
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-activity" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#ecfdf5">
+                <span class="material-icons" style="color:#059669">timeline</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Activité récente</h2>
+                <p class="section-hd__desc">Dernières actions sur la plateforme</p>
+              </div>
+            </div>
           </div>
+
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-item__icon" style="background:#eff6ff;color:#2563eb">
+                <span class="material-icons">group</span>
+              </div>
+              <div class="activity-item__content">
+                <p class="activity-item__text">
+                  <strong>{{ stats[0].value }} utilisateurs</strong> enregistrés —
+                  <strong>{{ stats[1].value }}</strong> actifs
+                </p>
+                <span class="activity-item__time">Mis à jour : {{ lastRefreshed | date:'HH:mm:ss' }}</span>
+              </div>
+              <a class="activity-item__action" routerLink="../users">Gérer</a>
+            </div>
+
+            <div class="activity-item">
+              <div class="activity-item__icon" style="background:#ecfdf5;color:#059669">
+                <span class="material-icons">chat</span>
+              </div>
+              <div class="activity-item__content">
+                <p class="activity-item__text">
+                  <strong>Chat Rooms</strong> — salles de discussion actives
+                </p>
+                <span class="activity-item__time">
+                  <a routerLink="../rooms" class="activity-link">Voir les salles</a>
+                </span>
+              </div>
+              <a class="activity-item__action" routerLink="../rooms">Gérer</a>
+            </div>
+
+            <div class="activity-item">
+              <div class="activity-item__icon" style="background:#f5f3ff;color:#7c3aed">
+                <span class="material-icons">bar_chart</span>
+              </div>
+              <div class="activity-item__content">
+                <p class="activity-item__text">
+                  <strong>Statistiques</strong> — métriques système disponibles
+                </p>
+                <span class="activity-item__time">
+                  <a routerLink="../statistics" class="activity-link">Voir les stats</a>
+                </span>
+              </div>
+              <a class="activity-item__action" routerLink="../statistics">Analyser</a>
+            </div>
+
+            <div class="activity-item">
+              <div class="activity-item__icon" style="background:#fffbeb;color:#d97706">
+                <span class="material-icons">folder_open</span>
+              </div>
+              <div class="activity-item__content">
+                <p class="activity-item__text">
+                  <strong>Fichiers</strong> — médias uploadés par les utilisateurs
+                </p>
+                <span class="activity-item__time">
+                  <a routerLink="../files" class="activity-link">Gérer les fichiers</a>
+                </span>
+              </div>
+              <a class="activity-item__action" routerLink="../files">Gérer</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 4 — CHAT & MESSAGERIE
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-chat" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#ecfeff">
+                <span class="material-icons" style="color:#0891b2">forum</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Chat &amp; Messagerie</h2>
+                <p class="section-hd__desc">Salles de discussion et messages de la plateforme</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="module-row">
+            <a class="module-card" routerLink="../rooms">
+              <div class="module-card__stripe" style="background:linear-gradient(135deg,#0891b2,#0ea5e9)"></div>
+              <div class="module-card__body">
+                <div class="module-card__ico-wrap" style="background:#ecfeff">
+                  <span class="material-icons" style="color:#0891b2">forum</span>
+                </div>
+                <h3 class="module-card__title">Chat Rooms</h3>
+                <p class="module-card__desc">Créez et gérez les salles publiques et privées. Ajoutez des participants, modifiez les métadonnées, supprimez des salles inactives.</p>
+                <ul class="module-card__features">
+                  <li><span class="material-icons">check</span>Salles publiques &amp; privées</li>
+                  <li><span class="material-icons">check</span>Gestion des participants</li>
+                  <li><span class="material-icons">check</span>Création &amp; suppression</li>
+                </ul>
+              </div>
+              <div class="module-card__footer" style="color:#0891b2">
+                Ouvrir le module <span class="material-icons">arrow_forward</span>
+              </div>
+            </a>
+
+            <a class="module-card" routerLink="../messages">
+              <div class="module-card__stripe" style="background:linear-gradient(135deg,#be185d,#e11d48)"></div>
+              <div class="module-card__body">
+                <div class="module-card__ico-wrap" style="background:#fdf2f8">
+                  <span class="material-icons" style="color:#be185d">chat_bubble_outline</span>
+                </div>
+                <h3 class="module-card__title">Messages</h3>
+                <p class="module-card__desc">Modérez les messages de groupe et les conversations privées. Supprimez, restaurez ou analysez les contenus envoyés.</p>
+                <ul class="module-card__features">
+                  <li><span class="material-icons">check</span>Messages groupe &amp; privés</li>
+                  <li><span class="material-icons">check</span>Suppression douce &amp; dure</li>
+                  <li><span class="material-icons">check</span>Restauration de contenu</li>
+                </ul>
+              </div>
+              <div class="module-card__footer" style="color:#be185d">
+                Ouvrir le module <span class="material-icons">arrow_forward</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 5 — FICHIERS & STATISTIQUES
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-files" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#fffbeb">
+                <span class="material-icons" style="color:#d97706">folder_open</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Fichiers &amp; Statistiques</h2>
+                <p class="section-hd__desc">Gestion des médias uploadés et métriques système</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="module-row">
+            <a class="module-card" routerLink="../files">
+              <div class="module-card__stripe" style="background:linear-gradient(135deg,#d97706,#f59e0b)"></div>
+              <div class="module-card__body">
+                <div class="module-card__ico-wrap" style="background:#fffbeb">
+                  <span class="material-icons" style="color:#d97706">folder_open</span>
+                </div>
+                <h3 class="module-card__title">Fichiers</h3>
+                <p class="module-card__desc">Consultez tous les fichiers uploadés par les utilisateurs. Filtrez par type, téléchargez ou supprimez des contenus.</p>
+                <ul class="module-card__features">
+                  <li><span class="material-icons">check</span>Images, vidéos, documents</li>
+                  <li><span class="material-icons">check</span>Téléchargement admin</li>
+                  <li><span class="material-icons">check</span>Suppression sécurisée</li>
+                </ul>
+              </div>
+              <div class="module-card__footer" style="color:#d97706">
+                Ouvrir le module <span class="material-icons">arrow_forward</span>
+              </div>
+            </a>
+
+            <a class="module-card" routerLink="../statistics">
+              <div class="module-card__stripe" style="background:linear-gradient(135deg,#7c3aed,#2563eb)"></div>
+              <div class="module-card__body">
+                <div class="module-card__ico-wrap" style="background:#f5f3ff">
+                  <span class="material-icons" style="color:#7c3aed">bar_chart</span>
+                </div>
+                <h3 class="module-card__title">Statistiques</h3>
+                <p class="module-card__desc">Analysez la croissance des utilisateurs, les volumes de messages, la répartition des types de fichiers et l'activité des 24 dernières heures.</p>
+                <ul class="module-card__features">
+                  <li><span class="material-icons">check</span>Métriques utilisateurs</li>
+                  <li><span class="material-icons">check</span>Activité chat &amp; fichiers</li>
+                  <li><span class="material-icons">check</span>Données en temps réel</li>
+                </ul>
+              </div>
+              <div class="module-card__footer" style="color:#7c3aed">
+                Ouvrir le module <span class="material-icons">arrow_forward</span>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- ════════════════════════════════════════════════════════════════
+             § 6 — CONFIGURATION
+        ═══════════════════════════════════════════════════════════════════ -->
+        <section id="sec-config" class="page-section">
+          <div class="section-hd">
+            <div class="section-hd__left">
+              <span class="section-hd__pill" style="background:#f8fafc">
+                <span class="material-icons" style="color:#475569">settings</span>
+              </span>
+              <div>
+                <h2 class="section-hd__title">Configuration</h2>
+                <p class="section-hd__desc">Paramètres système et préférences de compte</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-cards">
+            <a class="config-card" routerLink="../settings">
+              <div class="config-card__ico-wrap" style="background:#f8fafc">
+                <span class="material-icons" style="color:#475569">tune</span>
+              </div>
+              <div class="config-card__body">
+                <h4>Paramètres</h4>
+                <p>Informations générales, notifications, sécurité, apparence et à propos de l'application.</p>
+              </div>
+              <div class="config-card__tabs">
+                <span class="config-tab">Général</span>
+                <span class="config-tab">Notifications</span>
+                <span class="config-tab">Sécurité</span>
+                <span class="config-tab">Apparence</span>
+              </div>
+              <div class="config-card__cta">
+                Ouvrir <span class="material-icons">chevron_right</span>
+              </div>
+            </a>
+
+            <a class="config-card" routerLink="../profile">
+              <div class="config-card__ico-wrap" style="background:#eff6ff">
+                <span class="material-icons" style="color:#2563eb">account_circle</span>
+              </div>
+              <div class="config-card__body">
+                <h4>Mon profil</h4>
+                <p>Modifiez vos informations personnelles, préférences de langue, mot de passe et adresse email.</p>
+              </div>
+              <div class="config-card__tabs">
+                <span class="config-tab">Informations</span>
+                <span class="config-tab">Préférences</span>
+                <span class="config-tab">Sécurité</span>
+                <span class="config-tab">Email</span>
+              </div>
+              <div class="config-card__cta">
+                Ouvrir <span class="material-icons">chevron_right</span>
+              </div>
+            </a>
+          </div>
+
+          <div class="quick-row" style="margin-top:20px">
+            @for (a of quickActions; track trackByAction($index, a)) {
+              <a class="quick-tile" [routerLink]="a.route">
+                <div class="quick-tile__ico" [style.background]="a.bg">
+                  <span class="material-icons" [style.color]="a.color">{{ a.icon }}</span>
+                </div>
+                <span class="quick-tile__label">{{ a.label }}</span>
+              </a>
+            }
+          </div>
+        </section>
+
+        <div class="back-top">
+          <button class="btn-back-top" (click)="scrollToTop()">
+            <span class="material-icons">keyboard_arrow_up</span>
+            Retour en haut
+          </button>
         </div>
-      </div>
 
-      <div class="module-row">
-        <!-- Fichiers -->
-        <a class="module-card" routerLink="../files">
-          <div class="module-card__stripe" style="background:linear-gradient(135deg,#d97706,#f59e0b)"></div>
-          <div class="module-card__body">
-            <div class="module-card__ico-wrap" style="background:#fffbeb">
-              <span class="material-icons" style="color:#d97706">folder_open</span>
-            </div>
-            <h3 class="module-card__title">Fichiers</h3>
-            <p class="module-card__desc">
-              Consultez tous les fichiers uploadés par les utilisateurs. Filtrez par type, téléchargez ou supprimez des contenus.
-            </p>
-            <ul class="module-card__features">
-              <li><span class="material-icons">check</span>Images, vidéos, documents</li>
-              <li><span class="material-icons">check</span>Téléchargement admin</li>
-              <li><span class="material-icons">check</span>Suppression sécurisée</li>
-            </ul>
-          </div>
-          <div class="module-card__footer" style="color:#d97706">
-            Ouvrir le module <span class="material-icons">arrow_forward</span>
-          </div>
-        </a>
-
-        <!-- Statistiques -->
-        <a class="module-card" routerLink="../statistics">
-          <div class="module-card__stripe" style="background:linear-gradient(135deg,#7c3aed,#2563eb)"></div>
-          <div class="module-card__body">
-            <div class="module-card__ico-wrap" style="background:#f5f3ff">
-              <span class="material-icons" style="color:#7c3aed">bar_chart</span>
-            </div>
-            <h3 class="module-card__title">Statistiques</h3>
-            <p class="module-card__desc">
-              Analysez la croissance des utilisateurs, les volumes de messages, la répartition des types de fichiers et l'activité des 24 dernières heures.
-            </p>
-            <ul class="module-card__features">
-              <li><span class="material-icons">check</span>Métriques utilisateurs</li>
-              <li><span class="material-icons">check</span>Activité chat &amp; fichiers</li>
-              <li><span class="material-icons">check</span>Données en temps réel</li>
-            </ul>
-          </div>
-          <div class="module-card__footer" style="color:#7c3aed">
-            Ouvrir le module <span class="material-icons">arrow_forward</span>
-          </div>
-        </a>
-      </div>
-    </section>
-
-    <!-- ════════════════════════════════════════════════════════════════════
-         § 5 — CONFIGURATION
-    ═══════════════════════════════════════════════════════════════════════ -->
-    <section id="sec-config" class="page-section" style="--accent:#475569">
-      <div class="section-hd">
-        <div class="section-hd__left">
-          <span class="section-hd__pill" style="background:#f8fafc;color:#475569">
-            <span class="material-icons">settings</span>
-          </span>
-          <div>
-            <h2 class="section-hd__title">Configuration</h2>
-            <p class="section-hd__desc">Paramètres système et préférences de compte</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="config-cards">
-        <a class="config-card" routerLink="../settings">
-          <div class="config-card__ico-wrap" style="background:#f8fafc">
-            <span class="material-icons" style="color:#475569">tune</span>
-          </div>
-          <div class="config-card__body">
-            <h4>Paramètres</h4>
-            <p>Informations générales, notifications, sécurité, apparence et à propos de l'application.</p>
-          </div>
-          <div class="config-card__tabs">
-            <span class="config-tab">Général</span>
-            <span class="config-tab">Notifications</span>
-            <span class="config-tab">Sécurité</span>
-            <span class="config-tab">Apparence</span>
-          </div>
-          <div class="config-card__cta">
-            Ouvrir <span class="material-icons">chevron_right</span>
-          </div>
-        </a>
-
-        <a class="config-card" routerLink="../profile">
-          <div class="config-card__ico-wrap" style="background:#eff6ff">
-            <span class="material-icons" style="color:#2563eb">account_circle</span>
-          </div>
-          <div class="config-card__body">
-            <h4>Mon profil</h4>
-            <p>Modifiez vos informations personnelles, préférences de langue, mot de passe et adresse email.</p>
-          </div>
-          <div class="config-card__tabs">
-            <span class="config-tab">Informations</span>
-            <span class="config-tab">Préférences</span>
-            <span class="config-tab">Sécurité</span>
-            <span class="config-tab">Email</span>
-          </div>
-          <div class="config-card__cta">
-            Ouvrir <span class="material-icons">chevron_right</span>
-          </div>
-        </a>
-      </div>
-
-      <!-- Actions rapides -->
-      <div class="quick-row">
-        @for (a of quickActions; track trackByAction($index, a)) {
-          <a class="quick-tile" [routerLink]="a.route">
-            <div class="quick-tile__ico" [style.background]="a.bg">
-              <span class="material-icons" [style.color]="a.color">{{ a.icon }}</span>
-            </div>
-            <span class="quick-tile__label">{{ a.label }}</span>
-          </a>
-        }
-      </div>
-    </section>
-
-  } <!-- /!error -->
-
-  <!-- Bouton scroll top -->
-  <button class="scroll-top" (click)="scrollToTop()" aria-label="Retour en haut">
-    <span class="material-icons">keyboard_arrow_up</span>
-  </button>
-
+      } <!-- /!error -->
+    </div>
+  </div>
 </div>

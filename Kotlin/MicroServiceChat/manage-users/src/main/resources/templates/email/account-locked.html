@@ -3,54 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Locked</title>
-</head>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
-<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+    <title>Compte verrouillé - FlowChat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Account Locked</h1>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .email-container {
+            max-width: 560px;
+            width: 100%;
+            background: #1e293b;
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid #334155;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s infinite linear;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 48px 40px;
+            background: #1e293b;
+        }
+
+        .greeting {
+            font-size: 18px;
+            color: #f1f5f9;
+            margin-bottom: 24px;
+        }
+
+        .greeting strong {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        .lock-icon {
+            text-align: center;
+            margin: 32px 0;
+        }
+
+        .lock-icon span {
+            font-size: 64px;
+            animation: shake 0.5s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 32px 0;
+        }
+
+        .warning-box p {
+            color: #fecaca;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .warning-box strong {
+            color: #ef4444;
+            font-size: 16px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .info-section {
+            background: #2d3a4f;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 32px 0;
+        }
+
+        .info-section h3 {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 16px;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            color: #94a3b8;
+            font-size: 14px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .info-list li::before {
+            content: '•';
+            color: #ef4444;
+            font-size: 20px;
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #0f172a;
+            border-radius: 100px;
+            padding: 12px 24px;
+            margin: 24px 0;
+        }
+
+        .timer span {
+            color: #f59e0b;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .timer::before {
+            content: '⏰';
+            font-size: 20px;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 100px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.5);
+            margin: 16px 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -5px rgba(239, 68, 68, 0.7);
+        }
+
+        .secondary-button {
+            display: inline-block;
+            background: transparent;
+            color: #f1f5f9;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #334155;
+            transition: all 0.2s ease;
+            width: 100%;
+            text-align: center;
+        }
+
+        .secondary-button:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .footer {
+            background: #0f172a;
+            padding: 32px 40px;
+            text-align: center;
+            border-top: 1px solid #334155;
+        }
+
+        .footer p {
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 8px;
+        }
+
+        .footer a {
+            color: #ef4444;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-divider {
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ef4444, transparent);
+            margin: 20px auto;
+        }
+
+        @media (max-width: 480px) {
+            .content {
+                padding: 32px 24px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .timer {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <!-- Header -->
+    <div class="header">
+        <h1>Compte Temporairement Verrouillé</h1>
     </div>
 
-    <div style="padding: 40px 30px;">
-        <p style="font-size: 18px; margin-bottom: 20px;">Hello <span th:text="${user?.firstName ?: user?.email}" style="font-weight: bold; color: #dc3545;"></span>,</p>
+    <!-- Content -->
+    <div class="content">
+        <p class="greeting">Bonjour <strong th:text="${user?.firstName ?: user?.email}"></strong>,</p>
 
-        <div style="text-align: center; margin: 30px 0;">
-            <span style="font-size: 48px;">🔒</span>
+        <!-- Lock Icon -->
+        <div class="lock-icon">
+            <span>🔒</span>
         </div>
 
-        <p style="font-size: 16px; margin-bottom: 20px;">Your account has been temporarily locked due to multiple failed login attempts.</p>
-
-        <div style="background-color: #fff3f3; border-left: 4px solid #dc3545; padding: 20px; margin: 30px 0;">
-            <p style="margin: 0; font-size: 15px; color: #721c24;">
-                <strong>What happened?</strong><br>
-                We detected 5 unsuccessful login attempts on your account. As a security measure, we've temporarily locked your account.
+        <!-- Warning Box -->
+        <div class="warning-box">
+            <strong>Qu'est-il arrivé ?</strong>
+            <p>
+                Nous avons détecté 5 tentatives de connexion infructueuses sur votre compte.
+                Par mesure de sécurité, votre compte a été temporairement verrouillé.
             </p>
         </div>
 
-        <div style="margin: 30px 0;">
-            <h3 style="color: #333; margin-bottom: 15px;">To unlock your account:</h3>
-            <ul style="padding-left: 20px; font-size: 15px; color: #555;">
-                <li style="margin-bottom: 10px;">Wait 30 minutes for automatic unlock</li>
-                <li style="margin-bottom: 10px;">Reset your password using the "Forgot Password" option</li>
-                <li style="margin-bottom: 10px;">Contact support for immediate assistance</li>
+        <!-- Timer -->
+        <div class="timer">
+            <span>30 minutes</span>
+            avant déverrouillage automatique
+        </div>
+
+        <!-- Info Section -->
+        <div class="info-section">
+            <h3>Pour déverrouiller votre compte :</h3>
+            <ul class="info-list">
+                <li>Attendez 30 minutes pour un déverrouillage automatique</li>
+                <li>Réinitialisez votre mot de passe</li>
+                <li>Contactez le support pour une assistance immédiate</li>
             </ul>
         </div>
 
-        <div style="text-align: center; margin: 35px 0;">
-            <a th:href="'mailto:' + ${supportEmail}"
-               style="background-color: #6c757d; color: white; padding: 12px 30px;
-                          text-decoration: none; border-radius: 50px; font-size: 15px; display: inline-block;">
-                Contact Support
-            </a>
-        </div>
+        <!-- Action Buttons -->
+        <a th:href="@{/auth/reset-password}" class="action-button">
+            Réinitialiser mon mot de passe
+        </a>
+
+        <a th:href="'mailto:' + ${supportEmail}" class="secondary-button">
+            Contacter le support
+        </a>
     </div>
 
-    <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-        <p style="margin: 0; font-size: 14px; color: #6c757d;">
-            If you didn't attempt to login, please contact us immediately at<br>
-            <a th:href="'mailto:' + ${supportEmail}" style="color: #dc3545; text-decoration: none;" th:text="${supportEmail}"></a>
-        </p>
+    <!-- Footer -->
+    <div class="footer">
+        <p>Si vous n'êtes pas à l'origine de ces tentatives,</p>
+        <p>contactez-nous immédiatement à <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}"></a></p>
+        <div class="footer-divider"></div>
+        <p class="copyright">© 2024 FlowChat. Tous droits réservés.</p>
     </div>
 </div>
 </body>
