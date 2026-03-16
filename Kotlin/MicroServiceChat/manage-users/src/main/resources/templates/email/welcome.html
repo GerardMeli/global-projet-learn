@@ -3,361 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenue sur FlowChat</title>
+    <title>Bienvenue sur FlowChat !</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
+            display: flex; align-items: center; justify-content: center;
             padding: 20px;
         }
 
         .email-container {
-            max-width: 560px;
-            width: 100%;
+            max-width: 560px; width: 100%;
             background: #1e293b;
-            border-radius: 32px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 32px; overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
             border: 1px solid #334155;
-            animation: fadeIn 0.6s ease-out;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* ─── Header ─── */
         .header {
             background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
-            padding: 48px 30px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+            padding: 52px 40px 44px;
+            text-align: center; position: relative; overflow: hidden;
         }
-
         .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
             animation: rotate 20s infinite linear;
         }
+        @keyframes rotate { to { transform: rotate(360deg); } }
 
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .success-ring {
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            position: relative; z-index: 1;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+            50%      { box-shadow: 0 0 0 16px rgba(255,255,255,0); }
+        }
+        .success-ring svg {
+            width: 42px; height: 42px;
+            fill: none; stroke: white; stroke-width: 2.5;
         }
 
         .header h1 {
-            color: white;
-            margin: 0 0 12px;
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            position: relative;
-            z-index: 1;
+            color: white; font-size: 30px; font-weight: 700;
+            margin: 0 0 10px; letter-spacing: -0.02em;
+            position: relative; z-index: 1;
         }
-
         .header .subtitle {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 18px;
-            position: relative;
-            z-index: 1;
+            color: rgba(255,255,255,0.88); font-size: 16px;
+            position: relative; z-index: 1;
         }
 
-        .content {
-            padding: 48px 40px;
-            background: #1e293b;
-        }
+        /* ─── Content ─── */
+        .content { padding: 40px; }
 
-        .greeting {
-            font-size: 18px;
-            color: #f1f5f9;
-            margin-bottom: 24px;
-        }
-
-        .greeting strong {
-            color: #8b5cf6;
-            font-weight: 600;
-        }
+        .greeting { font-size: 17px; color: #f1f5f9; margin-bottom: 14px; }
+        .greeting strong { color: #a78bfa; font-weight: 600; }
 
         .message {
-            color: #94a3b8;
-            font-size: 16px;
-            line-height: 1.6;
-            margin-bottom: 32px;
+            color: #94a3b8; font-size: 15px; line-height: 1.7; margin-bottom: 32px;
         }
 
-        .welcome-box {
-            background: linear-gradient(135deg, #2d3a4f 0%, #1e293b 100%);
-            border: 1px solid #334155;
-            border-radius: 24px;
-            padding: 40px 30px;
-            margin: 32px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .welcome-box::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
-            animation: pulse 4s infinite ease-in-out;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-        }
-
-        .welcome-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-            position: relative;
-            z-index: 1;
-            animation: bounce 2s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .welcome-icon svg {
-            width: 40px;
-            height: 40px;
-            fill: none;
-            stroke: white;
-            stroke-width: 2;
-        }
-
-        .welcome-box h2 {
-            color: #f1f5f9;
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0 0 24px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-
+        /* ─── Features grid ─── */
         .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin: 24px 0;
-            position: relative;
-            z-index: 1;
+            display: grid; grid-template-columns: repeat(2,1fr); gap: 12px;
+            margin-bottom: 28px;
         }
-
         .feature-item {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 16px;
-            transition: transform 0.2s ease;
+            background: rgba(0,0,0,0.2); border: 1px solid #334155;
+            border-radius: 14px; padding: 16px;
         }
+        .feature-icon { font-size: 24px; margin-bottom: 8px; }
+        .feature-title { color: #f1f5f9; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .feature-desc  { color: #94a3b8; font-size: 12px; line-height: 1.5; }
 
-        .feature-item:hover {
-            transform: translateY(-4px);
-            border-color: #8b5cf6;
-        }
-
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .feature-title {
-            color: #f1f5f9;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .feature-desc {
-            color: #94a3b8;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .action-button {
+        /* ─── CTA ─── */
+        .cta-wrap { text-align: center; margin: 32px 0; }
+        .cta-button {
             display: inline-block;
             background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
-            color: white;
-            text-decoration: none;
-            padding: 16px 48px;
-            border-radius: 100px;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.5);
-            margin: 24px 0 0;
-            width: 100%;
-            text-align: center;
+            color: white; text-decoration: none;
+            padding: 16px 48px; border-radius: 100px;
+            font-size: 16px; font-weight: 700;
+            box-shadow: 0 10px 25px -5px rgba(124,58,237,0.5);
+            letter-spacing: 0.2px;
+        }
+        .cta-sub {
+            color: #64748b; font-size: 12px; margin-top: 12px;
         }
 
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px -5px rgba(124, 58, 237, 0.7);
-        }
-
+        /* ─── Stats ─── */
         .stats-box {
-            display: flex;
-            justify-content: space-around;
-            margin: 32px 0;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 16px;
+            display: flex; justify-content: space-around;
+            padding: 20px; background: rgba(0,0,0,0.2);
+            border-radius: 16px; margin-bottom: 28px;
         }
+        .stat-item { text-align: center; }
+        .stat-value { color: #8b5cf6; font-size: 22px; font-weight: 700; display: block; }
+        .stat-label { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            color: #8b5cf6;
-            font-size: 24px;
-            font-weight: 700;
-            display: block;
-        }
-
-        .stat-label {
-            color: #94a3b8;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
+        /* ─── Footer ─── */
         .footer {
-            background: #0f172a;
-            padding: 32px 40px;
-            text-align: center;
-            border-top: 1px solid #334155;
+            background: #0f172a; padding: 28px 40px;
+            border-top: 1px solid #1e293b; text-align: center;
         }
-
-        .footer p {
-            color: #94a3b8;
-            font-size: 14px;
-            line-height: 1.6;
-            margin: 0 0 8px;
-        }
-
-        .footer .support-link {
-            color: #8b5cf6;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .footer .support-link:hover {
-            text-decoration: underline;
-        }
-
+        .footer p { color: #64748b; font-size: 13px; line-height: 1.6; margin: 0 0 6px; }
+        .footer a { color: #7c3aed; text-decoration: none; }
         .footer-divider {
-            width: 60px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
-            margin: 20px auto;
+            width: 48px; height: 2px;
+            background: linear-gradient(90deg, transparent, #7c3aed, transparent);
+            margin: 18px auto;
         }
+        .footer .copyright { color: #475569; font-size: 12px; margin: 0; }
 
         @media (max-width: 480px) {
-            .content {
-                padding: 32px 24px;
-            }
-
-            .header h1 {
-                font-size: 28px;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-box {
-                flex-direction: column;
-                gap: 16px;
-            }
+            .content { padding: 28px 20px; }
+            .header { padding: 36px 20px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .stats-box { flex-direction: column; gap: 16px; }
+            .footer { padding: 24px 20px; }
         }
     </style>
 </head>
 <body>
 <div class="email-container">
+
     <!-- Header -->
     <div class="header">
+        <div class="success-ring">
+            <svg viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
         <h1>Bienvenue sur FlowChat !</h1>
-        <div class="subtitle">Votre compte est maintenant actif</div>
+        <div class="subtitle">Votre compte est actif et votre mot de passe est défini 🎉</div>
     </div>
 
     <!-- Content -->
     <div class="content">
-        <p class="greeting">Bonjour <strong th:text="${user?.firstName ?: user?.email}"></strong>,</p>
 
-        <p class="message">
-            Nous sommes ravis de vous accueillir dans la communauté FlowChat !
-            Votre email a été vérifié avec succès et votre compte est maintenant activé.
+        <p class="greeting">
+            Bonjour <strong th:text="${user.firstName + ' ' + user.lastName}">Prénom Nom</strong>,
         </p>
 
-        <!-- Welcome Box -->
-        <div class="welcome-box">
-            <div class="welcome-icon">
-                <svg viewBox="0 0 24 24">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
+        <p class="message">
+            Félicitations ! Votre mot de passe a été créé avec succès et votre compte FlowChat est
+            maintenant pleinement opérationnel. Vous pouvez dès maintenant rejoindre des salles de
+            discussion et envoyer des messages privés à vos collègues.
+        </p>
+
+        <!-- Features -->
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">💬</div>
+                <div class="feature-title">Chat de groupe</div>
+                <div class="feature-desc">Rejoignez des salles publiques et privées</div>
             </div>
-
-            <h2>Prêt à commencer ?</h2>
-
-            <div class="features-grid">
-                <div class="feature-item">
-                    <div class="feature-icon">💬</div>
-                    <div class="feature-title">Messages instantanés</div>
-                    <div class="feature-desc">Chat en temps réel avec votre équipe</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📎</div>
-                    <div class="feature-title">Partage de fichiers</div>
-                    <div class="feature-desc">Envoyez et recevez des fichiers</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">👥</div>
-                    <div class="feature-title">Salons privés</div>
-                    <div class="feature-desc">Créez des conversations privées</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🌐</div>
-                    <div class="feature-title">Multi-langue</div>
-                    <div class="feature-desc">Interface en 5 langues</div>
-                </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Messages privés</div>
+                <div class="feature-desc">Conversations 1-à-1 sécurisées</div>
             </div>
+            <div class="feature-item">
+                <div class="feature-icon">📎</div>
+                <div class="feature-title">Partage de fichiers</div>
+                <div class="feature-desc">Images, documents, vidéos</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-title">Multi-langue</div>
+                <div class="feature-desc">Interface disponible en 5 langues</div>
+            </div>
+        </div>
 
-            <a th:href="${loginUrl}" class="action-button">
-                Commencer à chatter
+        <!-- CTA -->
+        <div class="cta-wrap">
+            <a th:href="${homeUrl}" class="cta-button">
+                🚀 Accéder à FlowChat
             </a>
+            <p class="cta-sub" th:text="${user.email}">email@example.com</p>
         </div>
 
         <!-- Stats -->
@@ -375,15 +211,17 @@
                 <span class="stat-label">Support</span>
             </div>
         </div>
+
     </div>
 
     <!-- Footer -->
     <div class="footer">
-        <p>Des questions ? Consultez notre <a href="#" class="support-link">Centre d'aide</a></p>
-        <p>ou contactez-nous à <a href="mailto:support@flowchat.com" class="support-link">support@flowchat.com</a></p>
+        <p>Cet email a été envoyé à <a th:href="'mailto:' + ${user.email}" th:text="${user.email}">email@example.com</a></p>
+        <p>Des questions ? <a href="mailto:support@flowchat.app">support@flowchat.app</a></p>
         <div class="footer-divider"></div>
-        <p class="copyright">© 2024 FlowChat. Tous droits réservés.</p>
+        <p class="copyright">© 2025 FlowChat. Tous droits réservés.</p>
     </div>
+
 </div>
 </body>
 </html>
