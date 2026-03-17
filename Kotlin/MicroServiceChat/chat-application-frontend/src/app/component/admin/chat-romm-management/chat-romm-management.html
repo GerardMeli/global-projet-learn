@@ -250,11 +250,12 @@
 
             @if (!loadingParticipants) {
               <div class="participants-list">
-                @for (p of roomParticipants; track p.userId) {
+                @for (p of roomParticipants; track (p.user?.id ?? p.userId)) {
                   <div class="participant-item">
-                    <div class="participant-item__av" [style.background]="getGradient(p.userId)">{{ getInitials(p) }}</div>
+                    <div class="participant-item__av" [style.background]="getGradient(p.user?.id ?? p.userId ?? 0)">{{ getParticipantInitials(p) }}</div>
                     <div class="participant-item__info">
-                      <span class="participant-item__name">Utilisateur #{{ p.userId }}</span>
+                      <span class="participant-item__name">{{ getParticipantName(p) }}</span>
+                      <span class="participant-item__email">{{ getParticipantEmail(p) }}</span>
                       <span class="badge badge--sm" [ngClass]="getRoleBadgeClass(p.role)">{{ p.role }}</span>
                     </div>
                     <span class="participant-item__date">{{ p.joinedAt | date:'dd/MM/yy' }}</span>

@@ -228,6 +228,9 @@ export class AdminChatRoomsComponent implements OnInit, OnDestroy {
     this.modalMode = 'detail';
     this.cdr.markForCheck();
 
+    // Charger les users si pas encore disponibles (garantit le lookup des noms)
+    if (this.allUsers.length === 0) this.loadAllUsers();
+
     this.participantService.getByRoom(room.id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -382,10 +385,61 @@ export class AdminChatRoomsComponent implements OnInit, OnDestroy {
   //  HELPERS VISUELS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  getInitials(participant: any): string {
-    const u = participant.user;
+  // Lookup d'un utilisateur dans allUsers par son id
+  getUserById(userId: number): UserProfileResponse | undefined {
+    return this.allUsers.find(u => u.id === userId);
+  }
+
+  // Résout l'id réel du participant — supporte p.user.id ET p.userId (legacy)
+  private resolveUserId(participant: any): number | undefined {
+    return participant?.user?.id ?? participant?.userId;
+  }
+
+  // Nom complet d'un participant
+  // Priorité : p.user (objet imbriqué) → lookup allUsers → fallback id
+  getParticipantName(participant: any): string {
+    // Le backend renvoie un objet user imbriqué
+    const u = participant?.user;
+    if (u) {
+      const full = [u.firstName, u.lastName].filter(Boolean).join(' ');
+      return full || u.email || `Utilisateur #${u.id}`;
+    }
+    // Fallback : lookup dans allUsers via userId à plat
+    const uid = this.resolveUserId(participant);
+    if (uid !== undefined) {
+      const found = this.getUserById(uid);
+      if (found) {
+        const full = [found.firstName, found.lastName].filter(Boolean).join(' ');
+        return full || found.email;
+      }
+      return `Utilisateur #${uid}`;
+    }
+    return 'Utilisateur inconnu';
+  }
+
+  // Email du participant
+  getParticipantEmail(participant: any): string {
+    return participant?.user?.email ?? this.getUserById(this.resolveUserId(participant)!)?.email ?? '';
+  }
+
+  // Initiales d'un participant
+  getParticipantInitials(participant: any): string {
+    const u = participant?.user;
     if (u?.firstName && u?.lastName) return (u.firstName[0] + u.lastName[0]).toUpperCase();
-    return `U${participant.userId}`.slice(0, 2).toUpperCase();
+    if (u?.firstName) return u.firstName.slice(0, 2).toUpperCase();
+    if (u?.email) return u.email.slice(0, 2).toUpperCase();
+    // Fallback allUsers
+    const uid = this.resolveUserId(participant);
+    if (uid !== undefined) {
+      const found = this.getUserById(uid);
+      if (found?.firstName && found?.lastName) return (found.firstName[0] + found.lastName[0]).toUpperCase();
+      if (found?.email) return found.email.slice(0, 2).toUpperCase();
+    }
+    return 'U?';
+  }
+
+  getInitials(participant: any): string {
+    return this.getParticipantInitials(participant);
   }
 
   private readonly GRADIENTS = [

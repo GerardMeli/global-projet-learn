@@ -287,13 +287,13 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
           if (notif.senderId === this.activeUserId()) {
             console.log('Message for active conversation, adding to messages');
             
-            // Créer un objet message à partir de la notification
+            // Construire le message reçu depuis la notification WS
             const newMessage: PrivateChatResponse = {
               id: notif.messageId,
-              senderId1: notif.senderId,
-              senderId2: uid,
+              senderId1: notif.senderId,   // expéditeur = l'autre
+              senderId2: uid,              // récepteur = nous
               senderName1: notif.senderName,
-              senderName2: this.activeUserEmail() || '',
+              senderName2: '',
               content: notif.content,
               timestamp: notif.timestamp,
               isRead: false
@@ -351,15 +351,21 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (notif) => {
-          console.log('📎 FILE NOTIFICATION:', notif);
           if (notif.senderId === this.activeUserId()) {
-            // Recharger les messages pour voir le fichier
             this.loadMessages(notif.senderId);
-            // Recharger les fichiers partagés si le panneau est ouvert
-            if (this.showFiles()) {
-              this.loadSharedFiles();
-            }
+            if (this.showFiles()) this.loadSharedFiles();
           }
+        }
+      });
+
+    // 5. Confirmation de ses propres messages (WS)
+    // Arrive sur /user/queue/messages/confirmation après chaque sendPrivateMessage
+    this.wsService.onMessageConfirmation()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (confirm) => {
+          // Mettre à jour les contacts pour le badge dernier message
+          this.loadContacts();
         }
       });
   }
@@ -457,38 +463,52 @@ export class PrivateChatComponent implements OnInit, OnDestroy, AfterViewChecked
     
     if (!text || !uid || !otherId) return;
 
-    console.log(`Sending message to ${otherId}: ${text}`);
-    
-    // Créer un message temporaire pour un affichage immédiat
+    // ID temporaire négatif pour ne pas entrer en collision avec de vrais IDs
+    const tempId = -(Date.now());
+
+    // Message temporaire — affiché immédiatement côté envoyeur
     const tempMessage: PrivateChatResponse = {
-      id: Date.now(), // ID temporaire
-      senderId1: uid,
+      id: tempId,
+      senderId1: uid,       // ← courant (pas l'autre)
       senderId2: otherId,
-      senderName1: this.activeUserEmail() || '',
+      senderName1: '',      // pas utilisé pour l'affichage own
       senderName2: this.activeUserEmail() || '',
       content: text,
       timestamp: new Date().toISOString(),
       isRead: false
     };
-    
-    // Afficher immédiatement le message
+
     this.messages.update(msgs => [...msgs, tempMessage]);
     this.shouldScroll = true;
     this.messageText = '';
-    
-    // Arrêter l'indicateur de typing
+
+    // Stopper le typing
     this.wsService.sendPrivateTyping(uid, otherId, false);
     if (this.typingTimer) clearTimeout(this.typingTimer);
-    
-    // Envoyer via WebSocket
+
+    // Envoyer via REST (plus fiable que WS seul pour la persistence)
+    this.privateChatService.send(uid, { senderId2: otherId, content: text })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (saved) => {
+          // Remplacer le message temporaire par le vrai (avec le bon ID serveur)
+          this.messages.update(msgs =>
+            msgs.map(m => m.id === tempId ? saved : m)
+          );
+          this.shouldScroll = true;
+          // Mettre à jour les contacts (dernier message)
+          this.loadContacts();
+        },
+        error: () => {
+          // En cas d'échec : retirer le message temporaire et remettre le texte
+          this.messages.update(msgs => msgs.filter(m => m.id !== tempId));
+          this.messageText = text;
+          this.showNotification('Échec de lenvoi du message', 'error');
+        }
+      });
+
+    // Envoyer aussi via WS pour notifier l'autre utilisateur en temps réel
     this.wsService.sendPrivateMessage(uid, otherId, text);
-    
-    // Recharger pour avoir le vrai ID (optionnel)
-    setTimeout(() => {
-      if (this.activeUserId() === otherId) {
-        this.loadMessages(otherId);
-      }
-    }, 1000);
   }
 
   onTyping() {
