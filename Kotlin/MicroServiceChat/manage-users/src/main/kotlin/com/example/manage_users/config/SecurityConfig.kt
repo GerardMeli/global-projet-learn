@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.web.client.RestTemplate
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
@@ -113,6 +114,8 @@ class SecurityConfig(
 
                     // Register : réservé aux admins uniquement
                     .requestMatchers("/api/auth/register").hasRole("ADMIN")
+                    .requestMatchers("/api/admin/migration/single").hasRole("ADMIN")
+                    .requestMatchers("/api/admin/migration/run").hasRole("ADMIN")
 
                     // Profile endpoints (require authentication)
                     .requestMatchers("/api/profile/**").permitAll()
@@ -193,4 +196,7 @@ class SecurityConfig(
         source.registerCorsConfiguration("/**", corsConfig)
         return source
     }
+
+    @Bean
+    fun restTemplate(): RestTemplate = RestTemplate()
 }

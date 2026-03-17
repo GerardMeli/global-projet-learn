@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 data class Users (
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long,
+    val id: Long = 0,
 
     @Column(unique = true, nullable = false)
     @Email

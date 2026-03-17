@@ -33,13 +33,13 @@ class EmailServiceImpl (
     companion object {
         private val log = LoggerFactory.getLogger(EmailServiceImpl::class.java)
     }
-
-    init {
-        log.info("📧 EmailServiceImpl initialized")
-        log.info("📧 Email sending enabled: $emailEnabled")
-        log.info("📧 Base URL: $baseUrl")
-        log.info("📧 From email: $fromEmail")
-    }
+//
+//    init {
+//        log.info("📧 EmailServiceImpl initialized")
+//        log.info("📧 Email sending enabled: $emailEnabled")
+//        log.info("📧 Base URL: $baseUrl")
+//        log.info("📧 From email: $fromEmail")
+//    }
 
     @Async
     override fun sendEmailVerification(user: Users): String {
