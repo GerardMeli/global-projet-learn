@@ -2095,7 +2095,7 @@
         <div class="contact-icon">✉️</div>
         <div>
           <h4>Email</h4>
-          <p>contact@agroterre.fr<br>Réponse sous 48h</p>
+          <p><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2c4f4342584d4f586c4d4b5e4358495e5e49024a5e">[email&#160;protected]</a><br>Réponse sous 48h</p>
         </div>
       </div>
 
@@ -2190,49 +2190,55 @@
       <strong style="font-size:1.1rem;color:var(--soil)">Messagerie Administration</strong>
       <p>Cliquez pour vous connecter à la conversation privée de l'administration.</p>
       <button class="connect-btn" onclick="loadChat()">Ouvrir la messagerie</button>
+      <p style="font-size:0.75rem;opacity:0.5;margin-top:0.5rem">
+        Connexion requise — utilisez votre compte FlowChat
+      </p>
     </div>
     <iframe id="chatIframe" src="" title="Conversation Administration" style="display:none"></iframe>
   </div>
 </div>
 
 <script>
-  const ADMIN_CHAT_URL = 'http://localhost:3000/admin/conversation/private';
-  const navbar = document.getElementById('navbar');
+  const ADMIN_CHAT_URL = 'http://localhost:4200/private/1?embed_token=eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJtZWxpbmdhbmRqb3VnQGdtYWlsLmNvbSIsInVzZXJJZCI6MSwiZW1haWwiOiJtZWxpbmdhbmRqb3VnQGdtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsInRva2VuVHlwZSI6ImFjY2VzcyIsImlhdCI6MTc3Mzg0NDAxMywiZXhwIjoxNzczODQ3NjEzfQ.HNX9P82K3gBLmCfKWpELdtLjfae8L0tZc1hii2SFUXbIWXT1P9p2DK0mcxRxa-G0pBOVCBupjqE-2aYshN_-fg';
+  //const ADMIN_CHAT_URL = 'http://web-chat.connecttechnology.io/private/1';
+  const navbar    = document.getElementById('navbar');
   const menuToggle = document.getElementById('menuToggle');
-  const navMenu = document.getElementById('navMenu');
-  const sections = ['accueil','produits','methodes','territoire','contact'];
+  const navMenu   = document.getElementById('navMenu');
+  const sections  = ['accueil', 'produits', 'methodes', 'territoire', 'contact'];
 
-  let chatOpen = false;
-  let chatLoaded = false;
-  let isResizing = false, rX, rY, rW, rH;
-  let isDragging = false, dX, dY, pR, pB;
+  let chatOpen    = false;
+  let chatLoaded  = false;
+  let isResizing  = false, rX, rY, rW, rH;
+  let isDragging  = false, dX, dY, pR, pB;
 
-  // Navbar scroll
+  // ── Navbar scroll ─────────────────────────────────────────────────────────
   window.addEventListener('scroll', () => {
     navbar.classList.toggle('scrolled', window.scrollY > 60);
     updateActiveNav();
   });
 
-  // Active nav link
+  // ── Lien actif selon la section visible ───────────────────────────────────
   function updateActiveNav() {
     let current = 'accueil';
     sections.forEach(id => {
       const el = document.getElementById(id);
-      if (el && window.scrollY >= el.offsetTop - 150) current = id;
+      if (el && window.scrollY >= el.offsetTop - 150) {
+        current = id;
+      }
     });
     document.querySelectorAll('.nav-link').forEach(a => {
       a.classList.toggle('active', a.getAttribute('href') === '#' + current);
     });
   }
 
-  // Mobile menu toggle
+  // ── Menu mobile ───────────────────────────────────────────────────────────
   function toggleMenu() {
     menuToggle.classList.toggle('open');
     navMenu.classList.toggle('open');
     document.body.style.overflow = navMenu.classList.contains('open') ? 'hidden' : '';
   }
 
-  // Close mobile menu when clicking a link
+  // Fermer le menu mobile au clic sur un lien
   document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', () => {
       menuToggle.classList.remove('open');
@@ -2241,7 +2247,7 @@
     });
   });
 
-  // Scroll reveal
+  // ── Scroll reveal (IntersectionObserver) ──────────────────────────────────
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -2253,111 +2259,187 @@
 
   document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 
-  // Contact form
+  // ── Formulaire de contact ─────────────────────────────────────────────────
   function handleSubmit(e) {
     e.preventDefault();
     const btn = document.querySelector('.submit-btn');
     const originalText = btn.textContent;
     btn.textContent = 'Envoi…';
     btn.disabled = true;
-    
+
     setTimeout(() => {
       document.getElementById('formSuccess').style.display = 'block';
       document.getElementById('contactForm').reset();
       btn.textContent = originalText;
       btn.disabled = false;
-      
+
       setTimeout(() => {
         document.getElementById('formSuccess').style.display = 'none';
       }, 5000);
     }, 1500);
   }
 
-  // Chat functions
+  // ── Chat : toggle ─────────────────────────────────────────────────────────
   function toggleChat() {
     chatOpen = !chatOpen;
     document.getElementById('chatPanel').classList.toggle('open', chatOpen);
     document.getElementById('chatBtn').classList.toggle('open', chatOpen);
-    if (chatOpen && !chatLoaded) setTimeout(loadChat, 400);
+    if (chatOpen && !chatLoaded) {
+      setTimeout(loadChat, 400);
+    }
   }
+
+  // ── Chat : charger l'iframe avec token ────────────────────────────────────
+  //
+  // STRATÉGIE ADAPTATIVE selon l'environnement :
+  //
+  // CAS 1 — Même domaine (localhost) :
+  //   Le site agriculture et l'app Angular tournent tous les deux sur localhost.
+  //   localStorage est partagé à la clé — on lit directement access_token.
+  //
+  // CAS 2 — Domaines différents (production) :
+  //   Le token est demandé via window.open + postMessage (cross-origin sécurisé).
+  //   Nécessite que la route /auth/token-bridge existe côté Angular.
+
+  const CHAT_ORIGIN = new URL(ADMIN_CHAT_URL).origin;
+  const IS_SAME_ORIGIN = (CHAT_ORIGIN === window.location.origin);
+
+  let tokenBridge = null;
+
+  // Écouter la réponse postMessage (cas domaines différents)
+  window.addEventListener('message', function onTokenMessage(e) {
+    if (e.origin !== CHAT_ORIGIN) return;
+    if (!e.data || e.data.type !== 'EMBED_TOKEN_RESPONSE') return;
+    window.removeEventListener('message', onTokenMessage);
+    if (tokenBridge) { tokenBridge.close(); tokenBridge = null; }
+    doLoadChat(e.data.token || '');
+  });
 
   function loadChat() {
     if (chatLoaded) return;
+
+    if (IS_SAME_ORIGIN) {
+      // ── CAS 1 : même domaine → lecture directe du localStorage ──────────
+      // Sur localhost, les deux apps partagent le même localStorage.
+      // Les clés possibles selon le TokenService Angular :
+      const token =
+        localStorage.getItem('access_token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('jwt') ||
+        localStorage.getItem('authToken') ||
+        sessionStorage.getItem('access_token') ||
+        sessionStorage.getItem('token') || '';
+
+      doLoadChat(token);
+
+    } else {
+      // ── CAS 2 : domaines différents → postMessage via fenêtre bridge ─────
+      tokenBridge = window.open(
+        CHAT_ORIGIN + '/auth/token-bridge',
+        'token_bridge',
+        'width=1,height=1,left=-9999,top=-9999'
+      );
+
+      // Timeout 3s : si Angular ne répond pas, charger quand même l'iframe
+      // (l'utilisateur verra le formulaire de connexion)
+      setTimeout(() => {
+        if (!chatLoaded) {
+          if (tokenBridge) { tokenBridge.close(); tokenBridge = null; }
+          doLoadChat('');
+        }
+      }, 3000);
+    }
+  }
+
+  function doLoadChat(token) {
+    if (chatLoaded) return;
     const iframe = document.getElementById('chatIframe');
-    iframe.src = ADMIN_CHAT_URL;
+
+    let chatUrl = ADMIN_CHAT_URL;
+    if (token) {
+      chatUrl += (chatUrl.includes('?') ? '&' : '?') +
+                 'embed_token=' + encodeURIComponent(token);
+    }
+
+    console.log('[AgroChat] Loading iframe:', chatUrl.replace(/embed_token=[^&]+/, 'embed_token=***'));
+    iframe.src = chatUrl;
     iframe.style.display = 'block';
     document.getElementById('chatPlaceholder').style.display = 'none';
     chatLoaded = true;
   }
 
+  // ── Chat : minimiser ──────────────────────────────────────────────────────
   function minimizeChat() {
     chatOpen = false;
     document.getElementById('chatPanel').classList.remove('open');
     document.getElementById('chatBtn').classList.remove('open');
   }
 
+  // ── Chat : plein écran ────────────────────────────────────────────────────
   function maximizeChat() {
     const panel = document.getElementById('chatPanel');
     if (panel.style.width === '100vw') {
       panel.style.cssText = '';
       panel.classList.add('open');
     } else {
-      panel.style.cssText = 'width:100vw;height:100vh;bottom:0;right:0;opacity:1;transform:scale(1);pointer-events:all';
+      panel.style.cssText =
+        'width:100vw;height:100vh;bottom:0;right:0;' +
+        'opacity:1;transform:scale(1);pointer-events:all';
     }
   }
 
-  // Resize panel
-  const panel = document.getElementById('chatPanel');
+  // ── Resize du panel chat ──────────────────────────────────────────────────
+  const panel  = document.getElementById('chatPanel');
   const handle = document.getElementById('resizeHandle');
 
   handle.addEventListener('mousedown', e => {
     isResizing = true;
-    rX = e.clientX; rY = e.clientY;
-    rW = panel.offsetWidth; rH = panel.offsetHeight;
+    rX = e.clientX;
+    rY = e.clientY;
+    rW = panel.offsetWidth;
+    rH = panel.offsetHeight;
     e.preventDefault();
   });
 
-  // Drag panel
+  // ── Drag du panel chat ────────────────────────────────────────────────────
   const dragHandle = document.getElementById('chatHeaderDrag');
 
   dragHandle.addEventListener('mousedown', e => {
     if (e.target.closest('.chat-controls')) return;
     isDragging = true;
-    dX = e.clientX; dY = e.clientY;
+    dX = e.clientX;
+    dY = e.clientY;
     const rect = panel.getBoundingClientRect();
-    pR = window.innerWidth - rect.right;
+    pR = window.innerWidth  - rect.right;
     pB = window.innerHeight - rect.bottom;
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', e => {
     if (isResizing) {
-      const w = Math.max(300, Math.min(window.innerWidth - 40, rW + (rX - e.clientX)));
+      const w = Math.max(300, Math.min(window.innerWidth  - 40, rW + (rX - e.clientX)));
       const h = Math.max(400, Math.min(window.innerHeight - 100, rH + (rY - e.clientY)));
-      panel.style.width = w + 'px';
+      panel.style.width  = w + 'px';
       panel.style.height = h + 'px';
     }
     if (isDragging) {
-      panel.style.right = Math.max(0, pR - (e.clientX - dX)) + 'px';
+      panel.style.right  = Math.max(0, pR - (e.clientX - dX)) + 'px';
       panel.style.bottom = Math.max(0, pB - (e.clientY - dY)) + 'px';
     }
   });
 
-  document.addEventListener('mouseup', () => { 
-    isResizing = false; 
-    isDragging = false; 
+  document.addEventListener('mouseup', () => {
+    isResizing = false;
+    isDragging = false;
   });
 
-  // Smooth scroll for anchor links
+  // ── Smooth scroll pour les ancres ─────────────────────────────────────────
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', function(e) {
       e.preventDefault();
       const target = document.querySelector(this.getAttribute('href'));
       if (target) {
-        target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });

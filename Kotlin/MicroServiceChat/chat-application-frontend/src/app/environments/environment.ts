@@ -20,10 +20,9 @@ export const environment = {
   apiUrl: '/api',           // manage-users via proxy
   chatApiUrl: '/chat-api',  // chat via proxy
   chatWsUrl: '',            // SockJS utilise le host courant (localhost:4200)
-  fileApiUrl: '/files-api', // files via proxy
-  oauth2RedirectUri: 'http://localhost:4200/oauth2/callback',
+  fileApiUrl: '/files-api' // files via proxy
+//  oauth2RedirectUri: import.meta.env['NG_APP_OAUTH2_REDIRECT_URI'] ?? 'http://localhost:4200/oauth2/callback',
 };
-
 /**
  * ─── PROXY SETUP (recommended for dev to avoid CORS) ─────────────────────────
  *

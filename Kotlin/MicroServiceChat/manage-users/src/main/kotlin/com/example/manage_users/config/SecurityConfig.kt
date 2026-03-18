@@ -127,15 +127,6 @@ class SecurityConfig(
                     // Statistics endpoints (require ADMIN role)
                     .requestMatchers("/api/admin/statistics/**").hasRole("ADMIN")
 
-                    // WebSocket endpoints
-//                    .requestMatchers("/ws-chat", "/ws-chat/**").permitAll()
-//
-//                    .requestMatchers("/api/chat-participant/**").authenticated()
-//                    .requestMatchers("/api/chat-rooms/**").authenticated()
-//                    .requestMatchers("/api/message/**").authenticated()
-//                    .requestMatchers("/api/private-chat/**").authenticated()
-//                    .requestMatchers("/api/files/**").authenticated()
-
                     // All other requests require authentication
                     .anyRequest().authenticated()
             }
@@ -170,7 +161,11 @@ class SecurityConfig(
                 "http://localhost:8080",
                 "http://localhost:8081",
                 "http://localhost:8082",
-                "http://localhost:4200"
+                "http://localhost:4200",
+                "http://127.0.0.1:5500",
+                // Site agriculture — autorisé à appeler les APIs chat
+                "http://web-chat.connecttechnology.io",
+                "https://web-chat.connecttechnology.io"
             )
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             allowedHeaders = listOf(

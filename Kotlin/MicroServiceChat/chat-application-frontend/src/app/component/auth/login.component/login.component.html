@@ -118,11 +118,9 @@
 
           <!-- Submit Button -->
           <button type="submit" class="login-button" [disabled]="loading">
-            <span *ngIf="!loading">
-              <a routerLink="/">Sign in</a>
-              </span>
-            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-          </button>
+          <span *ngIf="!loading">Sign in</span>
+          <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+        </button>
 
           <!-- Register Link -->
           <div class="register-prompt">
