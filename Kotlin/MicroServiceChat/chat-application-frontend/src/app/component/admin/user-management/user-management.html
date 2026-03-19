@@ -1,5 +1,5 @@
 <!-- user-management.component.html -->
-<div class="um-shell" (keydown)="onKeyDown($event)" tabindex="-1">
+<div class="container-fluid" (keydown)="onKeyDown($event)" tabindex="-1">
 
   <!-- ═══════════════════════════════════════════════════════════════════════
        TOASTS — affichage automatique après chaque opération (aucun clic)
@@ -32,6 +32,14 @@
       <button class="btn-ghost" (click)="loadUsers()" [disabled]="loading" title="Actualiser la liste">
         <span class="material-icons" [class.spin]="loading">refresh</span>
         Actualiser
+      </button>
+      <button class="btn-ghost btn-ghost--agri" (click)="openMigrationSingle()" title="Migrer un seul user Agriculture">
+        <span class="material-icons">person_search</span>
+        Migrer un user
+      </button>
+      <button class="btn-agri" (click)="openMigration()" title="Lancer la migration en masse">
+        <span class="material-icons">sync_alt</span>
+        Migration Agriculture
       </button>
       <button class="btn-primary" (click)="openAdd()">
         <span class="material-icons">person_add</span>
@@ -713,6 +721,184 @@
               @if (deleteProgress) { <span class="spinner-sm"></span> }
               <span class="material-icons">delete_forever</span>
               {{ deleteProgress ? 'Suppression…' : 'Supprimer définitivement' }}
+            </button>
+          </div>
+        </div>
+      }
+
+
+      <!-- ── MIGRATION EN MASSE ──────────────────────────────────────────── -->
+      @if (modalMode === 'migration') {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--agri"><span class="material-icons">sync_alt</span></div>
+              <h2 class="modal__title">Migration Agriculture → Chat</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body">
+
+            <!-- Avertissement avant migration -->
+            @if (!migrationReport) {
+              <div class="migration-info">
+                <div class="migration-info__icon"><span class="material-icons">info</span></div>
+                <div class="migration-info__text">
+                  <strong>Que fait cette migration ?</strong>
+                  <ul>
+                    <li>Récupère tous les utilisateurs du système Agriculture</li>
+                    <li>Crée un compte Chat pour chacun (si inexistant)</li>
+                    <li>Envoie un email d'invitation pour définir leur mot de passe</li>
+                    <li>Les users déjà migrés sont ignorés automatiquement</li>
+                    <li>Les bases de données restent <strong>totalement séparées</strong></li>
+                  </ul>
+                </div>
+              </div>
+            }
+
+            <!-- Résultat après migration -->
+            @if (migrationReport) {
+              <div class="migration-report">
+                <div class="migration-report__title">📊 Rapport de migration</div>
+                <div class="migration-report__grid">
+                  <div class="mstat mstat--total">
+                    <span class="mstat__val">{{ migrationReport.total }}</span>
+                    <span class="mstat__lbl">Total traités</span>
+                  </div>
+                  <div class="mstat mstat--created">
+                    <span class="mstat__val">{{ migrationReport.created }}</span>
+                    <span class="mstat__lbl">✅ Créés</span>
+                  </div>
+                  <div class="mstat mstat--skipped">
+                    <span class="mstat__val">{{ migrationReport.skipped }}</span>
+                    <span class="mstat__lbl">⏭️ Ignorés</span>
+                  </div>
+                  <div class="mstat mstat--error">
+                    <span class="mstat__val">{{ migrationReport.errors }}</span>
+                    <span class="mstat__lbl">❌ Erreurs</span>
+                  </div>
+                </div>
+
+                @if (migrationReport.details.length > 0) {
+                  <div class="migration-errors">
+                    <strong>Détails des erreurs :</strong>
+                    <ul>
+                      @for (d of migrationReport.details; track $index) {
+                        <li class="migration-errors__item">{{ d }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="migrating">Fermer</button>
+            @if (!migrationReport) {
+              <button class="btn-agri" (click)="runMigration()" [disabled]="migrating">
+                @if (migrating) { <span class="spinner-sm"></span> }
+                <span class="material-icons">sync_alt</span>
+                {{ migrating ? 'Migration en cours…' : 'Lancer la migration' }}
+              </button>
+            } @else {
+              <button class="btn-primary" (click)="closeModal()">
+                <span class="material-icons">check</span>
+                Terminé
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ── MIGRATION UNITAIRE ──────────────────────────────────────────── -->
+      @if (modalMode === 'migration-single') {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--agri"><span class="material-icons">person_search</span></div>
+              <h2 class="modal__title">Migrer un utilisateur Agriculture</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body modal__body--form">
+            <p class="migration-hint">
+              Collez les données d'un utilisateur Agriculture pour le migrer manuellement vers le Chat.
+            </p>
+            <div class="form-grid">
+              <div class="fg">
+                <label class="fg__lbl" for="mg-code">User Code <span class="fg__required">*</span></label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">tag</span>
+                  <input id="mg-code" type="text" [(ngModel)]="singleAgriUser.userCode"
+                    placeholder="RESP_1750425644567">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-type">Type utilisateur</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="mg-type" [(ngModel)]="singleAgriUser.userType">
+                    <option value="">— Sélectionner —</option>
+                    <option value="RESPONSABLE">RESPONSABLE</option>
+                    <option value="POS_AGENT">POS_AGENT</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-fn">Prénom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="mg-fn" type="text" [(ngModel)]="singleAgriUser.userFirstName" placeholder="Prénom">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-ln">Nom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="mg-ln" type="text" [(ngModel)]="singleAgriUser.userLastName" placeholder="Nom">
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="mg-em">Email <span class="fg__required">*</span></label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">mail</span>
+                  <input id="mg-em" type="email" [(ngModel)]="singleAgriUser.userEmail"
+                    placeholder="utilisateur@domaine.com">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-ph">Téléphone</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">phone</span>
+                  <input id="mg-ph" type="tel" [(ngModel)]="singleAgriUser.userPhoneNumber"
+                    placeholder="6 74 34 56 79">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-st">État</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="mg-st" [(ngModel)]="singleAgriUser.state">
+                    <option value="">— Sélectionner —</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="CREATE_BUT_NOT_ACTIVE">CREATE_BUT_NOT_ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="migratingOne">Annuler</button>
+            <button class="btn-agri" (click)="runSingleMigration()"
+              [disabled]="migratingOne || !singleAgriUser.userCode || !singleAgriUser.userEmail">
+              @if (migratingOne) { <span class="spinner-sm"></span> }
+              <span class="material-icons">person_search</span>
+              {{ migratingOne ? 'Migration…' : 'Migrer cet utilisateur' }}
             </button>
           </div>
         </div>

@@ -4,16 +4,16 @@
 @use 'sass:color';
 
 // ── Tokens ────────────────────────────────────────────────────────────────────
-$bg0:       #0a0f1e;   // fond page
-$bg1:       #0f172a;   // fond cards/table
-$bg2:       #1e293b;   // fond headers / footer modal
-$bg3:       #162032;   // fond bandes secondaires
-$bg4:       #2d3a4f;   // fond inputs / boutons ghost
-$border:    #334155;
-$primary:   #7c3aed;
-$primary-l: #8b5cf6;
-$text1:     #f1f5f9;
-$text2:     #94a3b8;
+$bg0:       #f8fafc;   // fond page
+$bg1:       #ffffff;   // fond cards/table
+$bg2:       #f1f5f9;   // fond headers / footer modal
+$bg3:       #eef2f7;   // fond bandes secondaires
+$bg4:       #f1f5f9;   // fond inputs / boutons ghost
+$border:    #e2e8f0;
+$primary:   #2563eb;
+$primary-l: #3b82f6;
+$text1:     #0f172a;
+$text2:     #334155;
 $text3:     #64748b;
 $success:   #10b981;
 $success-l: #34d399;
@@ -66,7 +66,7 @@ $blue-l:    #60a5fa;
   background: $bg1;
   border-radius: 10px;
   border: 1px solid $border;
-  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
   min-width: 280px; max-width: 360px;
   pointer-events: all;
   animation: fadeIn .3s ease;
@@ -297,7 +297,7 @@ $blue-l:    #60a5fa;
       position: absolute; top: 3px; left: 3px;
       width: 18px; height: 18px;
       background: #fff; border-radius: 50%;
-      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
       transition: transform .25s;
     }
   }

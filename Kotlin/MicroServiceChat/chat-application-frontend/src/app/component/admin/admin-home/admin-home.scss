@@ -2,33 +2,7 @@
 // Design cohérent avec les autres pages admin — thème sombre
 
 @use 'sass:color';
-
-// ── Tokens ────────────────────────────────────────────────────────────────────
-$bg0:       #0a0f1e;   // fond page
-$bg1:       #0f172a;   // fond cards/table
-$bg2:       #1e293b;   // fond headers / footer modal
-$bg3:       #162032;   // fond bandes secondaires
-$bg4:       #2d3a4f;   // fond inputs / boutons ghost
-$border:    #334155;
-$primary:   #7c3aed;
-$primary-l: #8b5cf6;
-$text1:     #f1f5f9;
-$text2:     #94a3b8;
-$text3:     #64748b;
-$success:   #10b981;
-$success-l: #34d399;
-$warning:   #f59e0b;
-$warning-l: #fbbf24;
-$danger:    #ef4444;
-$danger-l:  #f87171;
-$info:      #0ea5e9;
-$info-l:    #38bdf8;
-$amber:     #f59e0b;
-$amber-l:   #fbbf24;
-$teal:      #0d9488;
-$teal-l:    #2dd4bf;
-$blue:      #3b82f6;
-$blue-l:    #60a5fa;
+@import '../admin-styles.scss';
 
 @keyframes spin     { to { transform: rotate(360deg); } }
 @keyframes fadeIn   { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -37,13 +11,11 @@ $blue-l:    #60a5fa;
 // ═════════════════════════════════════════════════════════════════════════════
 // SHELL
 // ═════════════════════════════════════════════════════════════════════════════
-.ah-shell {
+.container-fluid {
   padding: 28px 32px;
   max-width: 1440px;
   margin: 0 auto;
   min-height: 100vh;
-  background: $bg0;
-  color: $text1;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   *, *::before, *::after { box-sizing: border-box; }
 

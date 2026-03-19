@@ -2,16 +2,16 @@
 //  admin-chat-rooms.component.scss — thème sombre FlowChat
 // ════════════════════════════════════════════════════════════════════════════
 
-$bg0:       #0a0f1e;
-$bg1:       #0f172a;
-$bg2:       #1e293b;
-$bg3:       #162032;
-$bg4:       #2d3a4f;
-$border:    #334155;
-$primary:   #7c3aed;
-$primary-l: #8b5cf6;
-$text1:     #f1f5f9;
-$text2:     #94a3b8;
+$bg0:       #f8fafc;
+$bg1:       #ffffff;
+$bg2:       #f1f5f9;
+$bg3:       #eef2f7;
+$bg4:       #f1f5f9;
+$border:    #e2e8f0;
+$primary:   #2563eb;
+$primary-l: #3b82f6;
+$text1:     #0f172a;
+$text2:     #334155;
 $text3:     #64748b;
 $success:   #10b981;
 $warning:   #f59e0b;
@@ -50,7 +50,7 @@ $info:      #0ea5e9;
     border-radius: 12px; border: 1px solid transparent;
     background: $bg2; cursor: pointer;
     animation: slideRight .35s ease;
-    box-shadow: 0 8px 32px rgba(0,0,0,.45);
+    box-shadow: 0 8px 32px rgba(15,23,42,.25);
     &--out   { animation: slideRightOut .35s ease forwards; }
     &--success{ border-color: rgba($success,.35); .toast__icon{ color:$success; } }
     &--error  { border-color: rgba($danger,.35);  .toast__icon{ color:$danger-l; } }
@@ -265,7 +265,7 @@ $info:      #0ea5e9;
   // ── MODAL ────────────────────────────────────────────────────────────────
   .modal-overlay {
     position: fixed; inset: 0; z-index: 1000;
-    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    background: rgba(0,0,0,.06); backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center; padding: 20px;
     animation: fadeScale .2s ease;
   }
@@ -274,7 +274,7 @@ $info:      #0ea5e9;
     width: 100%; max-width: 620px; max-height: 90vh;
     display: flex; flex-direction: column; overflow: hidden;
     animation: fadeScale .25s ease;
-    box-shadow: 0 24px 64px rgba(0,0,0,.6);
+    box-shadow: 0 24px 64px rgba(0,0,0,.3);
     @media (max-width: 640px) { max-width: 100%; border-radius: 20px 20px 0 0; margin-top: auto; max-height: 92vh; }
     &__head {
       display: flex; align-items: center; justify-content: space-between;

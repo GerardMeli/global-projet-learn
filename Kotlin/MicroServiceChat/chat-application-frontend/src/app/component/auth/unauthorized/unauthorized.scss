@@ -1,15 +1,20 @@
     :host {
-      --primary: #7c3aed;
-      --primary-light: #8b5cf6;
-      --primary-dark: #6d28d9;
+      --primary: #1976D2;
+      --primary-light: #2196F3;
+      --primary-dark: #1565C0;
+      --success: #10b981;
       --error: #ef4444;
       --warning: #f59e0b;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --border-light: #334155;
-      --input-bg: #2d3a4f;
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-welcome: #eff6ff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-light: #e2e8f0;
+      --input-bg: #f8fafc;
+      --online: #10b981;
+      --away: #f59e0b;
+      --dnd: #ef4444;
     }
 
     .unauthorized-container {
@@ -67,7 +72,7 @@
       transform: translate(-50%, -50%);
       width: 600px;
       height: 600px;
-      border: 2px solid rgba(124, 58, 237, 0.1);
+      border: 2px solid rgba(25, 118, 210, 0.1);
       border-radius: 50%;
       animation: pulseRing 8s infinite ease-in-out;
 
@@ -125,7 +130,7 @@
       border-radius: 32px !important;
       padding: 48px 40px;
       border: 1px solid var(--border-light);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
       backdrop-filter: blur(10px);
       text-align: center;
       position: relative;
@@ -139,7 +144,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(25, 118, 210, 0.05) 0%, transparent 70%);
       animation: rotate 20s infinite linear;
     }
 
@@ -354,7 +359,7 @@
 
     .action-button.primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.5);
+      box-shadow: 0 10px 25px -5px rgba(25, 118, 210, 0.5);
     }
 
     .action-button.secondary {
@@ -375,7 +380,7 @@
       justify-content: center;
       gap: 8px;
       padding: 16px;
-      background: rgba(0, 0, 0, 0.2);
+      background: rgba(0, 0, 0, 0.05);
       border-radius: 16px;
       margin-bottom: 20px;
       font-size: 13px;

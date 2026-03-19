@@ -1,4 +1,3 @@
-
 // user-management.component.ts
 import {
   Component,
@@ -32,11 +31,13 @@ import {
   Language,
   Theme,
 } from '../../../core/models/users/enums.model';
+import { MigrationReport, AgriUserDto } from '../../../core/models/users/migration.model';
+import { MigrationService } from '../../../core/services/users/migration.service';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
-export type ModalMode = 'add' | 'edit' | 'detail' | 'delete' | 'status' | 'role' | null;
+export type ModalMode = 'add' | 'edit' | 'detail' | 'delete' | 'status' | 'role' | 'migration' | 'migration-single' | null;
 
 export interface Toast {
   id:       number;
@@ -77,6 +78,12 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   users:          UserProfileResponse[] = [];
   filteredUsers:  UserProfileResponse[] = [];
   paginatedUsers: UserProfileResponse[] = [];
+
+  // ── Migration ──────────────────────────────────────────────────────────────
+  migrating         = false;
+  migrationReport:  MigrationReport | null = null;
+  singleAgriUser:   Partial<AgriUserDto> = {};
+  migratingOne      = false;
 
   // ── Recherche réactive — aucun clic requis ─────────────────────────────────
   searchTerm   = '';
@@ -163,10 +170,11 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   // ═══════════════════════════════════════════════════════════════════════════
 
   constructor(
-    private readonly adminService: AdminService,
-    private readonly tokenService: TokenService,
-    private readonly router:       Router,
-    private readonly cdr:          ChangeDetectorRef,
+    private readonly adminService:     AdminService,
+    private readonly migrationService: MigrationService,
+    private readonly tokenService:     TokenService,
+    private readonly router:           Router,
+    private readonly cdr:              ChangeDetectorRef,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -419,6 +427,76 @@ export class UserManagementComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       },
       error: (err) => { this.handleError(err, 'mise à jour du rôle'); this.updating = false; this.cdr.markForCheck(); },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  MIGRATION Agriculture → Chat
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  openMigration(): void {
+    this.migrationReport = null;
+    this.modalMode = 'migration';
+    this.cdr.markForCheck();
+  }
+
+  openMigrationSingle(): void {
+    this.singleAgriUser = {};
+    this.migrationReport = null;
+    this.modalMode = 'migration-single';
+    this.cdr.markForCheck();
+  }
+
+  /** Lance la migration en masse via POST /api/admin/migration/run */
+  runMigration(): void {
+    this.migrating = true;
+    this.migrationReport = null;
+    this.cdr.markForCheck();
+
+    this.migrationService.runMassiveMigration().subscribe({
+      next: (report) => {
+        this.migrating      = false;
+        this.migrationReport = report;
+        this.loadUsers();  // rafraîchir la liste après migration
+        this.pushToast(
+          report.errors > 0 ? 'warning' : 'success',
+          'Migration terminée',
+          `✅ ${report.created} créés · ⏭️ ${report.skipped} ignorés · ❌ ${report.errors} erreurs`
+        );
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.migrating = false;
+        this.handleError(err, 'migration en masse');
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** Migre un seul user via POST /api/admin/migration/single */
+  runSingleMigration(): void {
+    if (!this.singleAgriUser.userCode || !this.singleAgriUser.userEmail) return;
+    this.migratingOne = true;
+    this.cdr.markForCheck();
+
+    this.migrationService.runSingleMigration(this.singleAgriUser as AgriUserDto).subscribe({
+      next: (res) => {
+        this.migratingOne = false;
+        const isNew = res.resultat === 'CREE';
+        this.pushToast(
+          isNew ? 'success' : 'info',
+          isNew ? 'User migré' : 'Déjà migré',
+          res.message
+        );
+        if (isNew) this.loadUsers();
+        this.closeModal();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.migratingOne = false;
+        this.handleError(err, 'migration unitaire');
+        this.cdr.markForCheck();
+      },
     });
   }
 

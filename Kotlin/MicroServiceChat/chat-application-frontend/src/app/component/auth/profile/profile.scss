@@ -1,17 +1,17 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  profile.component.scss — thème sombre FlowChat
+//  profile.component.scss — thème clair blanc/bleu
 // ════════════════════════════════════════════════════════════════════════════
 
-$bg0:       #0a0f1e;
-$bg1:       #0f172a;
-$bg2:       #1e293b;
-$bg3:       #162032;
-$bg4:       #2d3a4f;
-$border:    #334155;
-$primary:   #7c3aed;
-$primary-l: #8b5cf6;
-$text1:     #f1f5f9;
-$text2:     #94a3b8;
+$bg0:       #f8fafc;   // fond page
+$bg1:       #ffffff;   // fond cards
+$bg2:       #f1f5f9;   // fond headers / inputs
+$bg3:       #eef2f7;   // fond bandes secondaires
+$bg4:       #e2e8f0;   // fond inputs / boutons ghost
+$border:    #e2e8f0;
+$primary:   #2563eb;
+$primary-l: #3b82f6;
+$text1:     #0f172a;
+$text2:     #334155;
 $text3:     #64748b;
 $success:   #10b981; $success-l: #34d399;
 $warning:   #f59e0b;
@@ -43,8 +43,9 @@ $info:      #0ea5e9;
     pointer-events: all;
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 16px; min-width: 300px; max-width: 400px;
-    border-radius: 12px; border: 1px solid transparent; background: $bg2;
-    cursor: pointer; animation: slideRight .35s ease; box-shadow: 0 8px 32px rgba(0,0,0,.45);
+    border-radius: 12px; border: 1px solid transparent; background: $bg1;
+    cursor: pointer; animation: slideRight .35s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
     &--out    { animation: slideRightOut .35s ease forwards; }
     &--success{ border-color: rgba($success,.35); .toast__icon{ color:$success; } }
     &--error  { border-color: rgba($danger,.35);  .toast__icon{ color:$danger-l; } }
@@ -76,25 +77,25 @@ $info:      #0ea5e9;
   }
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 16px; background: $bg3; color: $text2; border: 1px solid $border;
+    padding: 9px 16px; background: $bg2; color: $text2; border: 1px solid $border;
     border-radius: 10px; font-size: 13px; cursor: pointer; transition: all .2s;
     .material-icons { font-size: 17px; }
-    &:hover:not(:disabled) { background: $bg4; color: $text1; }
+    &:hover:not(:disabled) { background: $bg3; color: $text1; }
     &:disabled { opacity: .5; cursor: not-allowed; }
   }
   .btn-danger-outline {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 16px; background: rgba($danger,.1); color: $danger-l; border: 1px solid rgba($danger,.3);
+    padding: 9px 16px; background: rgba($danger,.06); color: $danger; border: 1px solid rgba($danger,.25);
     border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s;
     .material-icons { font-size: 17px; }
-    &:hover { background: rgba($danger,.2); }
+    &:hover { background: rgba($danger,.12); }
   }
 
   // ── ÉTAT ──────────────────────────────────────────────────────────────
   .state-box {
     text-align: center; padding: 60px 24px; color: $text2;
     .loader-ring {
-      width: 42px; height: 42px; border: 3px solid $border; border-top-color: $primary-l;
+      width: 42px; height: 42px; border: 3px solid $border; border-top-color: $primary;
       border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px;
     }
     p { font-size: 13px; }
@@ -105,6 +106,7 @@ $info:      #0ea5e9;
     display: flex; align-items: center; gap: 20px;
     background: $bg1; border: 1px solid $border; border-radius: 18px;
     padding: 20px 24px; margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
     animation: slideUp .3s ease;
     @media (max-width: 480px) { flex-direction: column; text-align: center; }
     &__av {
@@ -125,11 +127,11 @@ $info:      #0ea5e9;
   }
   .badge {
     display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-    &--admin { background: rgba($primary,.2); color: $primary-l; }
-    &--user  { background: rgba($info,.15); color: $info; }
-    &--status--active    { background: rgba($success,.15); color: $success-l; }
-    &--status--pending   { background: rgba($warning,.15); color: $warning; }
-    &--status--suspended { background: rgba($danger,.15); color: $danger-l; }
+    &--admin { background: rgba($primary,.1); color: $primary; }
+    &--user  { background: rgba($info,.12); color: $info; }
+    &--status--active    { background: rgba($success,.12); color: $success; }
+    &--status--pending   { background: rgba($warning,.12); color: $warning; }
+    &--status--suspended { background: rgba($danger,.1); color: $danger; }
   }
 
   // ── LAYOUT ONGLETS ────────────────────────────────────────────────────
@@ -141,6 +143,7 @@ $info:      #0ea5e9;
     display: flex; flex-direction: column; gap: 4px;
     background: $bg1; border: 1px solid $border; border-radius: 16px;
     padding: 12px; height: fit-content; position: sticky; top: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
     @media (max-width: 640px) { flex-direction: row; flex-wrap: wrap; position: static; }
   }
   .nav-tab {
@@ -149,9 +152,10 @@ $info:      #0ea5e9;
     color: $text2; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
     transition: background .15s, color .15s; width: 100%;
     .material-icons { font-size: 18px; flex-shrink: 0; }
-    &:hover { background: $bg3; color: $text1; }
-    &--active { background: rgba($primary,.15); color: $primary-l;
-      .material-icons { color: $primary-l; }
+    &:hover { background: $bg2; color: $text1; }
+    &--active {
+      background: rgba($primary,.08); color: $primary;
+      .material-icons { color: $primary; }
     }
     @media (max-width: 640px) { width: auto; }
   }
@@ -160,6 +164,7 @@ $info:      #0ea5e9;
   .prf-panel {
     background: $bg1; border: 1px solid $border; border-radius: 16px;
     padding: 24px; animation: slideUp .25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
   }
   .panel-head { margin-bottom: 20px; }
   .panel-title{ margin: 0 0 4px; font-size: 17px; font-weight: 700; color: $text1; }
@@ -179,12 +184,13 @@ $info:      #0ea5e9;
       input, textarea {
         width: 100%; padding: 10px 12px 10px 38px; background: $bg2; border: 1px solid $border;
         border-radius: 10px; color: $text1; font-size: 13px; outline: none; resize: vertical;
+        font-family: inherit;
         &::placeholder { color: $text3; }
-        &:focus { border-color: $primary-l; box-shadow: 0 0 0 3px rgba($primary,.18); }
-        &:disabled { opacity: .5; cursor: not-allowed; }
+        &:focus { border-color: $primary; box-shadow: 0 0 0 3px rgba($primary,.12); }
+        &:disabled { opacity: .55; cursor: not-allowed; background: $bg3; }
       }
       textarea { padding-left: 12px; }
-      &--disabled input { opacity: .5; cursor: not-allowed; }
+      &--disabled input { opacity: .55; cursor: not-allowed; }
     }
     &__ico {
       position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
@@ -209,12 +215,11 @@ $info:      #0ea5e9;
     &__desc { font-size: 12px; color: $text3; }
   }
   .pref-select {
-    padding: 8px 12px; background: $bg3; border: 1px solid $border; border-radius: 9px;
+    padding: 8px 12px; background: $bg1; border: 1px solid $border; border-radius: 9px;
     color: $text1; font-size: 13px; outline: none; cursor: pointer; min-width: 130px;
-    option { background: $bg2; }
-    &:focus { border-color: $primary-l; }
+    option { background: $bg1; }
+    &:focus { border-color: $primary; }
   }
-  // Toggle switch
   .toggle {
     position: relative; display: inline-flex; cursor: pointer;
     input { display: none; }
@@ -241,13 +246,13 @@ $info:      #0ea5e9;
   .pwd-rule {
     display: flex; align-items: center; gap: 7px; font-size: 13px; color: $text3;
     .material-icons { font-size: 16px; }
-    &--ok { color: $success-l; .material-icons { color: $success-l; } }
+    &--ok { color: $success; .material-icons { color: $success; } }
   }
 
   // ── MESSAGE INFO ──────────────────────────────────────────────────────
   .info-msg {
     display: flex; gap: 12px; padding: 14px 16px;
-    background: rgba($info,.08); border: 1px solid rgba($info,.25); border-radius: 12px;
+    background: rgba($info,.06); border: 1px solid rgba($info,.2); border-radius: 12px;
     margin-bottom: 20px;
     .material-icons { font-size: 20px; color: $info; flex-shrink: 0; margin-top: 1px; }
     strong { font-size: 13px; color: $text1; display: block; margin-bottom: 4px; }
@@ -256,7 +261,7 @@ $info:      #0ea5e9;
 
   // ── SPINNER ───────────────────────────────────────────────────────────
   .spinner-sm {
-    width: 16px; height: 16px; border: 2px solid rgba(#fff,.3); border-top-color: #fff;
+    width: 16px; height: 16px; border: 2px solid rgba(#fff,.4); border-top-color: #fff;
     border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
   }
-} 
+}

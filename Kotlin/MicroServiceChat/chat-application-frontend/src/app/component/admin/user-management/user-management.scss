@@ -4,33 +4,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 @use 'sass:color';
-
-// ── Tokens ──────────────────────────────────────────────────────────────────
-$bg0:       #0a0f1e;   // fond page
-$bg1:       #0f172a;   // fond cards/table
-$bg2:       #1e293b;   // fond headers / footer modal
-$bg3:       #162032;   // fond bandes secondaires
-$bg4:       #2d3a4f;   // fond inputs / boutons ghost
-$border:    #334155;
-$primary:   #7c3aed;
-$primary-l: #8b5cf6;
-$text1:     #f1f5f9;
-$text2:     #94a3b8;
-$text3:     #64748b;
-$success:   #10b981;
-$success-l: #34d399;
-$warning:   #f59e0b;
-$warning-l: #fbbf24;
-$danger:    #ef4444;
-$danger-l:  #f87171;
-$info:      #0ea5e9;
-$info-l:    #38bdf8;
-$amber:     #f59e0b;
-$amber-l:   #fbbf24;
-$teal:      #0d9488;
-$teal-l:    #2dd4bf;
-$blue:      #3b82f6;
-$blue-l:    #60a5fa;
+@import '../admin-styles.scss';
 
 // ── Animations ───────────────────────────────────────────────────────────────
 @keyframes spin        { to { transform: rotate(360deg); } }
@@ -42,13 +16,11 @@ $blue-l:    #60a5fa;
 // ════════════════════════════════════════════════════════════════════════════
 //  SHELL
 // ════════════════════════════════════════════════════════════════════════════
-.um-shell {
+.container-fluid {
   padding: 28px 32px;
   max-width: 1440px;
   margin: 0 auto;
   min-height: 100vh;
-  background: $bg0;
-  color: $text1;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   outline: none;
 
@@ -244,6 +216,49 @@ $blue-l:    #60a5fa;
       box-shadow: 0 6px 18px rgba(239,68,68,.4);
     }
     &:disabled { opacity: .35; cursor: not-allowed; }
+  }
+
+  // ── Bouton Agriculture (vert) ──────────────────────────────────────────
+  .btn-agri {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #059669, $success);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(16,185,129,.28);
+
+    .material-icons { font-size: 18px; }
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(16,185,129,.45);
+      filter: brightness(1.08);
+    }
+    &:disabled { opacity: .35; cursor: not-allowed; }
+  }
+
+  .btn-ghost--agri {
+    border-color: rgba($success, .4);
+    color: $success-l;
+    &:hover:not(:disabled) {
+      background: rgba($success, .1);
+      border-color: $success;
+      color: $success-l;
+    }
+  }
+
+  // ── Icône modale Agriculture ───────────────────────────────────────────
+  .modal__ico--agri {
+    background: rgba($success, .15);
+    color: $success-l;
   }
 
   .spin { animation: spin .8s linear infinite; }
@@ -897,12 +912,12 @@ $blue-l:    #60a5fa;
       }
     }
 
-    input:checked + &__track {
+    input:checked ~ .toggle-sw__track {
       background: linear-gradient(135deg, $primary, $primary-l);
       &::before { transform: translateX(22px); background: white; }
     }
 
-    input:focus + &__track { box-shadow: 0 0 0 3px rgba($primary,.28); }
+    input:focus ~ .toggle-sw__track { box-shadow: 0 0 0 3px rgba($primary,.28); }
   }
 
   // ── Spinner inline ─────────────────────────────────────────────────────
@@ -914,5 +929,98 @@ $blue-l:    #60a5fa;
     border-radius: 50%;
     animation: spin .7s linear infinite;
     margin-right: 5px;
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  MIGRATION Agriculture → Chat
+  // ════════════════════════════════════════════════════════════════════════
+  .migration-info {
+    display: flex;
+    gap: 14px;
+    background: rgba($info, .07);
+    border: 1px solid rgba($info, .2);
+    border-left: 3px solid $info;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 4px;
+
+    &__icon {
+      flex-shrink: 0;
+      .material-icons { color: $info-l; font-size: 22px; }
+    }
+
+    &__text {
+      flex: 1;
+      font-size: 13.5px;
+      color: $text2;
+      strong { color: $text1; display: block; margin-bottom: 8px; }
+      ul { margin: 0; padding-left: 18px; }
+      li { margin-bottom: 5px; line-height: 1.5; }
+    }
+  }
+
+  .migration-report {
+    &__title {
+      font-size: 14px; font-weight: 700; color: $text1;
+      margin-bottom: 14px;
+    }
+
+    &__grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+
+      @media (max-width: 480px) { grid-template-columns: repeat(2, 1fr); }
+    }
+  }
+
+  .mstat {
+    text-align: center;
+    padding: 14px 10px;
+    border-radius: 12px;
+    background: $bg3;
+    border: 1px solid $border;
+    border-top-width: 3px;
+
+    &__val {
+      display: block;
+      font-size: 28px;
+      font-weight: 700;
+      color: $text1;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    &__lbl { font-size: 11px; color: $text3; font-weight: 500; }
+
+    &--total   { border-top-color: $primary; }
+    &--created { border-top-color: $success; .mstat__val { color: $success-l; } }
+    &--skipped { border-top-color: $amber;   .mstat__val { color: $amber-l;   } }
+    &--error   { border-top-color: $danger;  .mstat__val { color: $danger-l;  } }
+  }
+
+  .migration-errors {
+    background: rgba($danger, .07);
+    border: 1px solid rgba($danger, .2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+
+    strong { color: $danger-l; display: block; margin-bottom: 6px; }
+    ul { margin: 0; padding-left: 16px; }
+
+    &__item { color: $danger-l; margin-bottom: 4px; line-height: 1.4; }
+  }
+
+  .migration-hint {
+    font-size: 13px;
+    color: $text3;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    background: rgba($info, .05);
+    border-radius: 10px;
+    border: 1px solid rgba($info, .15);
   }
 }

@@ -21,8 +21,8 @@ h1, h2, h3 { font-family: var(--font-display); }
 
   &--primary {
     background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-    color: white; box-shadow: 0 2px 8px rgba(76,175,80,0.35);
-    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(76,175,80,0.4); }
+    color: white; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.35);
+    &:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(25, 118, 210, 0.4); }
   }
   &--danger {
     background: linear-gradient(135deg, var(--color-danger), #c82333);
@@ -51,7 +51,7 @@ h1, h2, h3 { font-family: var(--font-display); }
     padding: 12px 16px; border: 1.5px solid var(--color-border);
     border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 15px;
     color: var(--color-text); background: var(--color-surface); transition: var(--transition);
-    &:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(76,175,80,0.12); }
+    &:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.12); }
     &.ng-invalid.ng-touched { border-color: var(--color-danger); }
   }
 
@@ -113,5 +113,40 @@ body.iframe-mode {
   .pc-shell {
     height: 100vh !important;
     max-height: 100vh !important;
+  }
+}
+
+
+// ─── Mode chatbot — masquer le panneau gauche dans l'iframe ───────────────────
+// Affiche uniquement la zone de conversation (comme un widget chatbot)
+
+html.iframe-mode,
+body.iframe-mode {
+
+  .private-shell {
+    // Masquer entièrement le panneau gauche (contacts / utilisateurs)
+    .panel {
+      display: none !important;
+      width: 0 !important;
+    }
+
+    // Masquer le bouton toggle qui ouvre/ferme le panneau
+    .toggle-btn { display: none !important; }
+
+    // La zone de conversation prend tout l'espace
+    .private-main {
+      flex: 1 !important;
+      margin: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      height: 100vh !important;
+    }
+  }
+
+  // Shell sans padding ni marge
+  .private-shell {
+    height: 100vh !important;
+    overflow: hidden !important;
   }
 }

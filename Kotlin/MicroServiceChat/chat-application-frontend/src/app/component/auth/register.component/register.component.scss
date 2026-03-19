@@ -1,16 +1,20 @@
     :host {
-      --primary: #7c3aed;
-      --primary-light: #8b5cf6;
-      --primary-dark: #6d28d9;
+      --primary: #1976D2;
+      --primary-light: #2196F3;
+      --primary-dark: #1565C0;
       --success: #10b981;
       --error: #ef4444;
       --warning: #f59e0b;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --border-light: #334155;
-      --input-bg: #2d3a4f;
+      --bg-dark: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-welcome: #eff6ff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border-light: #e2e8f0;
+      --input-bg: #f8fafc;
+      --online: #10b981;
+      --away: #f59e0b;
+      --dnd: #ef4444;
     }
 
     /* Global */
@@ -39,7 +43,7 @@
       position: absolute;
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
       border-radius: 50%;
-      opacity: 0.1;
+      opacity: 0.05;
       animation: float 20s infinite ease-in-out;
     }
 
@@ -79,7 +83,7 @@
       background: var(--bg-card);
       border-radius: 32px;
       padding: 40px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
       border: 1px solid var(--border-light);
       backdrop-filter: blur(10px);
       animation: slideIn 0.6s ease-out;
@@ -99,7 +103,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: rgba(124, 58, 237, 0.1);
+      background: rgba(25, 118, 210, 0.08);
       padding: 6px 12px;
       border-radius: 100px;
       margin-bottom: 20px;
@@ -148,7 +152,7 @@
       margin-bottom: 24px;
       font-size: 14px;
       background: rgba(239, 68, 68, 0.1);
-      color: #fecaca;
+      color: var(--error);
       border: 1px solid rgba(239, 68, 68, 0.2);
     }
 
@@ -192,12 +196,12 @@
     }
 
     .field-input::placeholder { color: transparent; }
-    .field-input:hover { border-color: rgba(139, 92, 246, 0.5); }
+    .field-input:hover { border-color: rgba(33, 150, 243, 0.5); }
 
     .field-input:focus {
       border-color: var(--primary);
-      background: rgba(45, 58, 79, 0.9);
-      box-shadow: 0 0 0 3.5px rgba(124, 58, 237, 0.18), 0 2px 12px rgba(124, 58, 237, 0.12);
+      background: rgba(248, 250, 252, 0.9);
+      box-shadow: 0 0 0 3.5px rgba(25, 118, 210, 0.18), 0 2px 12px rgba(25, 118, 210, 0.12);
     }
 
     .field-input:-webkit-autofill {
@@ -293,7 +297,7 @@
 
     .field-toggle:hover {
       color: var(--primary-light);
-      background: rgba(124, 58, 237, 0.1);
+      background: rgba(25, 118, 210, 0.1);
     }
 
     .field-toggle mat-icon {
@@ -429,7 +433,7 @@
 
     .chat-submit:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.5);
+      box-shadow: 0 10px 25px -5px rgba(25, 118, 210, 0.5);
     }
 
     .chat-submit:disabled {
@@ -561,7 +565,7 @@
 
     .chat-button.primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.5);
+      box-shadow: 0 10px 25px -5px rgba(25, 118, 210, 0.5);
     }
 
     .chat-button.secondary {
