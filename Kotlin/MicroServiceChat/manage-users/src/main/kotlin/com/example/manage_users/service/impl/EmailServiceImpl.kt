@@ -126,15 +126,14 @@ class EmailServiceImpl (
             val context = Context().apply {
                 setVariable("user", user)
                 setVariable("supportEmail", "support@example.com")
+                // ← passer les URLs comme variables String simples
+                setVariable("loginUrl",        "$frontendUrl/auth/login")
+                setVariable("resetPasswordUrl","$frontendUrl/auth/reset-password")
+                setVariable("supportUrl",      "$frontendUrl/support")
             }
 
             val content = templateEngine.process("email/account-locked", context)
-
-            sendEmail(
-                to = user.email,
-                subject = "Your Account Has Been Locked",
-                content = content
-            )
+            sendEmail(user.email, "Votre compte a été bloqué", content)
 
             log.info("✅ Account locked notification sent to: ${user.email}")
         } catch (ex: Exception) {

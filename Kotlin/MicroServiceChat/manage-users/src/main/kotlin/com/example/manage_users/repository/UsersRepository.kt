@@ -51,11 +51,11 @@ interface UsersRepository : JpaRepository<Users, Long> {
         pageable: Pageable
     ): Page<Users>
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Users u SET u.failedLoginAttempts = u.failedLoginAttempts + 1 WHERE u.id = :userId")
     fun incrementFailedLoginAttempts(@Param("userId") userId: Long)
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Users u SET u.failedLoginAttempts = 0 WHERE u.id = :userId")
     fun resetFailedLoginAttempts(@Param("userId") userId: Long)
 

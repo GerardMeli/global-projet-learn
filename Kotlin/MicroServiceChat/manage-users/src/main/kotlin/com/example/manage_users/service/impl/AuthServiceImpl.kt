@@ -21,12 +21,11 @@ import com.example.manage_users.service.interf.AuthService
 import com.example.manage_users.service.interf.EmailService
 import com.example.manage_users.service.interf.TokenService
 import org.slf4j.LoggerFactory
-import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.BadCredentialsException
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
@@ -36,10 +35,10 @@ class AuthServiceImpl(
     private val usersRepository: UsersRepository,
     private val passwordEncoder: PasswordEncoderConfig,
     private val userMapper: UserMapper,
-    private val authenticationManager: AuthenticationManager,
     private val jwtProvider: JwtProvider,
     private val emailService: EmailService,
-    private val tokenService: TokenService
+    private val tokenService: TokenService,
+    private val loginAttemptService: LoginAttemptService
 ) : AuthService {
 
     private val log = LoggerFactory.getLogger(AuthServiceImpl::class.java)
@@ -67,7 +66,6 @@ class AuthServiceImpl(
 
         val savedUser = usersRepository.save(user)
 
-        // Generate verification token and send email
         val token = tokenService.createEmailVerificationToken(savedUser.id)
         emailService.sendVerificationEmail(savedUser.email, token)
 
@@ -81,48 +79,67 @@ class AuthServiceImpl(
         )
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // AUTHENTIFICATION
+    // ─────────────────────────────────────────────────────────────────────────
     fun authenticateUser(request: RegistrationDto.LoginRequest): RegistrationDto.UserResponse {
+
         val user = usersRepository.findByEmail(request.email)
-            .orElseThrow { throw IllegalArgumentException("User not found with email: ${request.email}") }
+            .orElseThrow { ResourceNotFoundException("Utilisateur introuvable : ${request.email}") }
 
-        if (!user.isActive) {
-            throw IllegalStateException("User account is inactive")
+        // 1. Vérifications du statut avant tout
+        when (user.status) {
+            UserStatus.BLOCKED              -> throw AccountBlockedException(
+                "Compte bloqué après trop de tentatives échouées. Contactez le support.")
+            UserStatus.SUSPENDED            -> throw AccountSuspendedException("Compte suspendu.")
+            UserStatus.DELETED              -> throw AccountDeletedException("Compte supprimé.")
+            UserStatus.PENDING,
+            UserStatus.PENDING_VERIFICATION -> throw AccountNotVerifiedException(
+                "Veuillez vérifier votre email avant de vous connecter.")
+            UserStatus.INACTIVE             -> throw AccountInactiveException("Compte inactif.")
+            else                            -> Unit
         }
 
+        if (!user.isActive) throw AccountInactiveException("Compte inactif.")
+
+        // 2. Vérification du mot de passe
+// Dans authenticateUser — passer l'id directement
         if (!passwordEncoder.passwordEncoder().matches(request.password, user.password)) {
-            throw IllegalArgumentException("Invalid password")
+            loginAttemptService.handleFailedLogin(user.id)  // ← passer l'id, pas l'email
+            throw BadCredentialsException("Mot de passe incorrect.")
         }
 
+        // 3. Succès → réinitialise les tentatives échouées
+        if (user.failedLoginAttempts > 0) {
+            usersRepository.resetFailedLoginAttempts(user.id)
+            log.debug("✅ Tentatives réinitialisées pour : ${user.email}")
+        }
+
+        log.info("✅ Connexion réussie : ${user.email}")
         return userMapper.mapToUserResponse(user)
     }
 
-    private fun handleFailedLogin(email: String) {
-        usersRepository.findByEmail(email).ifPresent { user ->
-            usersRepository.incrementFailedLoginAttempts(user.id)
-
-            // Lock account after 5 failed attempts
-            if (user.failedLoginAttempts >= 4) { // Will be 5 after increment
-                user.status = UserStatus.BLOCKED
-                usersRepository.save(user)
-            }
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────────────────────
+    // REFRESH TOKEN
+    // ─────────────────────────────────────────────────────────────────────────
     override fun refreshToken(request: RegistrationDto.RefreshTokenRequest): RegistrationDto.TokenResponse {
         val username = jwtProvider.getUsernameFromToken(request.refreshToken)
         val user = usersRepository.findByEmail(username.toString())
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        val newAccessToken = jwtProvider.generateAccessToken(username.toString())
+        val newAccessToken  = jwtProvider.generateAccessToken(username.toString())
         val newRefreshToken = jwtProvider.generateRefreshToken(username.toString())
 
         return RegistrationDto.TokenResponse(
-            accessToken = newAccessToken,
+            accessToken  = newAccessToken,
             refreshToken = newRefreshToken,
-            expiresIn = jwtProvider.getAccessTokenExpiration()
+            expiresIn    = jwtProvider.getAccessTokenExpiration()
         )
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // VÉRIFICATION EMAIL
+    // ─────────────────────────────────────────────────────────────────────────
     override fun verifyEmail(tokenValue: String) {
         val userId = tokenService.validateEmailVerificationToken(tokenValue)
         val user = usersRepository.findById(userId)
@@ -139,19 +156,19 @@ class AuthServiceImpl(
         val user = usersRepository.findByEmail(request.email)
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        if (user.emailVerified) {
-            throw BadRequestException("Email already verified")
-        }
+        if (user.emailVerified) throw BadRequestException("Email already verified")
 
         val token = tokenService.createEmailVerificationToken(user.id)
         emailService.sendVerificationEmail(user.email, token)
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // RESET MOT DE PASSE
+    // ─────────────────────────────────────────────────────────────────────────
     override fun forgotPassword(request: EmailPwdDto.ForgotPasswordRequest) {
         val user = usersRepository.findByEmail(request.email)
             .orElseThrow { ResourceNotFoundException("User not found") }
 
-        // Dans votre service d'envoi d'email
         val token = jwtProvider.createPasswordResetToken(user.id, user.email)
         log.debug("Generated password reset token with type: ${jwtProvider.getTokenTypeFromToken(token)}")
         emailService.sendPasswordResetEmailWithToken(user.email, token)
@@ -159,31 +176,25 @@ class AuthServiceImpl(
 
     override fun resetPassword(request: EmailPwdDto.ResetPasswordRequest) {
 
-        // 1️⃣ Vérification des mots de passe
         if (request.newPassword != request.confirmPassword) {
             throw BadRequestException("Les mots de passe ne correspondent pas")
         }
 
-        // 2️⃣ Récupération de l’email depuis le token
         val email = tokenService.validatePasswordResetToken(request.token)
 
-        // 3️⃣ Récupération de l’utilisateur par email (Optional)
         val user = usersRepository.findByEmail(email)
             .orElseThrow { ResourceNotFoundException("Utilisateur non trouvé") }
 
-        // 4️⃣ Mise à jour du mot de passe
-        user.password = passwordEncoder
-            .passwordEncoder()
-            .encode(request.newPassword)
-
+        user.password = passwordEncoder.passwordEncoder().encode(request.newPassword)
         usersRepository.save(user)
 
-        // 5️⃣ Suppression du token
         tokenService.deletePasswordResetToken(request.token)
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // LOGOUT
+    // ─────────────────────────────────────────────────────────────────────────
     override fun logout(userId: Long) {
         SecurityContextHolder.clearContext()
-        // Additional logout logic (blacklist token, etc.)
     }
 }

@@ -111,4 +111,4 @@ app:
 agriculture:
   api:
     base-url: http://95.111.225.198:8051   # ← URL de ton système agriculture
-    token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI2IDc3IDc3IDc3IDc3IiwiaWF0IjoxNzczNzYwMjAwLCJleHAiOjE3NzM5MzMwMDB9.IyTmC1itSxdXUBc9kFE-Mn7kQVr7AU4a372-8_jCMQAkOUwh-hf2jYsMutRc2kPs-Pe2qqS2gs3rS7Q5GiRuhQ"
+    token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI2IDc3IDc3IDc3IDc3IiwiaWF0IjoxNzczOTA5NTA5LCJleHAiOjE3NzQwODIzMDl9.jMOBxp3FxRCr_B_BHa9A5nkzbYvo95snmDssFGw0YJ7wxBsnT98TJZ-VeDUzcZ1w3ygI-nVFRSf37mZfXb__cQ
