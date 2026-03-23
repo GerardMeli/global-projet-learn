@@ -1,5 +1,6 @@
 package com.reli237.web_application_chat.security
 
+import com.reli237.web_application_chat.exception.InvalidTokenException
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -22,14 +23,10 @@ class JwtProvider(
         } catch (e: Exception) { false }
     }
 
-    fun getUserIdFromToken(token: String): Long {
+    fun getUserIdFromToken(token: String): String {
         val claims = getAllClaims(token)
-        val v = claims.get("userId")
-        return when (v) {
-            is Long -> v
-            is Int -> v.toLong()
-            else -> v.toString().toLong()
-        }
+        return claims.get("userId", String::class.java)
+            ?: throw InvalidTokenException("UserId not found in token")
     }
 
     fun getEmailFromToken(token: String): String? {

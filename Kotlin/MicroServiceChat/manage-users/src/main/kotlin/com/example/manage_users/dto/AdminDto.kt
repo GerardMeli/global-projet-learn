@@ -13,7 +13,6 @@ import java.time.LocalDateTime
 class AdminDto {
 
     data class AdminUserResponse(
-        val id: Long,
         val email: String,
         val firstName: String?,
         val lastName: String?,
@@ -95,7 +94,7 @@ class AdminDto {
     )
 
     data class CreateUserResponse(
-        val id:        Long,
+        val id:        String,
         val firstName: String?,
         val lastName:  String?,
         val email:     String,

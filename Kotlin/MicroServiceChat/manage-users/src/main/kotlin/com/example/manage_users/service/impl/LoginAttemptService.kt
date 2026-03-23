@@ -16,7 +16,7 @@ class LoginAttemptService (
     private val log = LoggerFactory.getLogger(LoginAttemptService::class.java)
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    fun handleFailedLogin(userId: Long) {
+    fun handleFailedLogin(userId: String) {
         usersRepository.incrementFailedLoginAttempts(userId)
 
         val user = usersRepository.findById(userId).orElse(null) ?: return

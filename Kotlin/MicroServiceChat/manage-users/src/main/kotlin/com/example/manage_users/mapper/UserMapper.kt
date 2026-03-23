@@ -36,7 +36,6 @@ class UserMapper {
 
     fun toAdminResponse(user: Users): AdminDto.AdminUserResponse {
         return AdminDto.AdminUserResponse(
-            id = user.id,
             email = user.email,
             firstName = user.firstName,
             lastName = user.lastName,
@@ -86,8 +85,6 @@ class UserMapper {
     fun toUser(agriUser: AgriUserDto, encodedPassword: String): Users {
 
         return Users(
-            id = 0,  // généré par Postgres
-
             // ── Identité ──────────────────────────────────────────
             email     = agriUser.userEmail
                 ?: throw IllegalArgumentException(

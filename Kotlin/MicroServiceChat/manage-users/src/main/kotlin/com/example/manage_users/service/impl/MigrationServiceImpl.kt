@@ -106,7 +106,7 @@ class MigrationServiceImpl (
         //    (l'utilisateur s'est peut-être inscrit manuellement)
         // Fix 2 : findByEmail retourne Optional<Users>, on utilise .orElse(null)
         val userExistant: Users? = userRepository.findByEmail(email).orElse(null)
-        val chatUserId: Long
+        val chatUserId: String
 
         if (userExistant != null) {
             // On lie son compte Chat existant → pas de doublon

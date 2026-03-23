@@ -7,8 +7,8 @@ class ChatParticipantDto {
 
     //Request DTOs
     data class ChatParticipantCreateRequest(
-        val userId: Long,
-        val chatRoomId: Long,
+        val userId: String,
+        val chatRoomId: String,
         val role: ParticipantRole = ParticipantRole.MEMBER
     )
 
@@ -18,15 +18,15 @@ class ChatParticipantDto {
 
     // Response DTOs
     data class ChatParticipantResponse(
-        val id: Long,
+        val id: String,
         val user: UserDto.UserSimpleResponse,
-        val chatRoomId: Long,
+        val chatRoomId: String,
         val joinedAt: LocalDateTime,
         val role: ParticipantRole
     )
 
    data class ChatParticipantDetailResponse(
-       val id: Long,
+       val id: String,
        val user: UserDto.UserResponse,
        val chatRoom: ChatRoomDto.ChatRoomResponse,
        val joinedAt: LocalDateTime,

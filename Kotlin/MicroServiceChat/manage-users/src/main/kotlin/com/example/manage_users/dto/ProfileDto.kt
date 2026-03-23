@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 class ProfileDto {
 
     data class UserProfileResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val firstName: String?,
         val lastName: String?,
@@ -72,7 +72,7 @@ class ProfileDto {
     )
 
     data class PrivateUserResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val isActive: Boolean,
         val role: String

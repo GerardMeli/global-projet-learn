@@ -17,6 +17,6 @@ interface AuthService {
 
     fun resetPassword(request: EmailPwdDto.ResetPasswordRequest)
 
-    fun logout(userId: Long)
+    fun logout(userId: String)
 
 }

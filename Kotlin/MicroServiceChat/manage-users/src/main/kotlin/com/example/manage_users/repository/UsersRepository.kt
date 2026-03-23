@@ -13,7 +13,7 @@ import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 import java.util.Optional
 
-interface UsersRepository : JpaRepository<Users, Long> {
+interface UsersRepository : JpaRepository<Users, String> {
 
     fun findByLanguage(language: Language): List<Users>
 
@@ -53,23 +53,23 @@ interface UsersRepository : JpaRepository<Users, Long> {
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Users u SET u.failedLoginAttempts = u.failedLoginAttempts + 1 WHERE u.id = :userId")
-    fun incrementFailedLoginAttempts(@Param("userId") userId: Long)
+    fun incrementFailedLoginAttempts(@Param("userId") userId: String)
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE Users u SET u.failedLoginAttempts = 0 WHERE u.id = :userId")
-    fun resetFailedLoginAttempts(@Param("userId") userId: Long)
+    fun resetFailedLoginAttempts(@Param("userId") userId: String)
 
     @Modifying
     @Query("UPDATE Users u SET u.status = :status WHERE u.id = :userId")
-    fun updateStatus(@Param("userId") userId: Long, @Param("status") status: UserStatus)
+    fun updateStatus(@Param("userId") userId: String, @Param("status") status: UserStatus)
 
     @Modifying
     @Query("UPDATE Users u SET u.isActive = :isActive WHERE u.id = :userId")
-    fun updateActiveStatus(@Param("userId") userId: Long, @Param("isActive") isActive: Boolean)
+    fun updateActiveStatus(@Param("userId") userId: String, @Param("isActive") isActive: Boolean)
 
     @Modifying
     @Query("UPDATE Users u SET u.emailVerified = :emailVerified WHERE u.id = :userId")
-    fun updateEmailVerified(@Param("userId") userId: Long, @Param("emailVerified") emailVerified: Boolean)
+    fun updateEmailVerified(@Param("userId") userId: String, @Param("emailVerified") emailVerified: Boolean)
 
     @Query("SELECT COUNT(u) FROM Users u WHERE u.status = :status")
     fun countByStatus(@Param("status") status: UserStatus): Long
@@ -85,12 +85,12 @@ interface UsersRepository : JpaRepository<Users, Long> {
 
     // Récupérer tous les utilisateurs sauf celui spécifié
     @Query("SELECT u FROM Users u WHERE u.id != :currentUserId AND u.isActive = true ORDER BY u.email")
-    fun findAllExceptCurrentUser(@Param("currentUserId") currentUserId: Long): List<Users>
+    fun findAllExceptCurrentUser(@Param("currentUserId") currentUserId: String): List<Users>
 
     // Récupérer les utilisateurs par recherche (pour la barre de recherche)
     @Query("SELECT u FROM Users u WHERE u.id != :currentUserId AND u.isActive = true AND LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) ORDER BY u.email")
     fun searchUsersExceptCurrentUser(
-        @Param("currentUserId") currentUserId: Long,
+        @Param("currentUserId") currentUserId: String,
         @Param("query") query: String
     ): List<Users>
 }

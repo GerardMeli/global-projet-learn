@@ -1,5 +1,6 @@
 package com.example.manage_users.models
 
+import com.example.manage_users.utils.UsersIdGenerator
 import jakarta.persistence.*
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.Pattern
@@ -18,8 +19,10 @@ import java.time.LocalDateTime
 )
 data class Users (
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    @Id
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(columnDefinition = "varchar(37)", updatable = false, nullable = false)
+    var id: String = "",
 
     @Column(unique = true, nullable = false)
     @Email
@@ -74,7 +77,13 @@ data class Users (
     @Column(length = 20)
     var theme: Theme = Theme.LIGHT
 
-)
+) {
+    @PrePersist
+    fun generateId() {
+        if (id.isBlank())
+            id = UsersIdGenerator.forRole(role)
+    }
+}
 
 enum class UserRole {
     USER,

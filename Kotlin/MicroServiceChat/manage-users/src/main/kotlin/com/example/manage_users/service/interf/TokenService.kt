@@ -10,23 +10,23 @@ interface TokenService {
 
     fun validatePasswordResetToken(token: String): String
 
-    fun invalidateAllUserTokens(userId: Long)
+    fun invalidateAllUserTokens(userId: String)
 
     fun isTokenValid(token: String, email: String): Boolean
 
-    fun createEmailVerificationToken(userId: Long): String
+    fun createEmailVerificationToken(userId: String): String
 
-    fun validateEmailVerificationToken(token: String): Long
+    fun validateEmailVerificationToken(token: String): String
 
     fun deleteEmailVerificationToken(token: String)
 
-    fun createPasswordResetToken(userId: Long, email: String): String
+    fun createPasswordResetToken(userId: String, email: String): String
 
     fun deletePasswordResetToken(token: String)
 
-    fun createEmailChangeToken(userId: Long, newEmail: String): String
+    fun createEmailChangeToken(userId: String, newEmail: String): String
 
-    fun validateEmailChangeToken(token: String): Pair<Long, String>
+    fun validateEmailChangeToken(token: String): Pair<String, String>
 
     fun deleteEmailChangeToken(token: String)
 

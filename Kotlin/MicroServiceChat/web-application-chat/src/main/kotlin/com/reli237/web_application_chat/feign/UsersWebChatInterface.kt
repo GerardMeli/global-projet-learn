@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.*
 @FeignClient("MANAGE-USERS")
 interface UsersWebChatInterface {
 
-//    @GetMapping("/{userId}")
-////    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-//    fun getUserProfile(@PathVariable userId: Long): ResponseEntity<UserDto.UserProfileResponse>
-
     @PostMapping("/api/auth/forgot-password")
     fun forgotPassword(@Valid @RequestBody request: UserDto.ForgotPasswordRequest): ResponseEntity<Void>
 
@@ -22,16 +18,16 @@ interface UsersWebChatInterface {
     fun resetPassword(@Valid @RequestBody request: UserDto.ResetPasswordRequest): ResponseEntity<Void>
 
     @PostMapping("/api/auth/logout")
-    fun logout(@RequestParam userId: Long): ResponseEntity<Void>
+    fun logout(@RequestParam userId: String): ResponseEntity<Void>
 
     // CORRECTION ICI - Supprimez HttpSession car Feign ne peut pas l'envoyer
     @PostMapping("/api/auth/login")
     fun login(@RequestBody request: UserDto.LoginRequest): ResponseEntity<UserDto.ApiResponse<UserDto.LoginResponse>>
 
     @GetMapping("/api/admin/users/{userId}")
-    fun getUserById(@PathVariable userId: Long): ResponseEntity<UserDto.UserProfileResponse>
+    fun getUserById(@PathVariable userId: String): ResponseEntity<UserDto.UserProfileResponse>
 
     @GetMapping("/api/admin/users/{userId}/basic")  // Nouveau endpoint
-    fun getUserBasicInfo(@PathVariable userId: Long): ResponseEntity<UserDto.UserResponse>
+    fun getUserBasicInfo(@PathVariable userId: String): ResponseEntity<UserDto.UserResponse>
 
 }

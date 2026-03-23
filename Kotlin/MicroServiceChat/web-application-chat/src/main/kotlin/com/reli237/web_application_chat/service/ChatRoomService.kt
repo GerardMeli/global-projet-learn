@@ -9,7 +9,6 @@ import com.reli237.web_application_chat.model.ChatParticipant
 import com.reli237.web_application_chat.model.ChatRoom
 import com.reli237.web_application_chat.model.ChatRoomType
 import com.reli237.web_application_chat.model.Message
-import com.reli237.web_application_chat.model.MessageType
 import com.reli237.web_application_chat.model.ParticipantRole
 import com.reli237.web_application_chat.repository.ChatParticipantRepository
 import com.reli237.web_application_chat.repository.ChatRoomRepository
@@ -44,14 +43,14 @@ class ChatRoomService(
             throw IllegalArgumentException("Chat room with name '${request.name}' already exists")
 
         val saved = chatRoomRepository.save(
-            ChatRoom(id = 0, name = request.name, type = request.type,
+            ChatRoom(id = "", name = request.name, type = request.type,
                 participants = mutableListOf(), messages = mutableListOf())
         )
         if (request.userIds.isNotEmpty()) addParticipants(saved.id, request.userIds)
         return mapToChatRoomResponse(saved)
     }
 
-    fun getChatRoomById(id: Long): ChatRoomDto.ChatRoomDetailResponse =
+    fun getChatRoomById(id: String): ChatRoomDto.ChatRoomDetailResponse =
         mapToChatRoomDetailResponse(findRoomById(id))
 
     fun getAllChatRooms(): List<ChatRoomDto.ChatRoomResponse> =
@@ -68,7 +67,7 @@ class ChatRoomService(
         return chatRoomRepository.findByNameContainingIgnoreCase(name).map { mapToChatRoomResponse(it) }
     }
 
-    fun updateChatRoom(id: Long, request: ChatRoomDto.ChatRoomUpdateRequest): ChatRoomDto.ChatRoomResponse {
+    fun updateChatRoom(id: String, request: ChatRoomDto.ChatRoomUpdateRequest): ChatRoomDto.ChatRoomResponse {
         val chatRoom = findRoomById(id)
         if (request.name.isBlank()) throw IllegalArgumentException("Chat room name cannot be empty")
         if (request.name != chatRoom.name && chatRoomRepository.findByName(request.name).isPresent)
@@ -76,7 +75,7 @@ class ChatRoomService(
         return mapToChatRoomResponse(chatRoomRepository.save(chatRoom.copy(name = request.name, type = request.type)))
     }
 
-    fun deleteChatRoom(id: Long) {
+    fun deleteChatRoom(id: String) {
         if (!chatRoomRepository.existsById(id)) throw IllegalArgumentException("Chat room not found with id: $id")
         chatRoomRepository.deleteById(id)
     }
@@ -85,7 +84,7 @@ class ChatRoomService(
     // GESTION DES PARTICIPANTS
     // ═══════════════════════════════════════════════════════════
 
-    fun addParticipants(chatRoomId: Long, userIds: List<Long>): ChatRoomDto.ChatRoomDetailResponse {
+    fun addParticipants(chatRoomId: String, userIds: List<String>): ChatRoomDto.ChatRoomDetailResponse {
         val chatRoom = findRoomById(chatRoomId)
         if (userIds.isEmpty()) throw IllegalArgumentException("User list cannot be empty")
 
@@ -93,7 +92,8 @@ class ChatRoomService(
             usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow("User not found with id: $userId")
             if (chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId).isEmpty) {
                 chatParticipantRepository.save(
-                    ChatParticipant(id = 0, userId = userId, chatRoom = chatRoom,
+                    ChatParticipant(
+                        id = "", userId = userId, chatRoom = chatRoom,
                         joinedAt = LocalDateTime.now(), role = ParticipantRole.MEMBER)
                 )
             }
@@ -101,7 +101,7 @@ class ChatRoomService(
         return mapToChatRoomDetailResponse(findRoomById(chatRoomId))
     }
 
-    fun removeParticipant(chatRoomId: Long, userId: Long): ChatRoomDto.ChatRoomDetailResponse {
+    fun removeParticipant(chatRoomId: String, userId: String): ChatRoomDto.ChatRoomDetailResponse {
         findRoomById(chatRoomId)
         usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow("User not found with id: $userId")
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
@@ -116,13 +116,13 @@ class ChatRoomService(
     // ✅ isUserParticipant SUPPRIMÉ  — doublon de ChatParticipantService.isUserParticipant
     // ═══════════════════════════════════════════════════════════
 
-    fun getMessageCount(chatRoomId: Long): Long = messageService.countMessagesByChatRoom(chatRoomId)
+    fun getMessageCount(chatRoomId: String): Long = messageService.countMessagesByChatRoom(chatRoomId)
 
     // ═══════════════════════════════════════════════════════════
     // MAPPERS PRIVÉS
     // ═══════════════════════════════════════════════════════════
 
-    private fun findRoomById(id: Long): ChatRoom =
+    private fun findRoomById(id: String): ChatRoom =
         chatRoomRepository.findById(id).orElseThrow { IllegalArgumentException("Chat room not found with id: $id") }
 
     private fun mapToChatRoomResponse(chatRoom: ChatRoom): ChatRoomDto.ChatRoomResponse =

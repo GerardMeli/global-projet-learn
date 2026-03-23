@@ -64,7 +64,7 @@ class JwtProvider (
     }
 
     fun generateTokenWithClaims(
-        userId: Long,
+        userId: String,
         email: String,
         role: String
     ): String {
@@ -83,14 +83,14 @@ class JwtProvider (
             .compact()
     }
 
-    fun generateOAuth2Token(userId: Long, email: String, role: String): String {
+    fun generateOAuth2Token(userId: String, email: String, role: String): String {
         return generateTokenWithClaims(userId, email, role)
     }
 
     /**
      * Create an email verification token
      */
-    fun createEmailVerificationToken(userId: Long): String {
+    fun createEmailVerificationToken(userId: String): String {
         val now = Date()
         val expiryDate = Date(now.time + emailVerificationExpiration)
 
@@ -108,7 +108,7 @@ class JwtProvider (
      * Create a password reset token
      */
     /** Dans JwtProvider.kt **/
-    fun createPasswordResetToken(userId: Long, email: String): String { // Ajoutez l'email en paramètre
+    fun createPasswordResetToken(userId: String, email: String): String { // Ajoutez l'email en paramètre
         val now = Date()
         val expiryDate = Date(now.time + passwordResetExpiration)
 
@@ -135,7 +135,7 @@ class JwtProvider (
     /**
      * Create an email change token
      */
-    fun createEmailChangeToken(userId: Long, newEmail: String): String {
+    fun createEmailChangeToken(userId: String, newEmail: String): String {
         val now = Date()
         val expiryDate = Date(now.time + emailChangeExpiration)
 
@@ -153,7 +153,7 @@ class JwtProvider (
     /**
      * Validate email verification token and return userId
      */
-    fun validateEmailVerificationToken(token: String): Long {
+    fun validateEmailVerificationToken(token: String): String {
         try {
             val claims = getAllClaimsFromToken(token)
 
@@ -171,10 +171,10 @@ class JwtProvider (
             // Get and return userId
             val userIdValue = claims.get("userId")
             return when (userIdValue) {
-                is Long -> userIdValue
+                is String -> userIdValue
                 is Int -> userIdValue.toLong()
                 else -> userIdValue.toString().toLong()
-            }
+            } as String
         } catch (e: ExpiredJwtException) {
             log.error("Email verification token expired: ${e.message}")
             throw ExpiredTokenException("Email verification token has expired")
@@ -199,7 +199,7 @@ class JwtProvider (
     /**
      * Validate password reset token and return userId
      */
-    fun validatePasswordResetToken(token: String): Long {
+    fun validatePasswordResetToken(token: String): String {
         try {
             log.debug("Validating password reset token: $token")
             val claims = getAllClaimsFromToken(token)
@@ -220,12 +220,9 @@ class JwtProvider (
             }
 
             // Get and return userId
-            val userIdValue = claims.get("userId")
-            return when (userIdValue) {
-                is Long -> userIdValue
-                is Int -> userIdValue.toLong()
-                else -> userIdValue.toString().toLong()
-            }
+            return claims.get("userId", String::class.java)
+                ?: throw InvalidTokenException("UserId not found in token")
+
         } catch (e: ExpiredJwtException) {
             log.error("Password reset token expired: ${e.message}")
             throw ExpiredTokenException("Password reset token has expired")
@@ -250,7 +247,7 @@ class JwtProvider (
     /**
      * Validate email change token and return userId
      */
-    fun validateEmailChangeToken(token: String): Long {
+    fun validateEmailChangeToken(token: String): String {
         try {
             val claims = getAllClaimsFromToken(token)
 
@@ -268,10 +265,10 @@ class JwtProvider (
             // Get and return userId
             val userIdValue = claims.get("userId")
             return when (userIdValue) {
-                is Long -> userIdValue
+                is String -> userIdValue
                 is Int -> userIdValue.toLong()
                 else -> userIdValue.toString().toLong()
-            }
+            } as String
         } catch (e: ExpiredJwtException) {
             log.error("Email change token expired: ${e.message}")
             throw ExpiredTokenException("Email change token has expired")

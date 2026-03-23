@@ -83,7 +83,8 @@ class SecurityConfig(
                     // Public routes
                     .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()  // ← ADD THIS FIRST
                     .requestMatchers("/", "/login", "/favicon.ico").permitAll()
-//                    .requestMatchers( "/register").permitAll()
+                    .requestMatchers( "/register").permitAll()
+                    .requestMatchers("/api/embed/verify").permitAll()  // ← AJOUTER CETTE LIGNE
                     .requestMatchers("/resources/**", "/static/**", "/public/**", "/css/**", "/js/**").permitAll()
                     .requestMatchers("/error").permitAll()
 //                    .requestMatchers("/ws-chat/**").permitAll() // Allow WebSocket handshake
@@ -113,7 +114,7 @@ class SecurityConfig(
                     .requestMatchers("/api/auth/reset-password").permitAll()
 
                     // Register : réservé aux admins uniquement
-                    .requestMatchers("/api/auth/register").hasRole("ADMIN")
+//                    .requestMatchers("/api/auth/register").hasRole("ADMIN")
                     .requestMatchers("/api/admin/migration/single").hasRole("ADMIN")
                     .requestMatchers("/api/admin/migration/run").hasRole("ADMIN")
 
@@ -156,8 +157,6 @@ class SecurityConfig(
     fun corsConfigurationSource(): CorsConfigurationSource {
         val corsConfig = CorsConfiguration().apply {
             allowedOrigins = listOf(
-//                "http://localhost:3000",
-//                "http://localhost:5173",
                 "http://localhost:8080",
                 "http://localhost:8081",
                 "http://localhost:8082",

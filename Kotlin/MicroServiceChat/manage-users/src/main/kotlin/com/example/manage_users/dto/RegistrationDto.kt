@@ -31,6 +31,7 @@ class RegistrationDto {
             message = "Invalid Cameroonian phone number format. Example: +237 698 520 147"
         )
         val phoneNumber: String? = null,
+        val role: UserRole = UserRole.ADMIN,
 
         @field:Size(max = 45)
         val address: String? = null,
@@ -39,7 +40,7 @@ class RegistrationDto {
     )
 
     data class RegisterResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val firstName: String?,
         val lastName: String?,
@@ -79,7 +80,7 @@ class RegistrationDto {
     )
 
     data class UserResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val role: UserRole,
         val isActive: Boolean,

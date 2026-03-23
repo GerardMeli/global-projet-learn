@@ -3,6 +3,8 @@ package com.reli237.web_application_chat.controller
 import com.reli237.web_application_chat.dto.MessageDto
 import com.reli237.web_application_chat.model.MessageType
 import com.reli237.web_application_chat.service.MessageService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.messaging.simp.SimpMessagingTemplate
@@ -11,6 +13,7 @@ import java.security.Principal
 
 @RestController
 @RequestMapping("/api/message")
+@Tag(name = "Messages", description = "Management of messages in chat rooms")
 class MessageController(
     private val messageService: MessageService,
     private val messagingTemplate: SimpMessagingTemplate
@@ -21,35 +24,41 @@ class MessageController(
     // ═══════════════════════════════════════════════════════════
 
     @PostMapping("/messages")
+    @Operation(summary = "Create message", description = "Sends a new message to a chat room")
     fun createMessage(
-        @RequestHeader("X-User-Id") userId: Long,
+        @RequestHeader("X-User-Id") userId: String,
         @RequestBody request: MessageDto.MessageCreateRequest
     ): ResponseEntity<MessageDto.MessageResponse> =
         ResponseEntity.status(HttpStatus.CREATED).body(messageService.createMessage(userId, request))
 
     @PutMapping("/messages/{messageId}")
+    @Operation(summary = "Update message", description = "Edits the content of an existing message")
     fun updateMessage(
-        @PathVariable messageId: Long,
+        @PathVariable messageId: String,
         @RequestBody request: MessageDto.MessageUpdateRequest
     ): ResponseEntity<MessageDto.MessageResponse> =
         ResponseEntity.ok(messageService.updateMessage(messageId, request))
 
     @DeleteMapping("/messages/{messageId}")
-    fun deleteMessage(@PathVariable messageId: Long): ResponseEntity<MessageDto.MessageResponse> =
+    @Operation(summary = "Soft delete message", description = "Marks a message as deleted without removing it from the database")
+    fun deleteMessage(@PathVariable messageId: String): ResponseEntity<MessageDto.MessageResponse> =
         ResponseEntity.ok(messageService.deleteMessage(messageId))
 
     @PostMapping("/messages/{messageId}/restore")
-    fun restoreMessage(@PathVariable messageId: Long): ResponseEntity<MessageDto.MessageResponse> =
+    @Operation(summary = "Restore message", description = "Restores a previously soft-deleted message")
+    fun restoreMessage(@PathVariable messageId: String): ResponseEntity<MessageDto.MessageResponse> =
         ResponseEntity.ok(messageService.restoreMessage(messageId))
 
     @DeleteMapping("/messages/{messageId}/permanent")
-    fun permanentlyDeleteMessage(@PathVariable messageId: Long): ResponseEntity<Void> {
+    @Operation(summary = "Permanent delete message", description = "Permanently removes a message from the database")
+    fun permanentlyDeleteMessage(@PathVariable messageId: String): ResponseEntity<Void> {
         messageService.permanentlyDeleteMessage(messageId)
         return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/messages/{id}")
-    fun getMessageById(@PathVariable id: Long): ResponseEntity<MessageDto.MessageDetailResponse> =
+    @Operation(summary = "Get message by ID", description = "Retrieves detailed information about a specific message")
+    fun getMessageById(@PathVariable id: String): ResponseEntity<MessageDto.MessageDetailResponse> =
         ResponseEntity.ok(messageService.getMessageById(id))
 
     // ═══════════════════════════════════════════════════════════
@@ -58,22 +67,25 @@ class MessageController(
 
     /** Ordonné ASC par défaut (ordered=true). Passer ?ordered=false pour sans tri. */
     @GetMapping("/rooms/{roomId}/messages")
+    @Operation(summary = "Get room messages", description = "Retrieves all messages for a specific chat room")
     fun getMessagesByRoom(
-        @PathVariable roomId: Long,
+        @PathVariable roomId: String,
         @RequestParam(defaultValue = "true") ordered: Boolean
     ): ResponseEntity<List<MessageDto.MessageResponse>> =
         ResponseEntity.ok(messageService.getMessagesByChatRoom(roomId, ordered))
 
     @GetMapping("/rooms/{roomId}/messages/sender/{senderId}")
+    @Operation(summary = "Get room messages by sender", description = "Retrieves all active messages sent by a specific user in a room")
     fun getMessagesByChatRoomAndSender(
-        @PathVariable roomId: Long,
-        @PathVariable senderId: Long
+        @PathVariable roomId: String,
+        @PathVariable senderId: String
     ): ResponseEntity<List<MessageDto.MessageResponse>> =
         ResponseEntity.ok(messageService.getActiveMessagesByChatRoomAndSender(roomId, senderId))
 
     @GetMapping("/rooms/{roomId}/messages/count")
+    @Operation(summary = "Count room messages", description = "Returns the number of messages in a specific chat room")
     fun countMessagesByRoom(
-        @PathVariable roomId: Long
+        @PathVariable roomId: String
     ): ResponseEntity<Map<String, Long>> =
         ResponseEntity.ok(mapOf("count" to messageService.countMessagesByChatRoom(roomId)))
 
@@ -83,15 +95,17 @@ class MessageController(
 
     /** Passer ?ordered=true pour ORDER BY timestamp DESC */
     @GetMapping("/users/{senderId}/messages")
+    @Operation(summary = "Get messages by sender", description = "Retrieves all messages sent by a specific user across all rooms")
     fun getMessagesBySender(
-        @PathVariable senderId: Long,
+        @PathVariable senderId: String,
         @RequestParam(defaultValue = "false") ordered: Boolean
     ): ResponseEntity<List<MessageDto.MessageResponse>> =
         ResponseEntity.ok(messageService.getMessagesBySender(senderId, ordered))
 
     @GetMapping("/users/{senderId}/messages/count")
+    @Operation(summary = "Count messages by sender", description = "Returns the total number of messages sent by a user")
     fun countMessagesBySender(
-        @PathVariable senderId: Long
+        @PathVariable senderId: String
     ): ResponseEntity<Map<String, Long>> =
         ResponseEntity.ok(mapOf("count" to messageService.countMessagesBySender(senderId)))
 
@@ -100,14 +114,17 @@ class MessageController(
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/messages/active")
+    @Operation(summary = "Get all active messages", description = "Lists all messages that are not soft-deleted")
     fun getAllActiveMessages(): ResponseEntity<List<MessageDto.MessageResponse>> =
         ResponseEntity.ok(messageService.getAllActiveMessages())
 
     @GetMapping("/messages/all")
+    @Operation(summary = "Get all messages", description = "Lists all messages including soft-deleted ones (Admin only)")
     fun getAllMessages(): ResponseEntity<List<MessageDto.MessageResponse>> =
         ResponseEntity.ok(messageService.getAllMessages())
 
     @GetMapping("/messages/type/{messageType}")
+    @Operation(summary = "Get messages by type", description = "Filters messages by type (TEXT, IMAGE, FILE, etc.)")
     fun getMessagesByType(
         @PathVariable messageType: MessageType
     ): ResponseEntity<List<MessageDto.MessageResponse>> =
@@ -118,18 +135,21 @@ class MessageController(
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/rooms/{roomId}/files")
+    @Operation(summary = "Get files in room", description = "Lists all file/image messages shared in a chat room")
     fun getFilesByRoom(
-        @PathVariable roomId: Long
+        @PathVariable roomId: String
     ): ResponseEntity<List<MessageDto.FileMessageResponse>> =
         ResponseEntity.ok(messageService.getFilesByChatRoom(roomId))
 
     @DeleteMapping("/messages/{messageId}/file")
+    @Operation(summary = "Delete file message", description = "Deletes a file associated with a message")
     fun deleteFileMessage(
-        @PathVariable messageId: Long
+        @PathVariable messageId: String
     ): ResponseEntity<MessageDto.FileMessageResponse> =
         ResponseEntity.ok(messageService.deleteFileMessage(messageId))
 
     @GetMapping("/files/download/{fileName}")
+    @Operation(summary = "Get file download URL", description = "Generates or retrieves a download link for a specific file")
     fun getFileDownloadUrl(
         @PathVariable fileName: String
     ): ResponseEntity<Map<String, String>> =
@@ -140,8 +160,9 @@ class MessageController(
     // ═══════════════════════════════════════════════════════════
 
     @PostMapping("/rooms/{roomId}/typing")
+    @Operation(summary = "Notify typing status", description = "Sends a typing notification to a chat room via WebSocket")
     fun notifyTyping(
-        @PathVariable roomId: Long,
+        @PathVariable roomId: String,
         @RequestBody typingRequest: MessageDto.TypingRequest
     ): ResponseEntity<MessageDto.TypingNotification> {
         val notification = MessageDto.TypingNotification(
@@ -152,8 +173,9 @@ class MessageController(
     }
 
     @GetMapping("/rooms/{roomId}/typing-status")
+    @Operation(summary = "Get typing users", description = "Retrieves a list of users currently typing in a room")
     fun getTypingStatus(
-        @PathVariable roomId: Long
+        @PathVariable roomId: String
     ): ResponseEntity<MessageDto.TypingStatusResponse> =
         ResponseEntity.ok(
             MessageDto.TypingStatusResponse(
@@ -163,9 +185,10 @@ class MessageController(
         )
 
     @PostMapping("/messages/{messageId}/read")
+    @Operation(summary = "Mark message as read", description = "Notifies that a message has been read by a user")
     fun markMessageAsRead(
-        @PathVariable messageId: Long,
-        @RequestParam readByUserId: Long,
+        @PathVariable messageId: String,
+        @RequestParam readByUserId: String,
         principal: Principal
     ): ResponseEntity<MessageDto.MessageReadNotification> {
         val senderId = principal.name.toLongOrNull()
@@ -178,8 +201,9 @@ class MessageController(
     }
 
     @GetMapping("/messages/{messageId}/read-status")
+    @Operation(summary = "Get message read status", description = "Retrieves information about which users have read a message")
     fun getMessageReadStatus(
-        @PathVariable messageId: Long
+        @PathVariable messageId: String
     ): ResponseEntity<MessageDto.MessageReadStatusResponse> =
         ResponseEntity.ok(
             MessageDto.MessageReadStatusResponse(
@@ -189,9 +213,10 @@ class MessageController(
         )
 
     @DeleteMapping("/rooms/{roomId}/users/{userId}")
+    @Operation(summary = "Remove user and notify", description = "Removes a user from a room and sends a WebSocket notification")
     fun removeUserFromRoom(
-        @PathVariable roomId: Long,
-        @PathVariable userId: Long
+        @PathVariable roomId: String,
+        @PathVariable userId: String
     ): ResponseEntity<Map<String, String>> {
         messagingTemplate.convertAndSend(
             "/topic/room/$roomId/users",

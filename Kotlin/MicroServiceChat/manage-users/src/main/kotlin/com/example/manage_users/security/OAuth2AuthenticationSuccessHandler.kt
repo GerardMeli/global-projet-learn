@@ -55,7 +55,7 @@ class OAuth2AuthenticationSuccessHandler (
     ): Users {
         val names = name?.split(" ") ?: listOf()
         val user = Users(
-            id = 0,
+            id = "",
             email = email,
             password = "", // OAuth2 users don't have password
             firstName = firstName ?: (names.getOrNull(0) ?: ""),

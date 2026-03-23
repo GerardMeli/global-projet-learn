@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface ChatRoomRepository: JpaRepository<ChatRoom, Long> {
+interface ChatRoomRepository: JpaRepository<ChatRoom, String> {
 
     fun findByName(name: String): Optional<ChatRoom>
 

@@ -49,14 +49,14 @@ class AuthServiceImpl(
         }
 
         val user = Users(
-            id = 0,
+            id = "",
             email = request.email,
             password = passwordEncoder.passwordEncoder().encode(request.password),
             firstName = request.firstName,
             lastName = request.lastName,
             phoneNumber = request.phoneNumber,
             address = request.address,
-            role = UserRole.USER,
+            role = UserRole.ADMIN,
             status = UserStatus.PENDING,
             isActive = true,
             emailVerified = false,
@@ -194,7 +194,7 @@ class AuthServiceImpl(
     // ─────────────────────────────────────────────────────────────────────────
     // LOGOUT
     // ─────────────────────────────────────────────────────────────────────────
-    override fun logout(userId: Long) {
+    override fun logout(userId: String) {
         SecurityContextHolder.clearContext()
     }
 }

@@ -1,6 +1,8 @@
 package com.gateway.system_manager_file.controller
 
 import com.gateway.system_manager_file.service.FileService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.Resource
@@ -13,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 //@Controller
+@Tag(name = "File Management", description = "Endpoints for managing file uploads, downloads, and metadata")
 @RequestMapping("/api/files")
 class WebController(
     private var fileService: FileService
@@ -26,6 +29,7 @@ class WebController(
      * Upload a file with description
      * POST /api/files/upload
      */
+    @Operation(summary = "Upload a file with description")
     @PostMapping("/upload", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun uploadFile(
         @RequestParam("file") file: MultipartFile,
@@ -58,6 +62,7 @@ class WebController(
      * Get all files
      * GET /api/files
      */
+    @Operation(summary = "Get all files")
     @GetMapping
     fun getAllFiles(): ResponseEntity<Map<String, Any>> {
         return try {
@@ -86,6 +91,7 @@ class WebController(
      * Get file by ID
      * GET /api/files/{id}
      */
+    @Operation(summary = "Get file by ID")
     @GetMapping("/{id}")
     fun getFileById(@PathVariable id: Long): ResponseEntity<Map<String, Any>> {
         return try {
@@ -122,6 +128,7 @@ class WebController(
      * Download file by filename
      * GET /api/files/download/{fileName}
      */
+    @Operation(summary = "Download file by filename")
     @GetMapping("/download/{fileName:.+}")
     fun downloadFile(
         @PathVariable fileName: String,
@@ -154,6 +161,7 @@ class WebController(
      * Download file by ID
      * GET /api/files/download-by-id/{id}
      */
+    @Operation(summary = "Download file by ID")
     @GetMapping("/download-by-id/{id}")
     fun downloadFileById(
         @PathVariable id: Long,
@@ -192,6 +200,7 @@ class WebController(
      * Delete file by ID
      * DELETE /api/files/{id}
      */
+    @Operation(summary = "Delete file by ID")
     @DeleteMapping("/{id}")
     fun deleteFileById(@PathVariable id: Long): ResponseEntity<Map<String, Any>> {
         return try {
@@ -232,6 +241,7 @@ class WebController(
      * Search files by filename
      * GET /api/files/search?fileName=xxx
      */
+    @Operation(summary = "Search files by filename")
     @GetMapping("/search")
     fun searchFiles(@RequestParam fileName: String): ResponseEntity<Map<String, Any>> {
         return try {
@@ -261,6 +271,7 @@ class WebController(
      * Update file description
      * PUT /api/files/{id}/description
      */
+    @Operation(summary = "Update file description")
     @PutMapping("/{id}/description")
     fun updateFileDescription(
         @PathVariable id: Long,
@@ -303,6 +314,7 @@ class WebController(
      * Get file statistics
      * GET /api/files/stats
      */
+    @Operation(summary = "Get file statistics")
     @GetMapping("/stats")
     fun getFileStats(): ResponseEntity<Map<String, Any>> {
         return try {

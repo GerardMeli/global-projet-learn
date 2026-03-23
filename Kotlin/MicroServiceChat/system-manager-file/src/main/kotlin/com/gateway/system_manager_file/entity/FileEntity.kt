@@ -1,5 +1,6 @@
 package com.gateway.system_manager_file.entity
 
+import com.example.manage_users.utils.FilesIdGenerator
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
 import java.time.LocalDateTime
@@ -10,8 +11,9 @@ import java.time.LocalDateTime
 data class FileEntity(
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long = 0,
+    @Column(name = "id", length = 40, nullable = false, updatable = false)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: String = "",
 
     @Column(nullable = false)
     var fileName: String = "",
@@ -33,4 +35,10 @@ data class FileEntity(
 
     var description: String = ""
 
-)
+) {
+    @PrePersist
+    fun generateId() {
+        if (id.isBlank())
+            id = FilesIdGenerator.generate(fileType)
+    }
+}

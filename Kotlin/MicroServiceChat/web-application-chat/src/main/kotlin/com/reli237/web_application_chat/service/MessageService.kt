@@ -41,14 +41,14 @@ class MessageService(
     // ═══════════════════════════════════════════════════════════
 
     @Transactional
-    fun createMessage(userId: Long, request: MessageDto.MessageCreateRequest): MessageDto.MessageResponse {
+    fun createMessage(userId: String, request: MessageDto.MessageCreateRequest): MessageDto.MessageResponse {
         val user = usersWebChatInterface.getUserBasicInfo(userId)
             .getBodyOrThrow("User not found with id: $userId")
         val chatRoom = chatRoomRepository.findById(request.chatRoomId)
             .orElseThrow { EntityNotFoundException("Chat room not found with id: ${request.chatRoomId}") }
         val saved = messageRepository.save(
             Message(
-                id = 0, content = request.content, senderId = userId,
+                id = "", content = request.content, senderId = userId,
                 chatRoom = chatRoom, timeStamp = LocalDateTime.now(),
                 messageType = request.messageType, isDeleted = false
             )
@@ -56,23 +56,23 @@ class MessageService(
         return mapToMessageResponse(saved)
     }
 
-    fun updateMessage(messageId: Long, request: MessageDto.MessageUpdateRequest): MessageDto.MessageResponse {
+    fun updateMessage(messageId: String, request: MessageDto.MessageUpdateRequest): MessageDto.MessageResponse {
         val message = findMessageById(messageId)
         if (message.isDeleted) throw IllegalStateException("Cannot update a deleted message")
         if (request.content.isNullOrBlank()) return mapToMessageResponse(message)
         return mapToMessageResponse(messageRepository.save(message.copy(content = request.content)))
     }
 
-    fun deleteMessage(messageId: Long): MessageDto.MessageResponse =
+    fun deleteMessage(messageId: String): MessageDto.MessageResponse =
         mapToMessageResponse(messageRepository.save(findMessageById(messageId).copy(isDeleted = true)))
 
-    fun restoreMessage(messageId: Long): MessageDto.MessageResponse {
+    fun restoreMessage(messageId: String): MessageDto.MessageResponse {
         val message = findMessageById(messageId)
         if (!message.isDeleted) throw IllegalStateException("Message is not deleted")
         return mapToMessageResponse(messageRepository.save(message.copy(isDeleted = false)))
     }
 
-    fun permanentlyDeleteMessage(messageId: Long) {
+    fun permanentlyDeleteMessage(messageId: String) {
         if (!messageRepository.existsById(messageId))
             throw IllegalArgumentException("Message not found with id: $messageId")
         messageRepository.deleteById(messageId)
@@ -88,7 +88,7 @@ class MessageService(
      * @param ordered  true  → ORDER BY timeStamp ASC (défaut, utile pour affichage chat)
      *                 false → pas d'ordre garanti, légèrement plus rapide
      */
-    fun getMessagesByChatRoom(chatRoomId: Long, ordered: Boolean = true): List<MessageDto.MessageResponse> {
+    fun getMessagesByChatRoom(chatRoomId: String, ordered: Boolean = true): List<MessageDto.MessageResponse> {
         requireChatRoomExists(chatRoomId)
         val messages = if (ordered)
             messageRepository.findByChatRoomIdOrderByTimeStampAsc(chatRoomId)
@@ -98,16 +98,16 @@ class MessageService(
     }
 
     // Alias conservé pour rétrocompatibilité avec ChatRoomService
-    fun getMessagesByChatRoomOrdered(chatRoomId: Long) = getMessagesByChatRoom(chatRoomId, ordered = true)
+    fun getMessagesByChatRoomOrdered(chatRoomId: String) = getMessagesByChatRoom(chatRoomId, ordered = true)
 
-    fun getActiveMessagesByChatRoomAndSender(chatRoomId: Long, senderId: Long): List<MessageDto.MessageResponse> {
+    fun getActiveMessagesByChatRoomAndSender(chatRoomId: String, senderId: String): List<MessageDto.MessageResponse> {
         requireChatRoomExists(chatRoomId)
         requireUserExists(senderId)
         return messageRepository.findByChatRoomIdAndSenderIdAndIsDeletedFalse(chatRoomId, senderId)
             .map { mapToMessageResponse(it) }
     }
 
-    fun countMessagesByChatRoom(chatRoomId: Long): Long =
+    fun countMessagesByChatRoom(chatRoomId: String): Long =
         messageRepository.countByChatRoomId(chatRoomId)
 
     // ═══════════════════════════════════════════════════════════
@@ -119,7 +119,7 @@ class MessageService(
      * @param ordered  true → ORDER BY timeStamp DESC
      *                 false → pas de tri (défaut)
      */
-    fun getMessagesBySender(senderId: Long, ordered: Boolean = false): List<MessageDto.MessageResponse> {
+    fun getMessagesBySender(senderId: String, ordered: Boolean = false): List<MessageDto.MessageResponse> {
         requireUserExists(senderId)
         val messages = if (ordered)
             messageRepository.findBySenderIdOrderByTimeStampDesc(senderId)
@@ -128,7 +128,7 @@ class MessageService(
         return messages.filter { !it.isDeleted }.map { mapToMessageResponse(it) }
     }
 
-    fun countMessagesBySender(senderId: Long): Long = messageRepository.countBySenderId(senderId)
+    fun countMessagesBySender(senderId: String): Long = messageRepository.countBySenderId(senderId)
 
     // ═══════════════════════════════════════════════════════════
     // REQUÊTES — Filtrages divers
@@ -149,7 +149,7 @@ class MessageService(
     // Remplace : getChatRoomFilesAlternative → getFilesByChatRoom
     // ═══════════════════════════════════════════════════════════
 
-    fun getFilesByChatRoom(chatRoomId: Long): List<MessageDto.FileMessageResponse> {
+    fun getFilesByChatRoom(chatRoomId: String): List<MessageDto.FileMessageResponse> {
         val chatRoom = chatRoomRepository.findById(chatRoomId)
             .orElseThrow { EntityNotFoundException("Chat room not found with id: $chatRoomId") }
         return messageRepository.findByChatRoomIdAndMessageTypeIn(
@@ -172,7 +172,7 @@ class MessageService(
         }
     }
 
-    fun deleteFileMessage(messageId: Long): MessageDto.FileMessageResponse {
+    fun deleteFileMessage(messageId: String): MessageDto.FileMessageResponse {
         val message = findMessageById(messageId)
         if (message.messageType != MessageType.FILE && message.messageType != MessageType.IMAGE)
             throw IllegalArgumentException("Message is not a file message")
@@ -197,7 +197,7 @@ class MessageService(
     // WEBSOCKET HELPERS
     // ═══════════════════════════════════════════════════════════
 
-    fun getMessageById(id: Long): MessageDto.MessageDetailResponse {
+    fun getMessageById(id: String): MessageDto.MessageDetailResponse {
         val message = findMessageById(id)
         val sender = usersWebChatInterface.getUserBasicInfo(message.senderId)
             .getBodyOrThrow("User not found with id: ${message.senderId}")
@@ -211,12 +211,12 @@ class MessageService(
         )
     }
 
-    fun getTypingUsersInRoom(roomId: Long): List<MessageDto.TypingUser> {
+    fun getTypingUsersInRoom(roomId: String): List<MessageDto.TypingUser> {
         requireChatRoomExists(roomId)
         return emptyList() // Géré en temps réel via WebSocket
     }
 
-    fun getMessageReadStatus(messageId: Long): List<MessageDto.UserReadInfo> {
+    fun getMessageReadStatus(messageId: String): List<MessageDto.UserReadInfo> {
         val message = findMessageById(messageId)
         val sender = usersWebChatInterface.getUserBasicInfo(message.senderId)
             .getBodyOrThrow("User not found with id: ${message.senderId}")
@@ -232,14 +232,14 @@ class MessageService(
     // HELPERS PRIVÉS
     // ═══════════════════════════════════════════════════════════
 
-    private fun findMessageById(id: Long): Message =
+    private fun findMessageById(id: String): Message =
         messageRepository.findById(id).orElseThrow { IllegalArgumentException("Message not found with id: $id") }
 
-    private fun requireChatRoomExists(chatRoomId: Long) =
+    private fun requireChatRoomExists(chatRoomId: String) =
         chatRoomRepository.findById(chatRoomId)
             .orElseThrow { IllegalArgumentException("Chat room not found with id: $chatRoomId") }
 
-    private fun requireUserExists(userId: Long) =
+    private fun requireUserExists(userId: String) =
         usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow("User not found with id: $userId")
 
     private fun mapToMessageResponse(message: Message): MessageDto.MessageResponse {
@@ -267,8 +267,8 @@ class MessageService(
         else -> "text/plain"
     }
 
-    private fun extractFileIdFromContent(content: String): Long? =
-        Regex("""ID:\s*(\d+)""").find(content)?.groupValues?.get(1)?.toLongOrNull()
+    private fun extractFileIdFromContent(content: String): String? =
+        Regex("""ID:\s*(\d+)""").find(content)?.groupValues?.get(1)
 
     private fun extractFileSizeFromContent(content: String): Long =
         Regex("""Size:\s*(\d+)""").find(content)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
