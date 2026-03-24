@@ -47,7 +47,7 @@ class UserServiceImpl (
 
         return User.builder()
             .username(user.email)
-            .password(user.password)
+            .password(user.password ?: "") // Important : Spring Security n'aime pas les passwords nulls
             .authorities(authorities)
             .accountLocked(user.status == UserStatus.BLOCKED)
             .accountExpired(false)
