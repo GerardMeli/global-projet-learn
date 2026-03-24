@@ -52,23 +52,6 @@ spring:
             enabled: true
             required: true
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: 353683862208-r5g3ln4citdgt5svjbkhgp3jp3hnsjtd.apps.googleusercontent.com
-            client-secret: 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
-            scope:
-              - email
-              - profile
-          github:
-            client-id: Ov23liKDKcYYe5CVmklS
-            client-secret: 7cc48bebd3c1691a403d556719b89e626424c6d2
-            scope:
-              - user:email
-              - read:user
-
 server:
   servlet:
     session:
@@ -95,6 +78,11 @@ eureka:
     fetch-registry: true
 
 app:
+  firebase:
+    # Chemin vers ton fichier service-account.json téléchargé depuis Firebase Console
+    service-account-path: classpath:firebase-service-account.json
+    # Ton Firebase Project ID (visible dans Project Settings)
+    project-id: flowchat-11027
   jwt:
     secret: TGHJVxyGBVg9oBpHJED2bECDujeT+gd3Hm1Uy2TE3N0Rv+m+mFE2oE/ucN692Wp6pwqKc9eVEk6SbHwHVwcykQ==
     access-expiration: 3600000  # 1 heure

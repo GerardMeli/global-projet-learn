@@ -2,7 +2,6 @@ package com.example.manage_users.config
 
 import com.example.manage_users.security.JwtAuthenticationFilter
 import com.example.manage_users.security.JwtProvider
-import com.example.manage_users.security.OAuth2AuthenticationSuccessHandler
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -41,8 +40,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableMethodSecurity(prePostEnabled = true)
 class SecurityConfig(
     private val userDetailsService: UserDetailsService,
-    private val jwtProvider: JwtProvider,
-    private val oAuth2AuthenticationSuccessHandler: OAuth2AuthenticationSuccessHandler
+    private val jwtProvider: JwtProvider
 ) {
 
     @Bean
@@ -87,6 +85,7 @@ class SecurityConfig(
                     .requestMatchers("/api/embed/verify").permitAll()  // ← AJOUTER CETTE LIGNE
                     .requestMatchers("/resources/**", "/static/**", "/public/**", "/css/**", "/js/**").permitAll()
                     .requestMatchers("/error").permitAll()
+                    .requestMatchers("/api/auth/social").permitAll()
 //                    .requestMatchers("/ws-chat/**").permitAll() // Allow WebSocket handshake
 
 
@@ -130,13 +129,6 @@ class SecurityConfig(
 
                     // All other requests require authentication
                     .anyRequest().authenticated()
-            }
-            .oauth2Login { oauth2 ->
-                oauth2
-                    .successHandler(oAuth2AuthenticationSuccessHandler)
-                    .failureHandler { request, response, exception ->
-                        response.sendRedirect("http://localhost:3000/login?error=${exception.message}")
-                    }
             }
             .addFilterBefore(
                 JwtAuthenticationFilter(jwtProvider, userDetailsService),

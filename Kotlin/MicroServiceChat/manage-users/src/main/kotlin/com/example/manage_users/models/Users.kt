@@ -14,7 +14,8 @@ import java.time.LocalDateTime
         Index(name = "idx_email", columnList = "email"),
         Index(name = "idx_status", columnList = "status"),
         Index(name = "idx_role", columnList = "role"),
-        Index(name = "idx_created_at", columnList = "created_at")
+        Index(name = "idx_created_at", columnList = "created_at"),
+        Index(name = "idx_users_firebase_uid", columnList = "firebaseUid", unique = true)
     ]
 )
 data class Users (
@@ -34,8 +35,30 @@ data class Users (
     @Column(length = 100)
     var lastName: String? = null,
 
-    @Column(nullable = false)
+    @Column
     var password: String? = null,
+
+    /**
+     * UID unique attribué par Firebase à cet utilisateur.
+     * Stable : ne change jamais même si l'email est modifié.
+     * Null pour les comptes purement locaux (email/password).
+     */
+    @Column(unique = true, length = 128)
+    val firebaseUid: String? = null,
+
+    /**
+     * Provider d'authentification utilisé :
+     *   "local"        → compte email/password classique
+     *   "google.com"   → Google
+     *   "github.com"   → GitHub
+     *   "facebook.com" → Facebook
+     * Valeur retournée directement par Firebase.
+     */
+    @Column(length = 50)
+    val authProvider: String = "local",
+
+    @Column(length = 512)
+    val profilePicture: String? = null,
 
     @Column(name = "is_active")
     var isActive: Boolean = true,
@@ -56,7 +79,7 @@ data class Users (
     @Column
     var failedLoginAttempts: Int = 0,
 
-    @Column
+    @Column(nullable = false)
     var emailVerified: Boolean = false,
 
     @Enumerated(EnumType.STRING)

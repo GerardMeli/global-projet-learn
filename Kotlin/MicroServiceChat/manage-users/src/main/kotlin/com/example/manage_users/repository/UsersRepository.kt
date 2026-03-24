@@ -93,4 +93,16 @@ interface UsersRepository : JpaRepository<Users, String> {
         @Param("currentUserId") currentUserId: String,
         @Param("query") query: String
     ): List<Users>
+
+    // ── Nouveau (login social via Firebase) ─────────────────────────────────
+
+    /**
+     * Recherche un utilisateur par son UID Firebase.
+     * C'est la méthode privilégiée pour identifier un utilisateur social,
+     * car le firebaseUid est immuable (contrairement à l'email).
+     */
+    fun findByFirebaseUid(firebaseUid: String): Optional<Users>
+
+    /** Utile pour vérifier si un UID Firebase est déjà lié à un compte. */
+    fun existsByFirebaseUid(firebaseUid: String): Boolean
 }

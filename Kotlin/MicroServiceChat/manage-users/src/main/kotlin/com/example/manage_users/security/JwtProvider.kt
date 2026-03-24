@@ -83,10 +83,6 @@ class JwtProvider (
             .compact()
     }
 
-    fun generateOAuth2Token(userId: String, email: String, role: String): String {
-        return generateTokenWithClaims(userId, email, role)
-    }
-
     /**
      * Create an email verification token
      */
