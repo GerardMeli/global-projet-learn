@@ -111,21 +111,22 @@ class SecurityConfig(
                     .requestMatchers("/api/auth/resend-verification").permitAll()
                     .requestMatchers("/api/auth/forgot-password").permitAll()
                     .requestMatchers("/api/auth/reset-password").permitAll()
+                    .requestMatchers("/auth/system/**").permitAll()
 
                     // Register : réservé aux admins uniquement
-//                    .requestMatchers("/api/auth/register").hasRole("ADMIN")
-                    .requestMatchers("/api/admin/migration/single").hasRole("ADMIN")
-                    .requestMatchers("/api/admin/migration/run").hasRole("ADMIN")
+//                    .requestMatchers("/api/auth/register").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                    .requestMatchers("/api/admin/migration/single").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                    .requestMatchers("/api/admin/migration/run").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                     // Profile endpoints (require authentication)
                     .requestMatchers("/api/profile/**").permitAll()
 
                     // Admin endpoints (require ADMIN role)
                     .requestMatchers("/api/admin/users/*/basic").authenticated()
-                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                     // Statistics endpoints (require ADMIN role)
-                    .requestMatchers("/api/admin/statistics/**").hasRole("ADMIN")
+                    .requestMatchers("/api/admin/statistics/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                     // All other requests require authentication
                     .anyRequest().authenticated()

@@ -19,4 +19,8 @@ interface AuthService {
 
     fun logout(userId: String)
 
+    fun isSystemInitialized(): Boolean
+
+    fun setupSystem(request: RegistrationDto.RegisterRequest): RegistrationDto.RegisterResponse
+
 }

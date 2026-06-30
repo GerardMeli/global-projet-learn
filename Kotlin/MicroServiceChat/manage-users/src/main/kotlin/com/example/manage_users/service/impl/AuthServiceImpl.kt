@@ -197,4 +197,49 @@ class AuthServiceImpl(
     override fun logout(userId: String) {
         SecurityContextHolder.clearContext()
     }
+
+    override fun isSystemInitialized(): Boolean {
+        return usersRepository.countByRole(UserRole.SUPER_ADMIN) > 0
+    }
+
+    override fun setupSystem(request: RegistrationDto.RegisterRequest): RegistrationDto.RegisterResponse {
+        if (isSystemInitialized()) {
+            throw BadRequestException("System is already initialized.")
+        }
+
+        if (usersRepository.existsByEmail(request.email)) {
+            throw EmailAlreadyExistsException("Email already registered: ${request.email}")
+        }
+
+        val user = Users(
+            id = "",
+            email = request.email,
+            password = passwordEncoder.passwordEncoder().encode(request.password),
+            firstName = request.firstName,
+            lastName = request.lastName,
+            phoneNumber = request.phoneNumber,
+            address = request.address,
+            role = UserRole.SUPER_ADMIN,
+            status = UserStatus.PENDING_VERIFICATION,
+            isActive = true,
+            emailVerified = false,
+            language = request.language,
+            createdAt = LocalDateTime.now()
+        )
+
+        val savedUser = usersRepository.save(user)
+
+        val token = tokenService.createEmailVerificationToken(savedUser.id)
+        emailService.sendVerificationEmail(savedUser.email, token)
+
+        return RegistrationDto.RegisterResponse(
+            id = savedUser.id,
+            email = savedUser.email,
+            firstName = savedUser.firstName,
+            lastName = savedUser.lastName,
+            role = savedUser.role,
+            status = savedUser.status,
+            message = "System setup initiated. Please verify your email to complete initialization."
+        )
+    }
 }

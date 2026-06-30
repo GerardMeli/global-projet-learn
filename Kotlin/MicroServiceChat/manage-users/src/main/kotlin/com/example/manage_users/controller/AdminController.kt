@@ -26,7 +26,7 @@ class AdminController (
 ) {
 
     @Operation(summary = "Récupérer tous les utilisateurs", description = "Retourne la liste complète des utilisateurs inscrits.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/")
     fun getAllUsers(request: HttpServletRequest): ResponseEntity<ApiResponse<List<ProfileDto.UserProfileResponse>>> {
         return try {
@@ -68,7 +68,7 @@ class AdminController (
 
     // ── Créer un utilisateur (admin only) ─────────────────────────────────────
     @Operation(summary = "Créer un utilisateur", description = "Permet à un administrateur de créer un nouvel utilisateur manuellement.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PostMapping("/")
     fun createUser(
         @Valid @RequestBody request: AdminDto.CreateUserRequest
@@ -100,7 +100,7 @@ class AdminController (
 
     @Operation(summary = "Récupérer un utilisateur par ID", description = "Récupère les détails d'un utilisateur spécifique par son identifiant unique.")
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     fun getUserById(@PathVariable userId: String): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
         return ResponseEntity.ok(response)
@@ -122,7 +122,7 @@ class AdminController (
     }
 
     @Operation(summary = "Mettre à jour un utilisateur", description = "Modifie les informations d'un utilisateur existant par un administrateur.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/{userId}")
     fun updateUser(
         @PathVariable userId: String,
@@ -133,7 +133,7 @@ class AdminController (
     }
 
     @Operation(summary = "Mettre à jour le statut", description = "Active ou désactive un compte utilisateur.")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PatchMapping("/{userId}/status")
     fun updateUserStatus(
         @PathVariable userId: String,

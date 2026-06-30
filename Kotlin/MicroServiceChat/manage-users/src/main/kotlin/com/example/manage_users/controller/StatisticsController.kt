@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/admin/statistics")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "Statistiques", description = "Endpoints pour l'analyse et les statistiques des utilisateurs")
 class StatisticsController (
     private val statisticsService: StatisticsService,

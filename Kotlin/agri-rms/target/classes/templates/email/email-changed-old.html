@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Email Has Been Changed</title>
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+
+    <div style="background: linear-gradient(135deg, #9E9E9E 0%, #757575 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Email Address Changed</h1>
+    </div>
+
+    <div style="padding: 40px 30px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hello,</p>
+
+        <p style="font-size: 16px; margin-bottom: 25px;">This email is to notify you that the email address associated with your account has been changed.</p>
+
+        <div style="background-color: #f5f5f5; border-radius: 10px; padding: 25px; margin: 30px 0;">
+            <h3 style="color: #757575; margin-top: 0; margin-bottom: 20px;">📧 Email Change Notification</h3>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 10px 0; color: #666; width: 40%;">Old email:</td>
+                    <td style="padding: 10px 0; font-weight: bold; color: #dc3545;" th:text="${oldEmail}"></td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; color: #666;">New email:</td>
+                    <td style="padding: 10px 0; font-weight: bold; color: #4CAF50;" th:text="${newEmail}"></td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 30px 0;">
+            <p style="margin: 0; font-size: 15px; color: #856404;">
+                <strong>⚠️ Important Security Notice</strong><br>
+                If you did not make this change, your account may have been compromised. Please contact support immediately.
+            </p>
+        </div>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a href="mailto:support@example.com?subject=Unauthorized%20Email%20Change"
+               style="background-color: #dc3545; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 50px; font-size: 15px; display: inline-block;">
+                Report Unauthorized Change
+            </a>
+        </div>
+    </div>
+
+    <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+        <p style="margin: 0; font-size: 14px; color: #6c757d;">
+            This email was sent to your previous address as a security measure.<br>
+            Future communications will be sent to your new email address.
+        </p>
+    </div>
+</div>
+</body>
+</html>

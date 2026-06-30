@@ -111,7 +111,8 @@ data class Users (
 enum class UserRole {
     USER,
     ADMIN,
-    SUPPORT
+    SUPPORT,
+    SUPER_ADMIN
 }
 
 enum class UserStatus {
