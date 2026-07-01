@@ -1,0 +1,78 @@
+<div class="unauthorized-container">
+  <!-- Background Animation -->
+  <div class="unauthorized-bg">
+    <div class="lock-particle" *ngFor="let i of [1,2,3,4,5,6,7,8]"></div>
+    <div class="lock-ring"></div>
+    <div class="lock-ring ring-2"></div>
+    <div class="lock-ring ring-3"></div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="unauthorized-content">
+    <mat-card class="unauthorized-card" appearance="outlined">
+      <!-- Lock Icon Animation -->
+      <div class="icon-container">
+        <div class="lock-wrapper">
+          <mat-icon class="lock-icon">lock</mat-icon>
+          <div class="lock-shackle"></div>
+          <div class="lock-body"></div>
+        </div>
+        <div class="shockwave"></div>
+      </div>
+
+      <!-- Error Code -->
+      <div class="error-code">401</div>
+
+      <!-- Title -->
+      <h1 class="unauthorized-title">Accès non autorisé</h1>
+
+      <!-- Message -->
+      <p class="unauthorized-message">
+        Vous devez être connecté pour accéder à cette page. 
+        Veuillez vous authentifier pour continuer.
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button 
+          mat-flat-button 
+          color="primary"
+          routerLink="/auth/login"
+          class="action-button primary"
+        >
+          <mat-icon>login</mat-icon>
+          Se connecter
+        </button>
+
+        <button 
+          mat-stroked-button
+          routerLink="/auth/register"
+          class="action-button secondary"
+        >
+          <mat-icon>person_add</mat-icon>
+          Créer un compte
+        </button>
+      </div>
+
+      <!-- Help Section -->
+      <div class="help-section">
+        <mat-icon class="help-icon">help_outline</mat-icon>
+        <span>Si vous pensez qu'il s'agit d'une erreur, contactez l'administrateur</span>
+      </div>
+
+      <!-- Back to Home -->
+      <a routerLink="/" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Retour à l'accueil
+      </a>
+    </mat-card>
+
+    <!-- Decorative Elements -->
+    <div class="floating-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+      <div class="shape shape-4"></div>
+    </div>
+  </div>
+</div>

@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
-interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
+interface PrivateChatRepository  : JpaRepository<PrivateChat, String> {
 
     @Query("""
         SELECT pc FROM PrivateChat pc 
@@ -15,8 +15,8 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         ORDER BY pc.timestamp ASC
     """)
     fun findChatBetweenUsers(
-        @Param("userId1") userId1: Long,
-        @Param("userId2") userId2: Long
+        @Param("userId1") userId1: String,
+        @Param("userId2") userId2: String
     ): List<PrivateChat>
 
     // Trouver toutes les conversations d'un utilisateur
@@ -25,7 +25,7 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         WHERE pc.senderId1 = :userId OR pc.senderId2 = :userId
         ORDER BY pc.timestamp ASC
     """)
-    fun findUserChats(@Param("userId") userId: Long): List<PrivateChat>
+    fun findUserChats(@Param("userId") userId: String): List<PrivateChat>
 
     // Trouver les IDs des contacts d'un utilisateur (sans jointure sur User)
     @Query("""
@@ -36,7 +36,7 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         FROM PrivateChat pc
         WHERE pc.senderId1 = :userId OR pc.senderId2 = :userId
     """)
-    fun findUserContactIds(@Param("userId") userId: Long): List<Long>
+    fun findUserContactIds(@Param("userId") userId: String): List<String>
 
     // Marquer les messages comme lus - CORRECTION ICI
     @Modifying
@@ -46,8 +46,8 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         WHERE pc.id IN :messageIds AND pc.senderId2 = :userId
     """)
     fun markMessagesAsRead(
-        @Param("messageIds") messageIds: List<Long>,
-        @Param("userId") userId: Long
+        @Param("messageIds") messageIds: List<String>,
+        @Param("userId") userId: String
     ): Int
 
     // Trouver des messages par IDs et utilisateur - CORRECTION ICI
@@ -56,8 +56,8 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         WHERE pc.id IN :messageIds AND pc.senderId2 = :userId
     """)
     fun findMessagesByIdsAndUser(
-        @Param("messageIds") messageIds: List<Long>,
-        @Param("userId") userId: Long
+        @Param("messageIds") messageIds: List<String>,
+        @Param("userId") userId: String
     ): List<PrivateChat>
 
     // Compter les messages non lus pour un utilisateur
@@ -65,5 +65,5 @@ interface PrivateChatRepository  : JpaRepository<PrivateChat, Long> {
         SELECT COUNT(pc) FROM PrivateChat pc 
         WHERE pc.senderId2 = :userId AND pc.isRead = false
     """)
-    fun countUnreadMessages(@Param("userId") userId: Long): Long
+    fun countUnreadMessages(@Param("userId") userId: String): Long
 }

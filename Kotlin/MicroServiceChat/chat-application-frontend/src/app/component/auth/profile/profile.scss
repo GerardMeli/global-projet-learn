@@ -1,0 +1,267 @@
+// ════════════════════════════════════════════════════════════════════════════
+//  profile.component.scss — thème clair blanc/bleu
+// ════════════════════════════════════════════════════════════════════════════
+
+$bg0:       #f8fafc;   // fond page
+$bg1:       #ffffff;   // fond cards
+$bg2:       #f1f5f9;   // fond headers / inputs
+$bg3:       #eef2f7;   // fond bandes secondaires
+$bg4:       #e2e8f0;   // fond inputs / boutons ghost
+$border:    #e2e8f0;
+$primary:   #2563eb;
+$primary-l: #3b82f6;
+$text1:     #0f172a;
+$text2:     #334155;
+$text3:     #64748b;
+$success:   #10b981; $success-l: #34d399;
+$warning:   #f59e0b;
+$danger:    #ef4444; $danger-l:  #f87171;
+$info:      #0ea5e9;
+
+@keyframes spin         { to { transform: rotate(360deg); } }
+@keyframes slideRight   { from { opacity:0; transform:translateX(110%); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideRightOut{ from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(110%); } }
+@keyframes slideUp      { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+.prf-shell {
+  padding: 28px 32px;
+  max-width: 980px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: $bg0;
+  color: $text1;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  *, *::before, *::after { box-sizing: border-box; }
+  @media (max-width: 768px) { padding: 16px; }
+
+  // ── TOASTS ────────────────────────────────────────────────────────────
+  .toast-stack {
+    position: fixed; top: 22px; right: 22px; z-index: 3000;
+    display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+  }
+  .toast {
+    pointer-events: all;
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px; min-width: 300px; max-width: 400px;
+    border-radius: 12px; border: 1px solid transparent; background: $bg1;
+    cursor: pointer; animation: slideRight .35s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    &--out    { animation: slideRightOut .35s ease forwards; }
+    &--success{ border-color: rgba($success,.35); .toast__icon{ color:$success; } }
+    &--error  { border-color: rgba($danger,.35);  .toast__icon{ color:$danger-l; } }
+    &--warning{ border-color: rgba($warning,.35); .toast__icon{ color:$warning; } }
+    &--info   { border-color: rgba($info,.35);    .toast__icon{ color:$info; } }
+    &__icon  { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    &__body  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    &__title { font-size: 13px; font-weight: 600; color: $text1; }
+    &__text  { font-size: 12px; color: $text2; }
+    &__close { background: none; border: none; color: $text3; cursor: pointer; font-size: 13px; &:hover{ color:$text1; } }
+  }
+
+  // ── EN-TÊTE ────────────────────────────────────────────────────────────
+  .prf-header {
+    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .prf-title    { margin: 0; font-size: 26px; font-weight: 700; color: $text1; }
+  .prf-subtitle { margin: 4px 0 0; font-size: 13px; color: $text2; }
+
+  // ── BOUTONS ────────────────────────────────────────────────────────────
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; background: $primary; color: #fff; border: none;
+    border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .2s;
+    .material-icons { font-size: 17px; }
+    &:hover:not(:disabled) { background: $primary-l; }
+    &:disabled { opacity: .55; cursor: not-allowed; }
+  }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px; background: $bg2; color: $text2; border: 1px solid $border;
+    border-radius: 10px; font-size: 13px; cursor: pointer; transition: all .2s;
+    .material-icons { font-size: 17px; }
+    &:hover:not(:disabled) { background: $bg3; color: $text1; }
+    &:disabled { opacity: .5; cursor: not-allowed; }
+  }
+  .btn-danger-outline {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px; background: rgba($danger,.06); color: $danger; border: 1px solid rgba($danger,.25);
+    border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .2s;
+    .material-icons { font-size: 17px; }
+    &:hover { background: rgba($danger,.12); }
+  }
+
+  // ── ÉTAT ──────────────────────────────────────────────────────────────
+  .state-box {
+    text-align: center; padding: 60px 24px; color: $text2;
+    .loader-ring {
+      width: 42px; height: 42px; border: 3px solid $border; border-top-color: $primary;
+      border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px;
+    }
+    p { font-size: 13px; }
+  }
+
+  // ── CARTE PROFIL ───────────────────────────────────────────────────────
+  .profile-card {
+    display: flex; align-items: center; gap: 20px;
+    background: $bg1; border: 1px solid $border; border-radius: 18px;
+    padding: 20px 24px; margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    animation: slideUp .3s ease;
+    @media (max-width: 480px) { flex-direction: column; text-align: center; }
+    &__av {
+      position: relative; width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, $primary, $primary-l); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    &__initials { font-size: 24px; font-weight: 700; color: #fff; }
+    &__status {
+      position: absolute; bottom: 4px; right: 4px; width: 14px; height: 14px;
+      border-radius: 50%; background: $text3; border: 2px solid $bg1;
+      &--active { background: $success; }
+    }
+    &__info { flex: 1; }
+    &__name  { margin: 0 0 3px; font-size: 20px; font-weight: 700; color: $text1; }
+    &__email { margin: 0 0 10px; font-size: 13px; color: $text2; }
+    &__badges{ display: flex; gap: 8px; flex-wrap: wrap; }
+  }
+  .badge {
+    display: inline-flex; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    &--admin { background: rgba($primary,.1); color: $primary; }
+    &--user  { background: rgba($info,.12); color: $info; }
+    &--status--active    { background: rgba($success,.12); color: $success; }
+    &--status--pending   { background: rgba($warning,.12); color: $warning; }
+    &--status--suspended { background: rgba($danger,.1); color: $danger; }
+  }
+
+  // ── LAYOUT ONGLETS ────────────────────────────────────────────────────
+  .prf-layout {
+    display: grid; grid-template-columns: 200px 1fr; gap: 20px;
+    @media (max-width: 640px) { grid-template-columns: 1fr; }
+  }
+  .prf-nav {
+    display: flex; flex-direction: column; gap: 4px;
+    background: $bg1; border: 1px solid $border; border-radius: 16px;
+    padding: 12px; height: fit-content; position: sticky; top: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    @media (max-width: 640px) { flex-direction: row; flex-wrap: wrap; position: static; }
+  }
+  .nav-tab {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 10px; border: none; background: none;
+    color: $text2; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left;
+    transition: background .15s, color .15s; width: 100%;
+    .material-icons { font-size: 18px; flex-shrink: 0; }
+    &:hover { background: $bg2; color: $text1; }
+    &--active {
+      background: rgba($primary,.08); color: $primary;
+      .material-icons { color: $primary; }
+    }
+    @media (max-width: 640px) { width: auto; }
+  }
+
+  // ── PANEL ─────────────────────────────────────────────────────────────
+  .prf-panel {
+    background: $bg1; border: 1px solid $border; border-radius: 16px;
+    padding: 24px; animation: slideUp .25s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+  }
+  .panel-head { margin-bottom: 20px; }
+  .panel-title{ margin: 0 0 4px; font-size: 17px; font-weight: 700; color: $text1; }
+  .panel-desc { margin: 0; font-size: 13px; color: $text2; }
+
+  // ── FORMULAIRE ────────────────────────────────────────────────────────
+  .form-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;
+    @media (max-width: 540px) { grid-template-columns: 1fr; }
+  }
+  .fg {
+    display: flex; flex-direction: column; gap: 6px;
+    &--full { grid-column: 1 / -1; }
+    &__lbl { font-size: 12px; font-weight: 600; color: $text2; text-transform: uppercase; letter-spacing: .04em; }
+    &__wrap {
+      position: relative;
+      input, textarea {
+        width: 100%; padding: 10px 12px 10px 38px; background: $bg2; border: 1px solid $border;
+        border-radius: 10px; color: $text1; font-size: 13px; outline: none; resize: vertical;
+        font-family: inherit;
+        &::placeholder { color: $text3; }
+        &:focus { border-color: $primary; box-shadow: 0 0 0 3px rgba($primary,.12); }
+        &:disabled { opacity: .55; cursor: not-allowed; background: $bg3; }
+      }
+      textarea { padding-left: 12px; }
+      &--disabled input { opacity: .55; cursor: not-allowed; }
+    }
+    &__ico {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: $text3; font-size: 17px; pointer-events: none;
+    }
+    &__toggle {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: $text3; cursor: pointer; padding: 0;
+      .material-icons { font-size: 17px; }
+      &:hover { color: $text1; }
+    }
+  }
+  .form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+  // ── PRÉFÉRENCES ────────────────────────────────────────────────────────
+  .prefs-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+  .pref-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 14px 16px; background: $bg2; border-radius: 10px;
+    &__info { display: flex; flex-direction: column; gap: 2px; }
+    &__lbl  { font-size: 14px; font-weight: 500; color: $text1; }
+    &__desc { font-size: 12px; color: $text3; }
+  }
+  .pref-select {
+    padding: 8px 12px; background: $bg1; border: 1px solid $border; border-radius: 9px;
+    color: $text1; font-size: 13px; outline: none; cursor: pointer; min-width: 130px;
+    option { background: $bg1; }
+    &:focus { border-color: $primary; }
+  }
+  .toggle {
+    position: relative; display: inline-flex; cursor: pointer;
+    input { display: none; }
+    &__track {
+      width: 42px; height: 24px; background: $bg4; border-radius: 12px;
+      border: 1px solid $border; transition: background .25s;
+      display: flex; align-items: center; padding: 2px;
+    }
+    &__thumb {
+      width: 18px; height: 18px; border-radius: 50%; background: $text3;
+      transition: transform .25s, background .25s;
+    }
+    input:checked ~ .toggle__track { background: $primary; border-color: $primary; }
+    input:checked ~ .toggle__track .toggle__thumb { transform: translateX(18px); background: #fff; }
+  }
+
+  // ── MOT DE PASSE ──────────────────────────────────────────────────────
+  .pwd-rules {
+    background: $bg2; border: 1px solid $border; border-radius: 12px; padding: 16px;
+    margin-bottom: 20px;
+    &__title { font-size: 12px; font-weight: 600; color: $text2; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }
+    &__list  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; @media(max-width:480px){ grid-template-columns:1fr; } }
+  }
+  .pwd-rule {
+    display: flex; align-items: center; gap: 7px; font-size: 13px; color: $text3;
+    .material-icons { font-size: 16px; }
+    &--ok { color: $success; .material-icons { color: $success; } }
+  }
+
+  // ── MESSAGE INFO ──────────────────────────────────────────────────────
+  .info-msg {
+    display: flex; gap: 12px; padding: 14px 16px;
+    background: rgba($info,.06); border: 1px solid rgba($info,.2); border-radius: 12px;
+    margin-bottom: 20px;
+    .material-icons { font-size: 20px; color: $info; flex-shrink: 0; margin-top: 1px; }
+    strong { font-size: 13px; color: $text1; display: block; margin-bottom: 4px; }
+    p { margin: 0; font-size: 12px; color: $text2; line-height: 1.6; }
+  }
+
+  // ── SPINNER ───────────────────────────────────────────────────────────
+  .spinner-sm {
+    width: 16px; height: 16px; border: 2px solid rgba(#fff,.4); border-top-color: #fff;
+    border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+  }
+}

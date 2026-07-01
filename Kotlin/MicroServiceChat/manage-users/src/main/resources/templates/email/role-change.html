@@ -1,72 +1,704 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account Role Updated</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rôle mis à jour - FlowChat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0b1120 0%, #1a2234 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .email-wrapper {
+            max-width: 560px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        .email-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.03) 0%, transparent 70%);
+            animation: rotate 30s infinite linear;
+            z-index: 0;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .email-container {
+            position: relative;
+            z-index: 1;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 32px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Role-based gradient headers */
+        .header {
+            padding: 48px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header.admin {
+            background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+        }
+
+        .header.moderator {
+            background: linear-gradient(135deg, #3b82f6 0%, #93c5fd 100%);
+        }
+
+        .header.user {
+            background: linear-gradient(135deg, #10b981 0%, #6ee7b7 100%);
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 0 L100 100 M100 0 L0 100" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>');
+            opacity: 0.1;
+        }
+
+        .header h1 {
+            color: white;
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header .role-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            padding: 6px 12px;
+            border-radius: 100px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 48px 40px;
+        }
+
+        .greeting {
+            font-size: 18px;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .greeting::before {
+            content: '👋';
+            font-size: 24px;
+        }
+
+        .greeting strong {
+            color: #8b5cf6;
+            font-weight: 600;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .message {
+            color: #94a3b8;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            padding-left: 16px;
+            border-left: 3px solid #8b5cf6;
+        }
+
+        /* Role card with 3D effect */
+        .role-card {
+            background: linear-gradient(135deg, #2d3a4f 0%, #1e293b 100%);
+            border: 1px solid #334155;
+            border-radius: 24px;
+            padding: 40px;
+            margin: 32px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .role-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .role-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+            animation: pulse 4s infinite ease-in-out;
+        }
+
+        .role-icon {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            position: relative;
+            z-index: 1;
+            animation: float 3s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .role-icon.admin {
+            background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+            box-shadow: 0 10px 30px -5px rgba(124, 58, 237, 0.5);
+        }
+
+        .role-icon.moderator {
+            background: linear-gradient(135deg, #3b82f6 0%, #93c5fd 100%);
+            box-shadow: 0 10px 30px -5px rgba(59, 130, 246, 0.5);
+        }
+
+        .role-icon.user {
+            background: linear-gradient(135deg, #10b981 0%, #6ee7b7 100%);
+            box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.5);
+        }
+
+        .role-icon span {
+            font-size: 48px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .current-role {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .role-name {
+            font-size: 42px;
+            font-weight: 800;
+            margin: 16px 0;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .role-name.admin {
+            color: #8b5cf6;
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+        }
+        .role-name.moderator {
+            color: #60a5fa;
+            text-shadow: 0 0 20px rgba(96, 165, 250, 0.3);
+        }
+        .role-name.user {
+            color: #34d399;
+            text-shadow: 0 0 20px rgba(52, 211, 153, 0.3);
+        }
+
+        .permission-badge {
+            display: inline-block;
+            padding: 10px 28px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 20px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(8px);
+        }
+
+        .permission-badge.admin {
+            background: rgba(124, 58, 237, 0.15);
+            color: #c4b5fd;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .permission-badge.moderator {
+            background: rgba(59, 130, 246, 0.15);
+            color: #b7d5ff;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+
+        .permission-badge.user {
+            background: rgba(16, 185, 129, 0.15);
+            color: #a7f3d0;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+
+        /* Permissions grid */
+        .permissions-section {
+            margin: 40px 0;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .section-title span {
+            background: #2d3a4f;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .permission-item {
+            background: rgba(45, 58, 79, 0.5);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .permission-item:hover {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            transform: translateX(4px);
+        }
+
+        .permission-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b5cf6;
+            font-size: 16px;
+        }
+
+        .permission-text {
+            flex: 1;
+            color: #f1f5f9;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Reason box */
+        .reason-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid #f59e0b;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 32px 0;
+            backdrop-filter: blur(8px);
+        }
+
+        .reason-box strong {
+            color: #f59e0b;
+            display: block;
+            margin-bottom: 12px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reason-box strong::before {
+            content: '📝';
+            font-size: 18px;
+        }
+
+        .reason-box p {
+            color: #f1f5f9;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+            font-style: italic;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        /* Info card */
+        .info-card {
+            background: linear-gradient(135deg, #1e293b 0%, #2d3a4f 100%);
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 28px;
+            margin: 32px 0;
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .info-header .emoji {
+            font-size: 24px;
+        }
+
+        .info-header h4 {
+            color: #f1f5f9;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .info-content {
+            color: #94a3b8;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .info-content strong {
+            color: #8b5cf6;
+        }
+
+        /* Action button */
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            text-decoration: none;
+            padding: 18px 48px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.5);
+            margin: 24px 0;
+            width: 100%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .action-button:hover::before {
+            left: 100%;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 30px -5px rgba(124, 58, 237, 0.7);
+        }
+
+        /* Footer */
+        .footer {
+            background: #0f172a;
+            padding: 32px 40px;
+            text-align: center;
+            border-top: 1px solid #334155;
+            position: relative;
+        }
+
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+        }
+
+        .footer p {
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 8px;
+        }
+
+        .footer a {
+            color: #8b5cf6;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: #a78bfa;
+            text-decoration: underline;
+        }
+
+        .footer-divider {
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+            margin: 20px auto;
+        }
+
+        .copyright {
+            font-size: 12px !important;
+            color: #64748b !important;
+        }
+
+        @media (max-width: 480px) {
+            .content {
+                padding: 32px 24px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .role-name {
+                font-size: 32px;
+            }
+
+            .permissions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .permission-item {
+                padding: 14px;
+            }
+
+            .footer {
+                padding: 24px 20px;
+            }
+        }
+    </style>
 </head>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
-<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+<body>
+<div class="email-wrapper">
+    <div class="email-container">
+        <!-- Header with role-based color -->
+        <div th:class="'header ' + (${role} ? ${role.toLowerCase()} : 'user')">
+            <div class="role-badge">
+          <span th:text="${role == 'ADMIN' ? '👑 Admin' : (${role == 'MODERATOR'} ? '🛡️ Modérateur' : '👤 Utilisateur')}">
+            👤 Utilisateur
+          </span>
+            </div>
+            <h1 th:text="'Nouveau rôle : ' + (${role == 'ADMIN' ? 'Administrateur' : ${role == 'MODERATOR' ? 'Modérateur' : 'Utilisateur'})">
+                Nouveau rôle : Utilisateur
+            </h1>
+        </div>
 
-  <div th:switch="${role}" style="padding: 30px; text-align: center;">
-    <div th:case="'ADMIN'" style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); padding: 30px; margin: -30px -30px 0 -30px;">
-      <h1 style="color: white; margin: 0; font-size: 28px;">Administrator Role Assigned</h1>
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">
+                Bonjour <strong th:text="${email}"></strong>
+            </div>
+
+            <p class="message">
+                Un administrateur a mis à jour les permissions associées à votre compte.
+                Découvrez vos nouvelles capacités ci-dessous.
+            </p>
+
+            <!-- Role Card -->
+            <div class="role-card">
+                <div th:class="'role-icon ' + (${role} ? ${role.toLowerCase()} : 'user')">
+                    <span th:text="${role == 'ADMIN'} ? '👑' : (${role == 'MODERATOR'} ? '🛡️' : '👤')">👤</span>
+                </div>
+
+                <div class="current-role">Rôle actuel</div>
+                <div th:class="'role-name ' + (${role} ? ${role.toLowerCase()} : 'user')"
+                     th:text="${role == 'ADMIN' ? 'ADMINISTRATEUR' : (${role == 'MODERATOR'} ? 'MODÉRATEUR' : 'UTILISATEUR')}">
+                    UTILISATEUR
+                </div>
+
+                <div th:class="'permission-badge ' + (${role} ? ${role.toLowerCase()} : 'user')">
+            <span th:switch="${role}">
+              <span th:case="'ADMIN'">⚡ Accès système complet</span>
+              <span th:case="'MODERATOR'">🛡️ Modération de contenu</span>
+              <span th:case="*">✨ Accès standard</span>
+            </span>
+                </div>
+            </div>
+
+            <!-- Permissions Section -->
+            <div class="permissions-section">
+                <div class="section-title">
+                    <span th:text="${role == 'ADMIN' ? '⚡' : (${role == 'MODERATOR'} ? '🛡️' : '✨')}"></span>
+                    <h3 th:text="${role == 'ADMIN' ? 'Capacités administrateur' :
+                             (${role == 'MODERATOR'} ? 'Capacités modérateur' :
+                              'Capacités utilisateur')}"></h3>
+                </div>
+
+                <div class="permissions-grid">
+                    <!-- Admin permissions -->
+                    <div th:if="${role == 'ADMIN'}" class="permission-item">
+                        <div class="permission-icon">👥</div>
+                        <span class="permission-text">Gestion des utilisateurs</span>
+                    </div>
+                    <div th:if="${role == 'ADMIN'}" class="permission-item">
+                        <div class="permission-icon">⚙️</div>
+                        <span class="permission-text">Configuration système</span>
+                    </div>
+                    <div th:if="${role == 'ADMIN'}" class="permission-item">
+                        <div class="permission-icon">🔄</div>
+                        <span class="permission-text">Gestion des rôles</span>
+                    </div>
+                    <div th:if="${role == 'ADMIN'}" class="permission-item">
+                        <div class="permission-icon">📊</div>
+                        <span class="permission-text">Journaux d'audit</span>
+                    </div>
+
+                    <!-- Moderator permissions -->
+                    <div th:if="${role == 'MODERATOR'}" class="permission-item">
+                        <div class="permission-icon">💬</div>
+                        <span class="permission-text">Modération des messages</span>
+                    </div>
+                    <div th:if="${role == 'MODERATOR'}" class="permission-item">
+                        <div class="permission-icon">🚩</div>
+                        <span class="permission-text">Gestion des signalements</span>
+                    </div>
+                    <div th:if="${role == 'MODERATOR'}" class="permission-item">
+                        <div class="permission-icon">⏸️</div>
+                        <span class="permission-text">Suspension temporaire</span>
+                    </div>
+                    <div th:if="${role == 'MODERATOR'}" class="permission-item">
+                        <div class="permission-icon">🗑️</div>
+                        <span class="permission-text">Suppression de contenu</span>
+                    </div>
+
+                    <!-- User permissions -->
+                    <div th:if="${role == null or role == 'USER'}" class="permission-item">
+                        <div class="permission-icon">💌</div>
+                        <span class="permission-text">Messages privés</span>
+                    </div>
+                    <div th:if="${role == null or role == 'USER'}" class="permission-item">
+                        <div class="permission-icon">🌐</div>
+                        <span class="permission-text">Salons publics</span>
+                    </div>
+                    <div th:if="${role == null or role == 'USER'}" class="permission-item">
+                        <div class="permission-icon">📎</div>
+                        <span class="permission-text">Partage de fichiers</span>
+                    </div>
+                    <div th:if="${role == null or role == 'USER'}" class="permission-item">
+                        <div class="permission-icon">🔒</div>
+                        <span class="permission-text">Salons privés</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reason (if provided) -->
+            <div th:if="${reason != null and !reason.isEmpty()}" class="reason-box">
+                <strong>Raison du changement</strong>
+                <p th:text="${reason}">Raison du changement de rôle</p>
+            </div>
+
+            <!-- Info Card -->
+            <div class="info-card">
+                <div class="info-header">
+                    <span class="emoji">ℹ️</span>
+                    <h4>Ce que cela change pour vous</h4>
+                </div>
+                <div class="info-content">
+            <span th:switch="${role}">
+              <span th:case="'ADMIN'">
+                Vous avez désormais un accès <strong>complet</strong> à toutes les fonctionnalités d'administration.
+                Utilisez ces privilèges avec responsabilité.
+              </span>
+              <span th:case="'MODERATOR'">
+                Vous pouvez maintenant <strong>modérer le contenu</strong> et gérer les signalements.
+                Consultez le guide de modération pour plus d'informations.
+              </span>
+              <span th:case="*">
+                Votre <strong>niveau d'accès</strong> a été mis à jour. Explorez les nouvelles fonctionnalités à votre disposition.
+              </span>
+            </span>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <a th:href="@{/dashboard}" class="action-button">
+                Accéder à mon espace
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Des questions sur votre nouveau rôle ?</p>
+            <p>Contactez votre <a href="#">administrateur système</a></p>
+            <div class="footer-divider"></div>
+            <p class="copyright">© 2024 FlowChat. Tous droits réservés.</p>
+        </div>
     </div>
-    <div th:case="'MODERATOR'" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); padding: 30px; margin: -30px -30px 0 -30px;">
-      <h1 style="color: white; margin: 0; font-size: 28px;">Moderator Role Assigned</h1>
-    </div>
-    <div th:case="*" style="background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); padding: 30px; margin: -30px -30px 0 -30px;">
-      <h1 style="color: white; margin: 0; font-size: 28px;">Role Updated</h1>
-    </div>
-  </div>
-
-  <div style="padding: 40px 30px;">
-    <p style="font-size: 18px; margin-bottom: 20px;">Hello <span th:text="${email}" style="font-weight: bold;"></span>,</p>
-
-    <p style="font-size: 16px; margin-bottom: 25px;">Your account role has been updated by an administrator.</p>
-
-    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 30px; border-radius: 15px; margin: 30px 0; text-align: center;">
-      <span style="font-size: 24px; color: #6c757d;">Current Role</span>
-      <div style="font-size: 48px; font-weight: bold; margin: 20px 0;" th:text="${role}"></div>
-
-      <div th:switch="${role}" style="margin-top: 20px;">
-                    <span th:case="'ADMIN'" style="background-color: #9C27B0; color: white; padding: 8px 25px; border-radius: 50px; font-size: 14px;">
-                        Full system access
-                    </span>
-        <span th:case="'MODERATOR'" style="background-color: #2196F3; color: white; padding: 8px 25px; border-radius: 50px; font-size: 14px;">
-                        Content moderation access
-                    </span>
-        <span th:case="'USER'" style="background-color: #4CAF50; color: white; padding: 8px 25px; border-radius: 50px; font-size: 14px;">
-                        Standard user access
-                    </span>
-      </div>
-    </div>
-
-    <div th:if="${reason != null and !reason.isEmpty()}" style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 30px 0;">
-      <p style="margin: 0; font-size: 15px; color: #495057;">
-        <strong>Reason provided:</strong><br>
-        <span th:text="${reason}" style="font-style: italic;"></span>
-      </p>
-    </div>
-
-    <div style="background-color: #e3f2fd; border-left: 4px solid #2196F3; padding: 20px; margin: 30px 0;">
-      <p style="margin: 0; font-size: 14px; color: #0c5460;">
-        <strong>ℹ️ What does this mean?</strong><br>
-        <span th:switch="${role}">
-                        <span th:case="'ADMIN'">You now have full administrative privileges to manage users, content, and system settings.</span>
-                        <span th:case="'MODERATOR'">You can now moderate content and manage reported issues.</span>
-                        <span th:case="*">Your access level has been updated. Some features may be different.</span>
-                    </span>
-      </p>
-    </div>
-  </div>
-
-  <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-    <p style="margin: 0; font-size: 14px; color: #6c757d;">
-      Questions about your new role? Contact your system administrator.<br>
-      <span style="font-size: 12px;">This is an automated message, please do not reply directly.</span>
-    </p>
-  </div>
 </div>
 </body>
 </html>

@@ -1,0 +1,157 @@
+<div class="chat-register" [class.success-mode]="registered">
+  <!-- Background Animation -->
+  <div class="chat-bg">
+    <div class="chat-bubble" *ngFor="let i of [1,2,3,4,5,6]" [style.animation-delay]="i * 0.2 + 's'"></div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="chat-container">
+    <!-- Left Side - Register Form -->
+    <div class="chat-form-section" *ngIf="!registered">
+      <div class="chat-card">
+        <!-- Header with Status -->
+        <div class="chat-header">
+          <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Join 10k+ users</span>
+          </div>
+          <h1 class="chat-title">Create account</h1>
+          <p class="chat-subtitle">Start chatting in seconds</p>
+        </div>
+
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="chat-alert error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Form -->
+        <form [formGroup]="form" (ngSubmit)="submit()" class="chat-form">
+          <!-- Name Row -->
+          <div class="form-row">
+            <div class="field-wrap">
+              <input class="field-input" formControlName="firstName" placeholder=" " id="regFirstName" autocomplete="given-name">
+              <label class="field-label" for="regFirstName">First name</label>
+              <span class="field-icon"><mat-icon>person_outline</mat-icon></span>
+            </div>
+
+            <div class="field-wrap">
+              <input class="field-input" formControlName="lastName" placeholder=" " id="regLastName" autocomplete="family-name">
+              <label class="field-label" for="regLastName">Last name</label>
+              <span class="field-icon"><mat-icon>person_outline</mat-icon></span>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="field-wrap">
+            <input class="field-input" type="email" formControlName="email" placeholder=" " id="regEmail" autocomplete="email">
+            <label class="field-label" for="regEmail">Email address</label>
+            <span class="field-icon"><mat-icon>mail_outline</mat-icon></span>
+            <div class="field-error" *ngIf="f['email'].touched && f['email'].hasError('required')">Email is required</div>
+            <div class="field-error" *ngIf="f['email'].touched && f['email'].hasError('email')">Please enter a valid email</div>
+          </div>
+
+          <!-- Password -->
+          <div class="field-wrap">
+            <input class="field-input" [type]="hidePassword ? 'password' : 'text'" formControlName="password" placeholder=" " id="regPwd" autocomplete="new-password">
+            <label class="field-label" for="regPwd">Password</label>
+            <button class="field-toggle" type="button" (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            <div class="field-error" *ngIf="f['password'].touched && f['password'].hasError('required')">Password is required</div>
+            <div class="field-error" *ngIf="f['password'].touched && f['password'].hasError('minlength')">Minimum 6 characters</div>
+          </div>
+
+          <!-- Password Strength -->
+          <div class="password-strength" *ngIf="f['password'].value">
+            <div class="strength-bar">
+              <div class="strength-progress" [style.width.%]="getPasswordStrength()" 
+                   [class.weak]="getPasswordStrength() < 40"
+                   [class.medium]="getPasswordStrength() >= 40 && getPasswordStrength() < 70"
+                   [class.strong]="getPasswordStrength() >= 70">
+              </div>
+            </div>
+            <span class="strength-label" [class.weak]="getPasswordStrength() < 40"
+                  [class.medium]="getPasswordStrength() >= 40 && getPasswordStrength() < 70"
+                  [class.strong]="getPasswordStrength() >= 70">
+              {{ getPasswordStrengthText() }}
+            </span>
+          </div>
+
+          <!-- Phone Number -->
+          <div class="field-wrap phone-field">
+            <div class="phone-prefix-badge">🇨🇲 +237</div>
+            <input class="field-input field-input--phone" formControlName="phoneNumber"
+                   placeholder=" " id="regPhone" autocomplete="tel"
+                   (input)="onPhoneInput($event)">
+            <label class="field-label field-label--phone" for="regPhone">Phone number</label>
+            <span class="field-icon"><mat-icon>phone_in_talk</mat-icon></span>
+            <div class="field-hint">Format: 6XX XXX XXX</div>
+            <div class="field-error" *ngIf="f['phoneNumber'].touched && f['phoneNumber'].hasError('invalidCameroonPhone')">
+              Format: 6XX XXX XXX (ex: 698 520 147)
+            </div>
+          </div>
+
+          <!-- Phone Validation Helper -->
+          <div class="phone-helper" *ngIf="f['phoneNumber'].value && !f['phoneNumber'].valid">
+            <div class="helper-item" [class.valid]="phoneHasValidPrefix">
+              <mat-icon>{{ phoneHasValidPrefix ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              <span>Starts with 6</span>
+            </div>
+            <div class="helper-item" [class.valid]="phoneHasValidLength">
+              <mat-icon>{{ phoneHasValidLength ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+              <span>9 digits</span>
+            </div>
+          </div>
+
+          <!-- Language Selection -->
+          <div class="field-wrap select-wrap">
+            <select class="field-input field-select" formControlName="language" id="regLanguage">
+              <option *ngFor="let lang of languages" [value]="lang.code">{{ lang.flag }} {{ lang.name }}</option>
+            </select>
+            <label class="field-label field-label--active" for="regLanguage">Language</label>
+            <span class="field-icon"><mat-icon>translate</mat-icon></span>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" class="chat-submit" [disabled]="loading || form.invalid">
+            <span *ngIf="!loading">Create account</span>
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+          </button>
+
+          <!-- Login Link -->
+          <div class="chat-footer">
+            <span>Already have an account?</span>
+            <a routerLink="/auth/login" class="chat-link">Sign in</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Right Side - Success State -->
+    <div class="chat-success-section" *ngIf="registered">
+      <div class="success-animation">
+        <div class="checkmark">
+          <div class="checkmark-circle"></div>
+          <div class="checkmark-check"></div>
+        </div>
+      </div>
+      
+      <h2 class="success-title">Welcome to the chat!</h2>
+      <p class="success-message">
+        We've sent a verification link to <strong>{{ registeredEmail }}</strong>
+      </p>
+      
+      <div class="success-actions">
+        <button class="chat-button secondary" (click)="goToResend()">
+          <mat-icon>refresh</mat-icon>
+          Resend
+        </button>
+        <button class="chat-button primary" routerLink="/auth/login">
+          <mat-icon>chat</mat-icon>
+          Start chatting
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

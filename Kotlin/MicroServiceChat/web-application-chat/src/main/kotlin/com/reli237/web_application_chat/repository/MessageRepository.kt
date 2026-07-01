@@ -10,27 +10,27 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 @Repository
-interface MessageRepository : JpaRepository<Message, Long> {
+interface MessageRepository : JpaRepository<Message, String> {
 
     // Par chat room
     fun findByChatRoom(chatRoom: ChatRoom): List<Message>
-    fun findByChatRoomIdOrderByTimeStampAsc(chatRoomId: Long): List<Message>
-    fun findByChatRoomIdAndIsDeletedFalse(chatRoomId: Long): List<Message>
-    fun countByChatRoomId(chatRoomId: Long): Long
+    fun findByChatRoomIdOrderByTimeStampAsc(chatRoomId: String): List<Message>
+    fun findByChatRoomIdAndIsDeletedFalse(chatRoomId: String): List<Message>
+    fun countByChatRoomId(chatRoomId: String): Long
 
     // REMPLACEZ par :
-    fun findBySenderId(senderId: Long): List<Message>
-    fun findBySenderIdAndIsDeletedFalse(senderId: Long): List<Message>
-    fun findBySenderIdOrderByTimeStampDesc(senderId: Long): List<Message>
-    fun countBySenderId(senderId: Long): Long
+    fun findBySenderId(senderId: String): List<Message>
+    fun findBySenderIdAndIsDeletedFalse(senderId: String): List<Message>
+    fun findBySenderIdOrderByTimeStampDesc(senderId: String): List<Message>
+    fun countBySenderId(senderId: String): Long
 
     // Par type de message
     fun findByMessageType(messageType: MessageType): List<Message>
-    fun findByChatRoomIdAndMessageTypeIn(chatRoomId: Long, messageTypes: List<MessageType>): List<Message>
+    fun findByChatRoomIdAndMessageTypeIn(chatRoomId: String, messageTypes: List<MessageType>): List<Message>
 
     // Messages non supprimés
     fun findByIsDeletedFalse(): List<Message>
 
     // Combinaisons utiles
-    fun findByChatRoomIdAndSenderIdAndIsDeletedFalse(chatRoomId: Long, senderId: Long): List<Message>
+    fun findByChatRoomIdAndSenderIdAndIsDeletedFalse(chatRoomId: String, senderId: String): List<Message>
 }

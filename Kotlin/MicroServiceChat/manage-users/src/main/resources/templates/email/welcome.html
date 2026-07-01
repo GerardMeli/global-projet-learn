@@ -3,50 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Our Platform</title>
+    <title>Bienvenue sur FlowChat !</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        .email-container {
+            max-width: 560px; width: 100%;
+            background: #1e293b;
+            border-radius: 32px; overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            border: 1px solid #334155;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+            padding: 52px 40px 44px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .header::before {
+            content: ''; position: absolute; top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s infinite linear;
+        }
+        @keyframes rotate { to { transform: rotate(360deg); } }
+
+        .success-ring {
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            position: relative; z-index: 1;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.3); }
+            50%      { box-shadow: 0 0 0 16px rgba(255,255,255,0); }
+        }
+        .success-ring svg {
+            width: 42px; height: 42px;
+            fill: none; stroke: white; stroke-width: 2.5;
+        }
+
+        .header h1 {
+            color: white; font-size: 30px; font-weight: 700;
+            margin: 0 0 10px; letter-spacing: -0.02em;
+            position: relative; z-index: 1;
+        }
+        .header .subtitle {
+            color: rgba(255,255,255,0.88); font-size: 16px;
+            position: relative; z-index: 1;
+        }
+
+        /* ─── Content ─── */
+        .content { padding: 40px; }
+
+        .greeting { font-size: 17px; color: #f1f5f9; margin-bottom: 14px; }
+        .greeting strong { color: #a78bfa; font-weight: 600; }
+
+        .message {
+            color: #94a3b8; font-size: 15px; line-height: 1.7; margin-bottom: 32px;
+        }
+
+        /* ─── Features grid ─── */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(2,1fr); gap: 12px;
+            margin-bottom: 28px;
+        }
+        .feature-item {
+            background: rgba(0,0,0,0.2); border: 1px solid #334155;
+            border-radius: 14px; padding: 16px;
+        }
+        .feature-icon { font-size: 24px; margin-bottom: 8px; }
+        .feature-title { color: #f1f5f9; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+        .feature-desc  { color: #94a3b8; font-size: 12px; line-height: 1.5; }
+
+        /* ─── CTA ─── */
+        .cta-wrap { text-align: center; margin: 32px 0; }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+            color: white; text-decoration: none;
+            padding: 16px 48px; border-radius: 100px;
+            font-size: 16px; font-weight: 700;
+            box-shadow: 0 10px 25px -5px rgba(124,58,237,0.5);
+            letter-spacing: 0.2px;
+        }
+        .cta-sub {
+            color: #64748b; font-size: 12px; margin-top: 12px;
+        }
+
+        /* ─── Stats ─── */
+        .stats-box {
+            display: flex; justify-content: space-around;
+            padding: 20px; background: rgba(0,0,0,0.2);
+            border-radius: 16px; margin-bottom: 28px;
+        }
+        .stat-item { text-align: center; }
+        .stat-value { color: #8b5cf6; font-size: 22px; font-weight: 700; display: block; }
+        .stat-label { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ─── Footer ─── */
+        .footer {
+            background: #0f172a; padding: 28px 40px;
+            border-top: 1px solid #1e293b; text-align: center;
+        }
+        .footer p { color: #64748b; font-size: 13px; line-height: 1.6; margin: 0 0 6px; }
+        .footer a { color: #7c3aed; text-decoration: none; }
+        .footer-divider {
+            width: 48px; height: 2px;
+            background: linear-gradient(90deg, transparent, #7c3aed, transparent);
+            margin: 18px auto;
+        }
+        .footer .copyright { color: #475569; font-size: 12px; margin: 0; }
+
+        @media (max-width: 480px) {
+            .content { padding: 28px 20px; }
+            .header { padding: 36px 20px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .stats-box { flex-direction: column; gap: 16px; }
+            .footer { padding: 24px 20px; }
+        }
+    </style>
 </head>
-<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
-<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+<body>
+<div class="email-container">
 
-    <div style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); padding: 40px 30px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 32px;">Welcome Aboard! 🎉</h1>
+    <!-- Header -->
+    <div class="header">
+        <div class="success-ring">
+            <svg viewBox="0 0 24 24">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <h1>Bienvenue sur FlowChat !</h1>
+        <div class="subtitle">Votre compte est actif et votre mot de passe est défini 🎉</div>
     </div>
 
-    <div style="padding: 40px 30px;">
-        <p style="font-size: 18px; margin-bottom: 20px;">Hello <span th:text="${user?.firstName ?: user?.email}" style="font-weight: bold; color: #9C27B0;"></span>,</p>
+    <!-- Content -->
+    <div class="content">
 
-        <p style="font-size: 16px; margin-bottom: 25px;">We're thrilled to have you join our community! Your account has been successfully verified and activated.</p>
-
-        <div style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); padding: 30px; border-radius: 10px; margin: 30px 0;">
-            <h2 style="color: #7B1FA2; margin-top: 0; font-size: 22px;">🚀 Get Started</h2>
-            <ul style="padding-left: 20px; margin-bottom: 0;">
-                <li style="margin-bottom: 15px; color: #555;">
-                    <strong style="color: #7B1FA2;">Complete your profile</strong> - Add your details and preferences
-                </li>
-                <li style="margin-bottom: 15px; color: #555;">
-                    <strong style="color: #7B1FA2;">Explore features</strong> - Discover what you can do
-                </li>
-                <li style="margin-bottom: 15px; color: #555;">
-                    <strong style="color: #7B1FA2;">Customize settings</strong> - Set your language and theme
-                </li>
-            </ul>
-        </div>
-
-        <div style="text-align: center; margin: 35px 0;">
-            <a th:href="${loginUrl}"
-               style="background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%); color: white; padding: 15px 40px;
-                          text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: bold; display: inline-block;">
-                Go to Dashboard
-            </a>
-        </div>
-    </div>
-
-    <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
-        <p style="margin: 0; font-size: 14px; color: #6c757d;">
-            Questions? Check our <a href="#" style="color: #9C27B0; text-decoration: none;">Help Center</a> or<br>
-            email us at <a href="mailto:support@example.com" style="color: #9C27B0; text-decoration: none;">support@example.com</a>
+        <p class="greeting">
+            Bonjour <strong th:text="${user.firstName + ' ' + user.lastName}">Prénom Nom</strong>,
         </p>
+
+        <p class="message">
+            Félicitations ! Votre mot de passe a été créé avec succès et votre compte FlowChat est
+            maintenant pleinement opérationnel. Vous pouvez dès maintenant rejoindre des salles de
+            discussion et envoyer des messages privés à vos collègues.
+        </p>
+
+        <!-- Features -->
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-icon">💬</div>
+                <div class="feature-title">Chat de groupe</div>
+                <div class="feature-desc">Rejoignez des salles publiques et privées</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Messages privés</div>
+                <div class="feature-desc">Conversations 1-à-1 sécurisées</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">📎</div>
+                <div class="feature-title">Partage de fichiers</div>
+                <div class="feature-desc">Images, documents, vidéos</div>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-title">Multi-langue</div>
+                <div class="feature-desc">Interface disponible en 5 langues</div>
+            </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-wrap">
+            <a th:href="${homeUrl}" class="cta-button">
+                🚀 Accéder à FlowChat
+            </a>
+            <p class="cta-sub" th:text="${user.email}">email@example.com</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-box">
+            <div class="stat-item">
+                <span class="stat-value">10k+</span>
+                <span class="stat-label">Utilisateurs</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">99.9%</span>
+                <span class="stat-label">Disponibilité</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">24/7</span>
+                <span class="stat-label">Support</span>
+            </div>
+        </div>
+
     </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Cet email a été envoyé à <a th:href="'mailto:' + ${user.email}" th:text="${user.email}">email@example.com</a></p>
+        <p>Des questions ? <a href="mailto:support@flowchat.app">support@flowchat.app</a></p>
+        <div class="footer-divider"></div>
+        <p class="copyright">© 2025 FlowChat. Tous droits réservés.</p>
+    </div>
+
 </div>
 </body>
 </html>

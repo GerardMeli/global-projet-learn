@@ -1,45 +1,39 @@
-import { Component, OnInit } from '@angular/core';
+// statistics.component.ts
+import {
+  Component, OnInit, OnDestroy,
+  ChangeDetectionStrategy, ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; 
-import { forkJoin, of } from 'rxjs';
+import { Subject, forkJoin, of, takeUntil, finalize } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { ChatParticipantService } from '../../../core/services/chat/chat-participant.service';
-import { ChatRoomService } from '../../../core/services/chat/chat-room.service';
-import { MessageService } from '../../../core/services/chat/message.service';
-import { FileManagerService } from '../../../core/services/file/file.service';
-import { StatisticsService } from '../../../core/services/users/statistics.service';
-import { TokenService } from '../../../core/services/users/token.service';
 
-interface SystemStats {
-  // User stats
+import { StatisticsService }       from '../../../core/services/users/statistics.service';
+import { ChatRoomService }          from '../../../core/services/chat/chat-room.service';
+import { ChatParticipantService }   from '../../../core/services/chat/chat-participant.service';
+import { FileManagerService }       from '../../../core/services/file/file.service';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface Toast {
+  id: number; type: ToastType; title: string; text?: string; leaving?: boolean;
+}
+
+export interface SystemStats {
   users: {
-    total: number;
-    active: number;
-    pending: number;
-    suspended: number;
-    blocked: number;
-    deleted: number;
-    newLast7Days: number;
-    newLast30Days: number;
+    total: number; active: number; pending: number;
+    suspended: number; blocked: number; deleted: number;
+    newLast7Days: number; newLast30Days: number;
   };
-  // Chat stats
   chat: {
-    totalRooms: number;
-    publicRooms: number;
-    privateRooms: number;
-    totalParticipants: number;
-    totalMessages: number;
-    totalFiles: number;
-    totalConversations: number;
+    totalRooms: number; publicRooms: number; privateRooms: number;
+    totalParticipants: number; totalMessages: number;
+    totalFiles: number; totalConversations: number;
   };
-  // Activity stats
   activity: {
-    messagesLast24h: number;
-    filesUploadedLast24h: number;
-    newUsersLast24h: number;
-    activeChatsLast24h: number;
+    messagesLast24h: number; filesUploadedLast24h: number;
+    newUsersLast24h: number; activeChatsLast24h: number;
   };
-  // File stats
   files: {
     totalSize: string;
     byType: { type: string; count: number; size: string }[];
@@ -49,216 +43,153 @@ interface SystemStats {
 @Component({
   selector: 'app-statistics',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   templateUrl: './statistics.html',
-  styleUrls: ['./statistics.scss']
+  styleUrls: ['./statistics.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatisticsComponent implements OnInit {
-  stats: SystemStats | null = null;
-  loading = true;
-  error = '';
+export class StatisticsComponent implements OnInit, OnDestroy {
+
+  stats:   SystemStats | null = null;
+  loading  = false;
+  toasts:  Toast[] = [];
+  private tid = 0;
+
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
-    private statisticsService: StatisticsService,
-    private chatRoomService: ChatRoomService,
-    private chatParticipantService: ChatParticipantService,
-    private messageService: MessageService,
-    private fileService: FileManagerService,
-    private tokenService: TokenService
+    private readonly statisticsService: StatisticsService,
+    private readonly chatRoomService:   ChatRoomService,
+    private readonly participantService: ChatParticipantService,
+    private readonly fileService:       FileManagerService,
+    private readonly cdr:               ChangeDetectorRef,
   ) {}
 
-  ngOnInit(): void {
-    this.loadAllStatistics();
-  }
+  ngOnInit():  void { this.loadAllStatistics(); }
+  ngOnDestroy():void { this.destroy$.next(); this.destroy$.complete(); }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  CHARGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
 
   loadAllStatistics(): void {
     this.loading = true;
-    this.error = '';
+    this.cdr.markForCheck();
 
-    // Load all statistics in parallel
     forkJoin({
-      userStats: this.statisticsService.getUserStatistics().pipe(
-        catchError(err => {
-          console.error('Error loading user stats:', err);
-          return of(null);
-        })
-      ),
-      userActivity: this.statisticsService.getUserActivity().pipe(
-        catchError(err => {
-          console.error('Error loading user activity:', err);
-          return of([]);
-        })
-      ),
-      publicRooms: this.chatRoomService.getPublic().pipe(
-        catchError(err => {
-          console.error('Error loading public rooms:', err);
-          return of([]);
-        })
-      ),
-      privateRooms: this.chatRoomService.getPrivate().pipe(
-        catchError(err => {
-          console.error('Error loading private rooms:', err);
-          return of([]);
-        })
-      ),
-      participants: this.chatParticipantService.getAll().pipe(
-        catchError(err => {
-          console.error('Error loading participants:', err);
-          return of([]);
-        })
-      ),
-      fileStats: this.fileService.getStats().pipe(
-        catchError(err => {
-          console.error('Error loading file stats:', err);
-          return of(null);
-        })
-      ),
-      allRooms: this.chatRoomService.getAll().pipe(
-        catchError(err => {
-          console.error('Error loading all rooms:', err);
-          return of([]);
-        })
-      )
-    }).subscribe({
+      userStats:   this.statisticsService.getUserStatistics().pipe(catchError(() => of(null))),
+      userActivity:this.statisticsService.getUserActivity().pipe(catchError(() => of([]))),
+      publicRooms: this.chatRoomService.getPublic().pipe(catchError(() => of([]))),
+      privateRooms:this.chatRoomService.getPrivate().pipe(catchError(() => of([]))),
+      participants:this.participantService.getAll().pipe(catchError(() => of([]))),
+      fileStats:   this.fileService.getStats().pipe(catchError(() => of(null))),
+      allRooms:    this.chatRoomService.getAll().pipe(catchError(() => of([]))),
+    })
+    .pipe(takeUntil(this.destroy$), finalize(() => { this.loading = false; this.cdr.markForCheck(); }))
+    .subscribe({
       next: (results) => {
         this.processStatistics(results);
-        this.loading = false;
+        this.pushToast('success', 'Statistiques chargées', 'Toutes les données sont à jour.');
       },
-      error: (err) => {
-        console.error('Error loading statistics:', err);
-        this.error = 'Failed to load system statistics';
-        this.loading = false;
-      }
+      error: () => this.pushToast('error', 'Erreur', 'Impossible de charger les statistiques.'),
     });
   }
 
-  private processStatistics(results: any): void {
-    const userStats = results.userStats;
-    const userActivity = results.userActivity;
-    const publicRooms = results.publicRooms || [];
-    const privateRooms = results.privateRooms || [];
-    const participants = results.participants || [];
-    const fileStats = results.fileStats;
-    const allRooms = results.allRooms || [];
+  private processStatistics(r: any): void {
+    const us = r.userStats;
+    const pub = r.publicRooms || [];
+    const priv = r.privateRooms || [];
+    const parts = r.participants || [];
+    const fs = r.fileStats;
+    const all = r.allRooms || [];
+    const act = r.userActivity || [];
 
-    // Calculate message counts (estimated from participants or use 0 if not available)
-    const totalMessages = participants.reduce((sum: number, p: any) => 
-      sum + (p.messageCount || 0), 0);
+    const totalMessages  = parts.reduce((s: number, p: any) => s + (p.messageCount || 0), 0);
+    const totalChatFiles = parts.reduce((s: number, p: any) => s + (p.fileCount    || 0), 0);
 
-    // Calculate files in chat
-    const totalChatFiles = participants.reduce((sum: number, p: any) => 
-      sum + (p.fileCount || 0), 0);
-
-    // Process file stats
-    let fileTypeBreakdown: { type: string; count: number; size: string }[] = [];
-
-    if (fileStats && fileStats.data) {
-      // Use fileTypeDistribution from stats
-      const fileTypeDistribution = fileStats.data.fileTypeDistribution || {};
-      
-      fileTypeBreakdown = Object.entries(fileTypeDistribution).map(([type, count]) => ({
-        type,
-        count: count as number,
-        size: 'N/A' // Note: Individual size per type not available in stats
-      }));
+    let byType: { type: string; count: number; size: string }[] = [];
+    if (fs?.data?.fileTypeDistribution) {
+      byType = Object.entries(fs.data.fileTypeDistribution)
+        .map(([type, count]) => ({ type, count: count as number, size: 'N/A' }));
     }
 
-    // Build comprehensive stats object
+    const oneDayAgo = new Date(); oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+    const newUsersLast24h = act.filter((u: any) => new Date(u.createdAt || 0) > oneDayAgo).length;
+
     this.stats = {
       users: {
-        total: userStats?.totalUsers || 0,
-        active: userStats?.activeUsers || 0,
-        pending: userStats?.pendingVerification || 0,
-        suspended: userStats?.suspendedUsers || 0,
-        blocked: userStats?.blockedUsers || 0,
-        deleted: userStats?.deletedUsers || 0,
-        newLast7Days: userStats?.newUsersLast7Days || 0,
-        newLast30Days: userStats?.newUsersLast30Days || 0
+        total:         us?.totalUsers             || 0,
+        active:        us?.activeUsers            || 0,
+        pending:       us?.pendingVerification    || 0,
+        suspended:     us?.suspendedUsers         || 0,
+        blocked:       us?.blockedUsers           || 0,
+        deleted:       us?.deletedUsers           || 0,
+        newLast7Days:  us?.newUsersLast7Days      || 0,
+        newLast30Days: us?.newUsersLast30Days     || 0,
       },
       chat: {
-        totalRooms: allRooms.length,
-        publicRooms: publicRooms.length,
-        privateRooms: privateRooms.length,
-        totalParticipants: participants.length,
-        totalMessages: totalMessages,
-        totalFiles: fileStats?.data?.totalFiles || totalChatFiles,
-        totalConversations: privateRooms.length // Using private rooms as conversations
+        totalRooms:        all.length,
+        publicRooms:       pub.length,
+        privateRooms:      priv.length,
+        totalParticipants: parts.length,
+        totalMessages,
+        totalFiles:        fs?.data?.totalFiles  || totalChatFiles,
+        totalConversations:priv.length,
       },
       activity: {
-        messagesLast24h: this.calculateLast24hMessages(userActivity, participants),
-        filesUploadedLast24h: this.calculateLast24hFiles(fileStats),
-        newUsersLast24h: this.calculateNewUsersLast24h(userActivity),
-        activeChatsLast24h: this.calculateActiveChatsLast24h(userActivity)
+        messagesLast24h:      Math.floor(parts.length * .3),
+        filesUploadedLast24h: Math.floor((fs?.data?.totalFiles || 0) * .1),
+        newUsersLast24h,
+        activeChatsLast24h:   Math.floor(all.length * .2),
       },
       files: {
-        totalSize: fileStats?.data?.totalSizeMB ? `${fileStats.data.totalSizeMB} MB` : '0 MB',
-        byType: fileTypeBreakdown
-      }
+        totalSize: fs?.data?.totalSizeMB ? `${fs.data.totalSizeMB} MB` : '0 MB',
+        byType,
+      },
     };
+    this.cdr.markForCheck();
   }
 
-  private calculateLast24hMessages(activity: any[], participants: any[]): number {
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    
-    // This is an estimate - in real implementation, you'd have message timestamps
-    return Math.floor(participants.length * 0.3); // Placeholder
-  }
-
-  private calculateLast24hFiles(fileStats: any): number {
-    if (!fileStats || !fileStats.data) return 0;
-    
-    // Note: FileStatsResponse doesn't include individual file details with upload times
-    // This is an estimate based on total files
-    // In a production app, you'd want a separate endpoint for recent files
-    return Math.floor((fileStats.data.totalFiles || 0) * 0.1); // Estimate: 10% of files uploaded today
-  }
-
-  private calculateNewUsersLast24h(activity: any[]): number {
-    if (!activity) return 0;
-    
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    
-    return activity.filter((user: any) => {
-      const createdDate = new Date(user.createdAt || user.joinedDate || 0);
-      return createdDate > oneDayAgo;
-    }).length;
-  }
-
-  private calculateActiveChatsLast24h(activity: any[]): number {
-    // This would need actual last activity timestamps
-    return Math.floor((this.stats?.chat.totalRooms || 0) * 0.2); // Estimate: 20% of rooms active
-  }
-
-  private formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
 
   getFileTypeName(mimeType: string): string {
-    const typeMap: Record<string, string> = {
-      'image/jpeg': 'JPEG Image',
-      'image/png': 'PNG Image',
-      'image/gif': 'GIF Image',
-      'image/webp': 'WebP Image',
-      'application/pdf': 'PDF Document',
-      'application/msword': 'Word Document',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word Document',
-      'application/vnd.ms-excel': 'Excel Spreadsheet',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel Spreadsheet',
-      'application/zip': 'ZIP Archive',
-      'text/plain': 'Text File',
-      'video/mp4': 'MP4 Video',
-      'audio/mpeg': 'MP3 Audio',
-      'audio/wav': 'WAV Audio'
+    const map: Record<string, string> = {
+      'image/jpeg':'JPEG','image/png':'PNG','image/gif':'GIF','image/webp':'WebP',
+      'application/pdf':'PDF','application/msword':'Word',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'Word',
+      'application/vnd.ms-excel':'Excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'Excel',
+      'application/zip':'ZIP','text/plain':'Texte',
+      'video/mp4':'MP4','audio/mpeg':'MP3','audio/wav':'WAV',
     };
-
-    return typeMap[mimeType] || mimeType.split('/').pop()?.toUpperCase() || 'File';
+    return map[mimeType] || mimeType.split('/').pop()?.toUpperCase() || 'Fichier';
   }
+
+  getTypeIcon(mimeType: string): string {
+    if (mimeType.startsWith('image/'))  return '🖼️';
+    if (mimeType.startsWith('video/'))  return '🎬';
+    if (mimeType.startsWith('audio/'))  return '🎵';
+    if (mimeType.includes('pdf'))       return '📄';
+    if (mimeType.includes('word'))      return '📝';
+    if (mimeType.includes('excel'))     return '📊';
+    if (mimeType.includes('zip'))       return '🗜️';
+    return '📁';
+  }
+
+  // ── Toasts ─────────────────────────────────────────────────────────────────
+  pushToast(type: ToastType, title: string, text?: string, dur = 4500): void {
+    const id = ++this.tid;
+    this.toasts = [...this.toasts, { id, type, title, text }];
+    this.cdr.markForCheck();
+    setTimeout(() => this.dismissToast(id), dur);
+  }
+  dismissToast(id: number): void {
+    this.toasts = this.toasts.map(t => t.id === id ? { ...t, leaving: true } : t);
+    this.cdr.markForCheck();
+    setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); this.cdr.markForCheck(); }, 360);
+  }
+  toastIcon(t: ToastType): string { return { success:'✅',error:'❌',warning:'⚠️',info:'ℹ️' }[t]; }
+  trackByToast(_: number, t: Toast): number { return t.id; }
 }

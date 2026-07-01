@@ -47,21 +47,21 @@ class UserServiceImpl (
 
         return User.builder()
             .username(user.email)
-            .password(user.password)
+            .password(user.password ?: "") // Important : Spring Security n'aime pas les passwords nulls
             .authorities(authorities)
-            .accountLocked(user.status == com.example.manage_users.models.UserStatus.BLOCKED)
+            .accountLocked(user.status == UserStatus.BLOCKED)
             .accountExpired(false)
             .credentialsExpired(false)
             .disabled(!user.isActive)
             .build()
     }
 
-    override fun getUserProfile(userId: Long): ProfileDto.UserProfileResponse {
+    override fun getUserProfile(userId: String): ProfileDto.UserProfileResponse {
         val user = findUserById(userId)
         return userMapper.toProfileResponse(user)
     }
 
-    override fun updateUserProfile(userId: Long, request: ProfileDto.UserProfileUpdateRequest): ProfileDto.UserProfileResponse {
+    override fun updateUserProfile(userId: String, request: ProfileDto.UserProfileUpdateRequest): ProfileDto.UserProfileResponse {
         val user = findUserById(userId)
 
         request.firstName?.let { user.firstName = it }
@@ -74,7 +74,7 @@ class UserServiceImpl (
         return userMapper.toProfileResponse(updatedUser)
     }
 
-    override fun updateUserPreferences(userId: Long, request: ProfileDto.UserPreferencesUpdateRequest): ProfileDto.UserProfileResponse {
+    override fun updateUserPreferences(userId: String, request: ProfileDto.UserPreferencesUpdateRequest): ProfileDto.UserProfileResponse {
         val user = findUserById(userId)
 
         request.language?.let { user.language = it }
@@ -86,7 +86,7 @@ class UserServiceImpl (
         return userMapper.toProfileResponse(updatedUser)
     }
 
-    override fun changePassword(userId: Long, request: ProfileDto.PasswordChangeRequest) {
+    override fun changePassword(userId: String, request: ProfileDto.PasswordChangeRequest) {
         val user = findUserById(userId)
 
         if (!passwordEncoder.passwordEncoder().matches(request.currentPassword, user.password)) {
@@ -101,7 +101,7 @@ class UserServiceImpl (
         usersRepository.save(user)
     }
 
-    override fun requestEmailChange(userId: Long, request: ProfileDto.EmailUpdateRequest) {
+    override fun requestEmailChange(userId: String, request: ProfileDto.EmailUpdateRequest) {
         val user = findUserById(userId)
 
         if (!passwordEncoder.passwordEncoder().matches(request.password, user.password)) {
@@ -134,9 +134,8 @@ class UserServiceImpl (
             .map { userMapper.toProfileResponse(it) }
     }
 
-
     override fun searchUsers(
-        currentUserId: Long,
+        currentUserId: String,
         query: String
     ): List<ProfileDto.PrivateUserResponse> {
 
@@ -151,19 +150,19 @@ class UserServiceImpl (
             }
     }
 
-    override fun getUserById(userId: Long): ProfileDto.UserProfileResponse {
+    override fun getUserById(userId: String): ProfileDto.UserProfileResponse {
         val user = findUserById(userId)
         return userMapper.toProfileResponse(user)
     }
 
-    override fun updateUser(userId: Long, request: AdminDto.AdminUserUpdateRequest): AdminDto.AdminUserResponse {
+    override fun updateUser(userId: String, request: AdminDto.AdminUserUpdateRequest): AdminDto.AdminUserResponse {
         val user = findUserById(userId)
         val updatedUser = userMapper.updateUserFromRequest(user, request)
 
         return userMapper.toAdminResponse(usersRepository.save(updatedUser))
     }
 
-    override fun updateUserStatus(userId: Long, request: AdminDto.UserStatusUpdateRequest): AdminDto.AdminUserResponse {
+    override fun updateUserStatus(userId: String, request: AdminDto.UserStatusUpdateRequest): AdminDto.AdminUserResponse {
         val user = findUserById(userId)
         user.status = request.status
 
@@ -175,7 +174,7 @@ class UserServiceImpl (
         return userMapper.toAdminResponse(updatedUser)
     }
 
-    override fun updateUserRole(userId: Long, request: AdminDto.UserRoleUpdateRequest): AdminDto.AdminUserResponse {
+    override fun updateUserRole(userId: String, request: AdminDto.UserRoleUpdateRequest): AdminDto.AdminUserResponse {
         val user = findUserById(userId)
         user.role = request.role
 
@@ -187,17 +186,67 @@ class UserServiceImpl (
         return userMapper.toAdminResponse(updatedUser)
     }
 
-    override fun deleteUser(userId: Long) {
+    override fun deleteUser(userId: String) {
         usersRepository.deleteById(userId)
     }
 
-    private fun findUserById(userId: Long): Users {
+    // ── Admin: CREATE USER ────────────────────────────────────────────────────
+    /**
+     * Nouveau flux d'invitation :
+     *  1. Persiste le user avec le mot de passe temporaire fourni par l'admin (haché).
+     *  2. Génère un token password-reset JWT (24 h).
+     *  3. Envoie l'email "Créez votre mot de passe" → lien /auth/set-password?token=…
+     *
+     * Le welcome email est déclenché par AuthController.resetPassword()
+     * APRÈS que le user a réellement défini son mot de passe.
+     */
+    override fun createUser(request: AdminDto.CreateUserRequest): AdminDto.CreateUserResponse {
+        // 1. Unicité email
+        if (usersRepository.existsByEmail(request.email))
+            throw EmailAlreadyExistsException("Un compte existe déjà avec l'email : ${request.email}")
+
+        // 2. Construire l'entité
+        val user = Users(
+            id            = "",
+            email         = request.email,
+            firstName     = request.firstName,
+            lastName      = request.lastName,
+            password      = passwordEncoder.passwordEncoder().encode(request.password),
+            role          = request.role,
+            isActive      = request.isActive,
+            emailVerified = true,       // créé par admin → vérifié d'office
+            status        = UserStatus.ACTIVE,
+            phoneNumber   = request.phoneNumber,
+            address       = request.address,
+        )
+
+        // 3. Persister
+        val saved = usersRepository.save(user)
+
+        // 4. Générer token reset (24 h) et envoyer l'invitation "set-password"
+        val resetToken = tokenService.createPasswordResetToken(saved.id, saved.email)
+        emailService.sendSetPasswordInvitation(saved, resetToken)
+
+        // 5. Retourner la réponse
+        return AdminDto.CreateUserResponse(
+            id        = saved.id,
+            firstName = saved.firstName,
+            lastName  = saved.lastName,
+            email     = saved.email,
+            role      = saved.role,
+            status    = saved.status,
+            isActive  = saved.isActive,
+            createdAt = saved.createdAt,
+        )
+    }
+
+    private fun findUserById(userId: String): Users {
         return usersRepository.findById(userId)
             .orElseThrow { ResourceNotFoundException("User not found with id: $userId") }
     }
 
     override fun getAllUsersExceptCurrentUser(
-        currentUserId: Long
+        currentUserId: String
     ): List<ProfileDto.PrivateUserResponse> {
 
         return usersRepository.findAllExceptCurrentUser(currentUserId)

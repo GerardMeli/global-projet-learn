@@ -1,240 +1,234 @@
-    <div class="statistics-container">
-      <div class="statistics-header">
-        <h1>System Statistics</h1>
-        <div class="header-actions">
-          <button class="refresh-btn" (click)="loadAllStatistics()" [disabled]="loading">
-            <span class="material-icons">refresh</span>
-            Refresh
-          </button>
+<!-- statistics.component.html -->
+<div class="stats-shell">
+
+  <!-- Toasts -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" (click)="dismissToast(t.id)" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="$event.stopPropagation(); dismissToast(t.id)">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ── EN-TÊTE ─────────────────────────────────────────────────────────── -->
+  <div class="stats-header">
+    <div>
+      <h2 class="stats-title">Statistiques système</h2>
+      <p class="stats-subtitle">Vue d'ensemble de l'activité de la plateforme</p>
+    </div>
+    <button class="btn-ghost" (click)="loadAllStatistics()" [disabled]="loading">
+      <span class="material-icons" [class.spin]="loading">refresh</span>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- ── CHARGEMENT ─────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="state-box" role="status"><div class="loader-ring"></div><p>Chargement des statistiques…</p></div>
+  }
+
+  <!-- ── CONTENU ────────────────────────────────────────────────────────── -->
+  @if (!loading && stats) {
+
+    <!-- UTILISATEURS -->
+    <section class="stat-section">
+      <h3 class="section-title"><span class="material-icons">people</span> Utilisateurs</h3>
+
+      <div class="cards-grid">
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__ico"><span class="material-icons">group</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.users.total | number }}</span>
+            <span class="stat-card__lbl">Total</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__ico"><span class="material-icons">check_circle</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.users.active | number }}</span>
+            <span class="stat-card__lbl">Actifs</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--amber">
+          <div class="stat-card__ico"><span class="material-icons">schedule</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.users.pending | number }}</span>
+            <span class="stat-card__lbl">En attente</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__ico"><span class="material-icons">person_add</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.users.newLast7Days | number }}</span>
+            <span class="stat-card__lbl">Nouveaux (7j)</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--teal">
+          <div class="stat-card__ico"><span class="material-icons">calendar_month</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.users.newLast30Days | number }}</span>
+            <span class="stat-card__lbl">Nouveaux (30j)</span>
+          </div>
         </div>
       </div>
 
-      <!-- Loading State -->
-      <div class="loading-state" *ngIf="loading">
-        <div class="spinner"></div>
-        <p>Loading system statistics...</p>
+      <div class="status-strip">
+        <div class="status-chip status-chip--warn">
+          <span class="material-icons">pause_circle</span>
+          <span>{{ stats.users.suspended | number }} Suspendus</span>
+        </div>
+        <div class="status-chip status-chip--danger">
+          <span class="material-icons">block</span>
+          <span>{{ stats.users.blocked | number }} Bloqués</span>
+        </div>
+        <div class="status-chip status-chip--muted">
+          <span class="material-icons">delete</span>
+          <span>{{ stats.users.deleted | number }} Supprimés</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="stat-section">
+      <h3 class="section-title"><span class="material-icons">chat</span> Chat</h3>
+      <div class="cards-grid">
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__ico"><span class="material-icons">forum</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.totalRooms | number }}</span>
+            <span class="stat-card__lbl">Salles totales</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__ico"><span class="material-icons">public</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.publicRooms | number }}</span>
+            <span class="stat-card__lbl">Publiques</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--amber">
+          <div class="stat-card__ico"><span class="material-icons">lock</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.privateRooms | number }}</span>
+            <span class="stat-card__lbl">Privées</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__ico"><span class="material-icons">group</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.totalParticipants | number }}</span>
+            <span class="stat-card__lbl">Participants</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--teal">
+          <div class="stat-card__ico"><span class="material-icons">message</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.totalMessages | number }}</span>
+            <span class="stat-card__lbl">Messages</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--pink">
+          <div class="stat-card__ico"><span class="material-icons">mark_chat_unread</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.totalConversations | number }}</span>
+            <span class="stat-card__lbl">Conversations privées</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FICHIERS -->
+    <section class="stat-section">
+      <h3 class="section-title"><span class="material-icons">folder</span> Fichiers</h3>
+      <div class="cards-grid">
+        <div class="stat-card stat-card--amber">
+          <div class="stat-card__ico"><span class="material-icons">folder</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.chat.totalFiles | number }}</span>
+            <span class="stat-card__lbl">Total fichiers</span>
+          </div>
+        </div>
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__ico"><span class="material-icons">storage</span></div>
+          <div class="stat-card__body">
+            <span class="stat-card__val">{{ stats.files.totalSize }}</span>
+            <span class="stat-card__lbl">Taille totale</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Error State -->
-      <div class="error-state" *ngIf="error">
-        <span class="material-icons">error</span>
-        <p>{{ error }}</p>
-        <button class="retry-btn" (click)="loadAllStatistics()">Retry</button>
+      @if (stats.files.byType.length > 0) {
+        <div class="type-table-wrap">
+          <h4 class="type-table-title">Répartition par type</h4>
+          <table class="type-table">
+            <thead>
+              <tr><th>Type</th><th>Nom</th><th class="text-right">Fichiers</th><th class="text-right">Taille</th></tr>
+            </thead>
+            <tbody>
+              @for (item of stats.files.byType; track item.type) {
+                <tr>
+                  <td class="icon-cell">{{ getTypeIcon(item.type) }}</td>
+                  <td>{{ getFileTypeName(item.type) }}</td>
+                  <td class="text-right"><span class="count-pill">{{ item.count | number }}</span></td>
+                  <td class="text-right text-muted">{{ item.size }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- ACTIVITÉ 24H -->
+    <section class="stat-section">
+      <h3 class="section-title"><span class="material-icons">timeline</span> Activité (24h)</h3>
+      <div class="activity-grid">
+        <div class="activity-card">
+          <div class="activity-card__ico">💬</div>
+          <div class="activity-card__body">
+            <span class="activity-card__val">{{ stats.activity.messagesLast24h | number }}</span>
+            <span class="activity-card__lbl">Nouveaux messages</span>
+          </div>
+        </div>
+        <div class="activity-card">
+          <div class="activity-card__ico">📁</div>
+          <div class="activity-card__body">
+            <span class="activity-card__val">{{ stats.activity.filesUploadedLast24h | number }}</span>
+            <span class="activity-card__lbl">Fichiers uploadés</span>
+          </div>
+        </div>
+        <div class="activity-card">
+          <div class="activity-card__ico">👤</div>
+          <div class="activity-card__body">
+            <span class="activity-card__val">{{ stats.activity.newUsersLast24h | number }}</span>
+            <span class="activity-card__lbl">Nouveaux utilisateurs</span>
+          </div>
+        </div>
+        <div class="activity-card">
+          <div class="activity-card__ico">💭</div>
+          <div class="activity-card__body">
+            <span class="activity-card__val">{{ stats.activity.activeChatsLast24h | number }}</span>
+            <span class="activity-card__lbl">Salles actives</span>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <!-- Statistics Content -->
-      <div class="statistics-content" *ngIf="!loading && !error && stats">
-        <!-- Users Overview -->
-        <section class="stat-section">
-          <h2>
-            <span class="material-icons">people</span>
-            Users Overview
-          </h2>
-          <div class="stats-grid">
-            <div class="stat-card total">
-              <div class="stat-icon">👥</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Users</span>
-                <span class="stat-value">{{ stats.users.total | number }}</span>
-              </div>
-            </div>
+  }
 
-            <div class="stat-card active">
-              <div class="stat-icon">✅</div>
-              <div class="stat-details">
-                <span class="stat-label">Active Users</span>
-                <span class="stat-value">{{ stats.users.active | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card pending">
-              <div class="stat-icon">⏳</div>
-              <div class="stat-details">
-                <span class="stat-label">Pending Verification</span>
-                <span class="stat-value">{{ stats.users.pending | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card new">
-              <div class="stat-icon">🆕</div>
-              <div class="stat-details">
-                <span class="stat-label">New (7 days)</span>
-                <span class="stat-value">{{ stats.users.newLast7Days | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card month">
-              <div class="stat-icon">📅</div>
-              <div class="stat-details">
-                <span class="stat-label">New (30 days)</span>
-                <span class="stat-value">{{ stats.users.newLast30Days | number }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="status-cards">
-            <div class="status-card suspended">
-              <span class="status-label">Suspended</span>
-              <span class="status-value">{{ stats.users.suspended | number }}</span>
-            </div>
-            <div class="status-card blocked">
-              <span class="status-label">Blocked</span>
-              <span class="status-value">{{ stats.users.blocked | number }}</span>
-            </div>
-            <div class="status-card deleted">
-              <span class="status-label">Deleted</span>
-              <span class="status-value">{{ stats.users.deleted | number }}</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Chat Overview -->
-        <section class="stat-section">
-          <h2>
-            <span class="material-icons">chat</span>
-            Chat Overview
-          </h2>
-          <div class="stats-grid">
-            <div class="stat-card primary">
-              <div class="stat-icon">💬</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Rooms</span>
-                <span class="stat-value">{{ stats.chat.totalRooms | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card public">
-              <div class="stat-icon">🌐</div>
-              <div class="stat-details">
-                <span class="stat-label">Public Rooms</span>
-                <span class="stat-value">{{ stats.chat.publicRooms | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card private">
-              <div class="stat-icon">🔒</div>
-              <div class="stat-details">
-                <span class="stat-label">Private Rooms</span>
-                <span class="stat-value">{{ stats.chat.privateRooms | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card participants">
-              <div class="stat-icon">👤</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Participants</span>
-                <span class="stat-value">{{ stats.chat.totalParticipants | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card messages">
-              <div class="stat-icon">📨</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Messages</span>
-                <span class="stat-value">{{ stats.chat.totalMessages | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card conversations">
-              <div class="stat-icon">💭</div>
-              <div class="stat-details">
-                <span class="stat-label">Private Conversations</span>
-                <span class="stat-value">{{ stats.chat.totalConversations | number }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Files Overview -->
-        <section class="stat-section" *ngIf="stats.files">
-          <h2>
-            <span class="material-icons">insert_drive_file</span>
-            Files Overview
-          </h2>
-          <div class="stats-grid">
-            <div class="stat-card files-total">
-              <div class="stat-icon">📁</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Files</span>
-                <span class="stat-value">{{ stats.chat.totalFiles | number }}</span>
-              </div>
-            </div>
-
-            <div class="stat-card files-size">
-              <div class="stat-icon">💾</div>
-              <div class="stat-details">
-                <span class="stat-label">Total Size</span>
-                <span class="stat-value">{{ stats.files.totalSize }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="files-by-type" *ngIf="stats.files.byType.length > 0">
-            <h3>Files by Type</h3>
-            <div class="type-list">
-              <div class="type-item" *ngFor="let item of stats.files.byType">
-                <span class="type-icon">
-                  <ng-container [ngSwitch]="item.type.split('/')[0]">
-                    <span *ngSwitchCase="'image'">🖼️</span>
-                    <span *ngSwitchCase="'video'">🎬</span>
-                    <span *ngSwitchCase="'audio'">🎵</span>
-                    <span *ngSwitchCase="'application'">
-                      <span *ngIf="item.type.includes('pdf')">📄</span>
-                      <span *ngIf="item.type.includes('word')">📝</span>
-                      <span *ngIf="item.type.includes('excel')">📊</span>
-                      <span *ngIf="item.type.includes('zip')">🗜️</span>
-                      <span *ngIf="!item.type.includes('pdf') && !item.type.includes('word') && !item.type.includes('excel') && !item.type.includes('zip')">📁</span>
-                    </span>
-                    <span *ngSwitchDefault>📁</span>
-                  </ng-container>
-                </span>
-                <span class="type-name">{{ getFileTypeName(item.type) }}</span>
-                <span class="type-count">{{ item.count | number }}</span>
-                <span class="type-size">{{ item.size }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Recent Activity -->
-        <section class="stat-section">
-          <h2>
-            <span class="material-icons">timeline</span>
-            Last 24 Hours Activity
-          </h2>
-          <div class="activity-grid">
-            <div class="activity-card">
-              <span class="activity-icon">💬</span>
-              <div class="activity-details">
-                <span class="activity-label">New Messages</span>
-                <span class="activity-value">{{ stats.activity.messagesLast24h | number }}</span>
-              </div>
-            </div>
-
-            <div class="activity-card">
-              <span class="activity-icon">📁</span>
-              <div class="activity-details">
-                <span class="activity-label">Files Uploaded</span>
-                <span class="activity-value">{{ stats.activity.filesUploadedLast24h | number }}</span>
-              </div>
-            </div>
-
-            <div class="activity-card">
-              <span class="activity-icon">👤</span>
-              <div class="activity-details">
-                <span class="activity-label">New Users</span>
-                <span class="activity-value">{{ stats.activity.newUsersLast24h | number }}</span>
-              </div>
-            </div>
-
-            <div class="activity-card">
-              <span class="activity-icon">💭</span>
-              <div class="activity-details">
-                <span class="activity-label">Active Chats</span>
-                <span class="activity-value">{{ stats.activity.activeChatsLast24h | number }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
+  <!-- Aucune donnée -->
+  @if (!loading && !stats) {
+    <div class="state-box">
+      <span class="material-icons state-box__icon">bar_chart</span>
+      <h3>Aucune donnée disponible</h3>
+      <p>Impossible de récupérer les statistiques du serveur.</p>
+      <button class="btn-ghost" (click)="loadAllStatistics()"><span class="material-icons">refresh</span> Réessayer</button>
     </div>
+  }
+
+</div>

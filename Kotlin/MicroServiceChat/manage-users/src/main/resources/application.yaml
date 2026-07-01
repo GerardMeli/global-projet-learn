@@ -52,23 +52,6 @@ spring:
             enabled: true
             required: true
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: 353683862208-r5g3ln4citdgt5svjbkhgp3jp3hnsjtd.apps.googleusercontent.com
-            client-secret: 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
-            scope:
-              - email
-              - profile
-          github:
-            client-id: Ov23liKDKcYYe5CVmklS
-            client-secret: 7cc48bebd3c1691a403d556719b89e626424c6d2
-            scope:
-              - user:email
-              - read:user
-
 server:
   servlet:
     session:
@@ -95,6 +78,11 @@ eureka:
     fetch-registry: true
 
 app:
+  firebase:
+    # Chemin vers ton fichier service-account.json téléchargé depuis Firebase Console
+    service-account-path: classpath:firebase-service-account.json
+    # Ton Firebase Project ID (visible dans Project Settings)
+    project-id: flowchat-11027
   jwt:
     secret: TGHJVxyGBVg9oBpHJED2bECDujeT+gd3Hm1Uy2TE3N0Rv+m+mFE2oE/ucN692Wp6pwqKc9eVEk6SbHwHVwcykQ==
     access-expiration: 3600000  # 1 heure
@@ -103,6 +91,12 @@ app:
     password-reset-expiration: 1800000  # 30 minutes
     email-change-expiration: 3600000  # 1 heure
   base-url: http://localhost:8082
+  frontend-url: http://localhost:4200
   email:
     from: ngandjougerard@gmail.com
     enabled: false  # Désactiver l'envoi réel d'emails
+
+agriculture:
+  api:
+    base-url: http://95.111.225.198:8051   # ← URL de ton système agriculture
+    token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI2IDc3IDc3IDc3IDc3IiwiaWF0IjoxNzczOTA5NTA5LCJleHAiOjE3NzQwODIzMDl9.jMOBxp3FxRCr_B_BHa9A5nkzbYvo95snmDssFGw0YJ7wxBsnT98TJZ-VeDUzcZ1w3ygI-nVFRSf37mZfXb__cQ

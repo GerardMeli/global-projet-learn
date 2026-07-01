@@ -9,23 +9,23 @@ import org.springframework.stereotype.Repository
 import java.util.Optional
 
 @Repository
-interface ChatParticipantRepository: JpaRepository<ChatParticipant, Long> {
+interface ChatParticipantRepository: JpaRepository<ChatParticipant, String> {
 
-    fun findByUserId(userId: Long): List<ChatParticipant>
+    fun findByUserId(userId: String): List<ChatParticipant>
 
-    fun findByChatRoomId(chatRoomId: Long): List<ChatParticipant>
+    fun findByChatRoomId(chatRoomId: String): List<ChatParticipant>
 
-    fun findByUserIdAndChatRoomId(userId: Long, chatRoomId: Long): Optional<ChatParticipant>
+    fun findByUserIdAndChatRoomId(userId: String, chatRoomId: String): Optional<ChatParticipant>
 
     fun findByRole(role: ParticipantRole): List<ChatParticipant>
 
-    fun findByChatRoomIdAndRole(chatRoomId: Long, role: ParticipantRole): List<ChatParticipant>
+    fun findByChatRoomIdAndRole(chatRoomId: String, role: ParticipantRole): List<ChatParticipant>
 
-    fun countByChatRoomId(chatRoomId: Long): Long
+    fun countByChatRoomId(chatRoomId: String): Long
 
-    fun countByUserId(userId: Long): Long
+    fun countByUserId(userId: String): Long
 
-    fun deleteByUserIdAndChatRoomId(userId: Long, chatRoomId: Long)
+    fun deleteByUserIdAndChatRoomId(userId: String, chatRoomId: String)
 
-    fun existsByChatRoomIdAndUserId(chatRoomId: Long, userId: Long): Boolean
+    fun existsByChatRoomIdAndUserId(chatRoomId: String, userId: String): Boolean
 }

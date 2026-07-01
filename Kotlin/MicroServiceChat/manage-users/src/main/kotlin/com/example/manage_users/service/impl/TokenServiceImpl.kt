@@ -29,15 +29,15 @@ class TokenServiceImpl  (
     }
 
     // UserId-based token methods
-    override fun createEmailVerificationToken(userId: Long): String {
+    override fun createEmailVerificationToken(userId: String): String {
         return jwtTokenProvider.createEmailVerificationToken(userId)
     }
 
-    override fun createPasswordResetToken(userId: Long, email: String): String {
+    override fun createPasswordResetToken(userId: String, email: String): String {
         return jwtTokenProvider.createPasswordResetToken(userId, email)
     }
 
-    override fun createEmailChangeToken(userId: Long, newEmail: String): String {
+    override fun createEmailChangeToken(userId: String, newEmail: String): String {
         return jwtTokenProvider.createEmailChangeToken(userId, newEmail)
     }
 
@@ -71,7 +71,7 @@ class TokenServiceImpl  (
         }
     }
 
-    override fun validateEmailVerificationToken(token: String): Long {
+    override fun validateEmailVerificationToken(token: String): String {
         try {
             // validateEmailVerificationToken retourne directement le userId ou lance une exception
             return jwtTokenProvider.validateEmailVerificationToken(token)
@@ -84,7 +84,7 @@ class TokenServiceImpl  (
         }
     }
 
-    override fun validateEmailChangeToken(token: String): Pair<Long, String> {
+    override fun validateEmailChangeToken(token: String): Pair<String, String> {
         try {
 
             val userId = jwtTokenProvider.validateEmailChangeToken(token)  // returns userId
@@ -121,7 +121,7 @@ class TokenServiceImpl  (
         log.info("Email change token invalidated: $token")
     }
 
-    override fun invalidateAllUserTokens(userId: Long) {
+    override fun invalidateAllUserTokens(userId: String) {
         log.info("All tokens invalidated for user: $userId")
     }
 

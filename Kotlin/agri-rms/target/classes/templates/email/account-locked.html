@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Locked</title>
+</head>
+<body style="font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5;">
+<div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+
+    <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">Account Locked</h1>
+    </div>
+
+    <div style="padding: 40px 30px;">
+        <p style="font-size: 18px; margin-bottom: 20px;">Hello <span th:text="${user?.firstName ?: user?.email}" style="font-weight: bold; color: #dc3545;"></span>,</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 48px;">🔒</span>
+        </div>
+
+        <p style="font-size: 16px; margin-bottom: 20px;">Your account has been temporarily locked due to multiple failed login attempts.</p>
+
+        <div style="background-color: #fff3f3; border-left: 4px solid #dc3545; padding: 20px; margin: 30px 0;">
+            <p style="margin: 0; font-size: 15px; color: #721c24;">
+                <strong>What happened?</strong><br>
+                We detected 5 unsuccessful login attempts on your account. As a security measure, we've temporarily locked your account.
+            </p>
+        </div>
+
+        <div style="margin: 30px 0;">
+            <h3 style="color: #333; margin-bottom: 15px;">To unlock your account:</h3>
+            <ul style="padding-left: 20px; font-size: 15px; color: #555;">
+                <li style="margin-bottom: 10px;">Wait 30 minutes for automatic unlock</li>
+                <li style="margin-bottom: 10px;">Reset your password using the "Forgot Password" option</li>
+                <li style="margin-bottom: 10px;">Contact support for immediate assistance</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin: 35px 0;">
+            <a th:href="'mailto:' + ${supportEmail}"
+               style="background-color: #6c757d; color: white; padding: 12px 30px;
+                          text-decoration: none; border-radius: 50px; font-size: 15px; display: inline-block;">
+                Contact Support
+            </a>
+        </div>
+    </div>
+
+    <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+        <p style="margin: 0; font-size: 14px; color: #6c757d;">
+            If you didn't attempt to login, please contact us immediately at<br>
+            <a th:href="'mailto:' + ${supportEmail}" style="color: #dc3545; text-decoration: none;" th:text="${supportEmail}"></a>
+        </p>
+    </div>
+</div>
+</body>
+</html>

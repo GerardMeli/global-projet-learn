@@ -22,6 +22,8 @@ export interface JwtClaims {
   tokenType: string;    // "access" | "refresh" | "email_verification" | "password_reset" | "email_change"
   iat: number;          // issued at (seconds)
   exp: number;          // expiry (seconds since epoch)
+  firstName?: string;   // custom claim
+  lastName?: string;    // custom claim
 }
 
 export interface ApiResponse<T> {

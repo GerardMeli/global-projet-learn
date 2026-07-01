@@ -35,7 +35,7 @@ class PrivateChatService(
     // ═══════════════════════════════════════════════════════════
 
     @Transactional
-    fun sendMessage(senderId: Long, request: PrivateDto.PrivateChatRequest): PrivateDto.PrivateChatResponse {
+    fun sendMessage(senderId: String, request: PrivateDto.PrivateChatRequest): PrivateDto.PrivateChatResponse {
         if (senderId == request.senderId2) throw IllegalArgumentException("Cannot send message to yourself")
 
         val sender = requireUser(senderId, "Sender not found")
@@ -62,16 +62,16 @@ class PrivateChatService(
         return convertToResponse(saved)
     }
 
-    fun getChatBetweenUserResponse(userId1: Long, userId2: Long): List<PrivateDto.PrivateChatResponse> =
+    fun getChatBetweenUserResponse(userId1: String, userId2: String): List<PrivateDto.PrivateChatResponse> =
         privateChatRepository.findChatBetweenUsers(userId1, userId2).map { convertToResponse(it) }
 
     fun getAllPrivateChats(): List<PrivateDto.PrivateChatResponse> =
         privateChatRepository.findAll().map { convertToResponse(it) }
 
-    fun getUserChats(userId: Long): List<PrivateDto.PrivateChatResponse> =
+    fun getUserChats(userId: String): List<PrivateDto.PrivateChatResponse> =
         privateChatRepository.findUserChats(userId).map { convertToResponse(it) }
 
-    fun getUserContacts(userId: Long): List<UserContactDTO> {
+    fun getUserContacts(userId: String): List<UserContactDTO> {
         val contactIds = privateChatRepository.findUserContactIds(userId)
 
         return contactIds.map { contactId ->
@@ -93,7 +93,7 @@ class PrivateChatService(
     }
 
     @Transactional
-    fun markMessagesAsRead(userId: Long, request: PrivateDto.MarkAsReadRequest) {
+    fun markMessagesAsRead(userId: String, request: PrivateDto.MarkAsReadRequest) {
         val updatedCount = privateChatRepository.markMessagesAsRead(request.messageIds, userId)
         if (updatedCount > 0) {
             privateChatRepository.findMessagesByIdsAndUser(request.messageIds, userId)
@@ -106,14 +106,14 @@ class PrivateChatService(
         }
     }
 
-    fun getUnreadCount(userId: Long): Long = privateChatRepository.countUnreadMessages(userId)
+    fun getUnreadCount(userId: String): Long = privateChatRepository.countUnreadMessages(userId)
 
     // ═══════════════════════════════════════════════════════════
     // FICHIERS
     // ═══════════════════════════════════════════════════════════
 
     @Transactional
-    fun sendFile(senderId: Long, receiverId: Long, file: MultipartFile, description: String = ""): PrivateDto.PrivateFileResponse {
+    fun sendFile(senderId: String, receiverId: String, file: MultipartFile, description: String = ""): PrivateDto.PrivateFileResponse {
         if (senderId == receiverId) throw IllegalArgumentException("Cannot send file to yourself")
 
         val sender = requireUser(senderId, "Sender not found")
@@ -125,7 +125,7 @@ class PrivateChatService(
 
         val responseBody = uploadResponse.body ?: emptyMap()
         val fileName = responseBody["fileName"]?.toString() ?: file.originalFilename
-        val fileId = responseBody["id"]?.toString()?.toLongOrNull()
+        val fileId = responseBody["id"]?.toString()
         val fileMessageContent = if (description.isNotBlank()) "📎 File: $fileName - $description" else "📎 File: $fileName"
 
         val saved = privateChatRepository.save(
@@ -133,13 +133,19 @@ class PrivateChatService(
         )
 
         val response = PrivateDto.PrivateFileResponse(
-            messageId = saved.id, fileId = fileId,
-            fileName = fileName, originalFileName = file.originalFilename ?: "unknown",
+            messageId = saved.id,
+            fileId = fileId,
+            fileName = fileName,
+            originalFileName = file.originalFilename ?: "unknown",
             fileType = file.contentType ?: "application/octet-stream",
-            fileSize = file.size, description = description,
-            senderId = sender.id, senderName = sender.email,
-            receiverId = receiver.id, receiverName = receiver.email,
-            timestamp = saved.timestamp, uploadStatus = "File uploaded successfully",
+            fileSize = file.size,
+            description = description,
+            senderId = sender.id,
+            senderName = sender.email,
+            receiverId = receiver.id,
+            receiverName = receiver.email,
+            timestamp = saved.timestamp,
+            uploadStatus = "File uploaded successfully",
             downloadUrl = generateDownloadUrl(fileName)
         )
 
@@ -161,7 +167,7 @@ class PrivateChatService(
         return response
     }
 
-    fun getFilesBetweenUsers(userId1: Long, userId2: Long): List<PrivateDto.PrivateFileResponse> =
+    fun getFilesBetweenUsers(userId1: String, userId2: String): List<PrivateDto.PrivateFileResponse> =
         privateChatRepository.findChatBetweenUsers(userId1, userId2)
             .filter { isFileMessage(it.content) }
             .map { message ->
@@ -172,7 +178,7 @@ class PrivateChatService(
             }
 
     @Transactional
-    fun deleteFileMessage(messageId: Long): PrivateDto.PrivateFileResponse {
+    fun deleteFileMessage(messageId: String): PrivateDto.PrivateFileResponse {
         val message = privateChatRepository.findById(messageId)
             .orElseThrow { IllegalArgumentException("Message not found with id: $messageId") }
         if (!isFileMessage(message.content)) throw IllegalArgumentException("Message is not a file message")
@@ -184,7 +190,7 @@ class PrivateChatService(
         return buildFileResponse(message, sender, receiver, fileName, "Deleted")
     }
 
-    fun setUserTyping(senderId: Long, receiverId: Long) {
+    fun setUserTyping(senderId: String, receiverId: String) {
         val key = generateTypingKey(senderId, receiverId)
         typingStatus[key] = UserTypingStatus(
             userId = senderId,
@@ -194,12 +200,12 @@ class PrivateChatService(
         )
     }
 
-    fun removeUserTyping(senderId: Long, receiverId: Long) {
+    fun removeUserTyping(senderId: String, receiverId: String) {
         val key = generateTypingKey(senderId, receiverId)
         typingStatus.remove(key)
     }
 
-    fun getTypingUsers(receiverId: Long): List<UserTypingStatus> {
+    fun getTypingUsers(receiverId: String): List<UserTypingStatus> {
         val now = System.currentTimeMillis()
         val timeout = 5000 // 5 seconds timeout for typing indicator
 
@@ -215,7 +221,7 @@ class PrivateChatService(
             }
     }
 
-    private fun generateTypingKey(senderId: Long, receiverId: Long): String {
+    private fun generateTypingKey(senderId: String, receiverId: String): String {
         return "$senderId:$receiverId"
     }
 
@@ -223,7 +229,7 @@ class PrivateChatService(
     // HELPERS PRIVÉS
     // ═══════════════════════════════════════════════════════════
 
-    private fun requireUser(userId: Long, errorMessage: String): UserDto.UserResponse =
+    private fun requireUser(userId: String, errorMessage: String): UserDto.UserResponse =
         usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow(errorMessage)
 
     private fun convertToResponse(chat: PrivateChat): PrivateDto.PrivateChatResponse {
@@ -243,9 +249,9 @@ class PrivateChatService(
      * @param topic              lambda qui calcule le topic à partir de l'userId
      */
     private fun <T: Any> sendToSenderAndReceiver(
-        senderId: Long, receiverId: Long,
+        senderId: String, receiverId: String,
         buildNotification: (isOwn: Boolean) -> T,
-        topic: (userId: Long) -> String
+        topic: (userId: String) -> String
     ) {
         messagingTemplate.convertAndSend(topic(receiverId), buildNotification(false))
         messagingTemplate.convertAndSend(topic(senderId), buildNotification(true))
@@ -288,7 +294,7 @@ class PrivateChatService(
         else -> content
     }
 
-    private fun extractFileIdFromContent(content: String): Long? = null
+    private fun extractFileIdFromContent(content: String): String? = null
 
     private fun extractFileTypeFromContent(content: String): String {
         val name = extractFileNameFromContent(content)
@@ -310,29 +316,46 @@ class PrivateChatService(
     // DTOs INTERNES (notifications WebSocket)
     // ═══════════════════════════════════════════════════════════
 
-    data class MessagesReadNotification(val messageIds: List<Long>, val readerId: Long)
+    data class MessagesReadNotification(
+        val messageIds: List<String>,
+        val readerId: String
+    )
 
     data class PrivateChatNotification(
-        val messageId: Long, val senderId: Long, val senderName: String,
-        val content: String, val timestamp: LocalDateTime,
-        val unreadCount: Long = 0, val isOwnMessage: Boolean = false, val isFile: Boolean = false
+        val messageId: String,
+        val senderId: String,
+        val senderName: String,
+        val content: String,
+        val timestamp: LocalDateTime,
+        val unreadCount: Long = 0,
+        val isOwnMessage: Boolean = false,
+        val isFile: Boolean = false
     )
 
     data class PrivateFileNotification(
-        val messageId: Long, val senderId: Long, val senderName: String,
-        val fileName: String?, val fileType: String, val fileSize: Long,
-        val description: String, val timestamp: LocalDateTime,
-        val downloadUrl: String, val isOwnMessage: Boolean = false
+        val messageId: String,
+        val senderId: String,
+        val senderName: String,
+        val fileName: String?,
+        val fileType: String,
+        val fileSize: Long,
+        val description: String,
+        val timestamp: LocalDateTime,
+        val downloadUrl: String,
+        val isOwnMessage: Boolean = false
     )
 
     data class UserContactDTO(
-        val userId: Long, val username: String, val lastMessage: String,
-        val lastMessageTime: LocalDateTime?, val unreadCount: Int
+        val userId: String,
+        val username: String,
+        val lastMessage: String,
+        val lastMessageTime: LocalDateTime?,
+        val unreadCount: Int
     )
 
     data class UserTypingStatus(
-        val userId: Long,
-        val receiverId: Long,
+        val userId: String,
+        val receiverId: String,
         val isTyping: Boolean,
         val startedAt: Long
     )

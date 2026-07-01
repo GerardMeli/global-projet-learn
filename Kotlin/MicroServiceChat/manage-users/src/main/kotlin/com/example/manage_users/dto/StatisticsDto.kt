@@ -22,7 +22,7 @@ class StatisticsDto {
     )
 
     data class UserActivityResponse(
-        val userId: Long,
+        val userId: String,
         val email: String,
         val lastLoginAt: LocalDateTime?,
         val failedLoginAttempts: Int,

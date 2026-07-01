@@ -10,7 +10,7 @@ class UserDto {
 
     // Response DTOs
     data class UserResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val role: UserRole,
         val isActive: Boolean,
@@ -18,26 +18,8 @@ class UserDto {
     )
 
     data class UserSimpleResponse(
-        val id: Long,
+        val id: String,
         val email: String
-    )
-
-    data class AdminUserResponse(
-        val id: Long,
-        val email: String,
-        val firstName: String?,
-        val lastName: String?,
-        val role: UserRole,
-        val status: UserStatus,
-        val isActive: Boolean,
-        val emailVerified: Boolean,
-        val failedLoginAttempts: Int,
-        val createdAt: LocalDateTime,
-        val lastLoginAt: LocalDateTime?,
-        val phoneNumber: String?,
-        val address: String?,
-        val language: Language,
-        val theme: Theme
     )
 
     data class ApiResponse<T>(
@@ -48,7 +30,7 @@ class UserDto {
     )
 
     data class UserProfileResponse(
-        val id: Long,
+        val id: String,
         val email: String,
         val firstName: String?,
         val lastName: String?,
@@ -79,20 +61,8 @@ class UserDto {
         val user: UserResponse,
         val token: String,
         val tokenType: String,
-        val expiresIn: Long,
+        val expiresIn: String,
         val sessionId: String
-    )
-
-    // Email Verification
-    data class EmailVerificationRequest(
-        @field:NotBlank
-        val token: String
-    )
-
-    data class ResendVerificationEmailRequest(
-        @field:NotBlank
-        @field:Email
-        val email: String
     )
 
     // Password Reset

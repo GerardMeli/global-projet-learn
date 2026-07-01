@@ -1,0 +1,92 @@
+<div class="chat-resend">
+  <!-- Background Animation -->
+  <div class="chat-bg">
+    <div class="mail-particles">
+      <div class="particle" *ngFor="let i of [1,2,3,4,5,6]"></div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="chat-container">
+    <div class="resend-card">
+      <!-- Back Button -->
+      <a routerLink="/auth/login" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+        Back to sign in
+      </a>
+
+      <!-- Content -->
+      <ng-container *ngIf="!sent; else sentBlock">
+        <!-- Header -->
+        <div class="resend-header">
+          <div class="icon-circle">
+            <mat-icon>mark_email_unread</mat-icon>
+          </div>
+          <h1>Resend verification</h1>
+          <p>Enter your email to receive a new verification link</p>
+        </div>
+
+        <!-- Error Alert -->
+        <div *ngIf="errorMessage" class="chat-alert error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Form -->
+        <form [formGroup]="form" (ngSubmit)="submit()" class="resend-form">
+          <div class="field-wrap">
+            <input class="field-input" type="email" formControlName="email" placeholder=" " id="resendEmail" autocomplete="email">
+            <label class="field-label" for="resendEmail">Email address</label>
+            <span class="field-icon"><mat-icon>mail_outline</mat-icon></span>
+            <div class="field-error" *ngIf="f['email'].touched && f['email'].hasError('required')">Email is required</div>
+            <div class="field-error" *ngIf="f['email'].touched && f['email'].hasError('email')">Please enter a valid email</div>
+          </div>
+
+          <button type="submit" class="resend-button" [disabled]="loading">
+            <span *ngIf="!loading">Send verification link</span>
+            <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
+          </button>
+        </form>
+
+        <!-- Info -->
+        <div class="info-box">
+          <mat-icon>info</mat-icon>
+          <p>The link will expire in 24 hours. Check your spam folder if you don't see it.</p>
+        </div>
+      </ng-container>
+
+      <!-- Sent State -->
+      <ng-template #sentBlock>
+        <div class="success-state">
+          <div class="success-animation">
+            <div class="mail-sent">
+              <mat-icon>mark_email_read</mat-icon>
+              <div class="mail-wave"></div>
+            </div>
+          </div>
+          
+          <h2>Check your inbox</h2>
+          <p class="success-message">
+            We've sent a new verification link to <strong>{{ form.value.email }}</strong>
+          </p>
+          
+          <div class="info-box success">
+            <mat-icon>schedule</mat-icon>
+            <p>The link expires in 24 hours. Didn't receive it? Check your spam folder.</p>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="resend-button secondary" (click)="sent = false">
+              <mat-icon>edit</mat-icon>
+              Use different email
+            </button>
+            <button class="resend-button primary" routerLink="/auth/login">
+              <mat-icon>check</mat-icon>
+              Done
+            </button>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>

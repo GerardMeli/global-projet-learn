@@ -5,6 +5,8 @@ import com.example.manage_users.dto.ProfileDto
 import com.example.manage_users.dto.RegistrationDto
 import com.example.manage_users.security.JwtProvider
 import com.example.manage_users.service.interf.UsersService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import org.springframework.data.domain.Pageable
@@ -17,12 +19,14 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/admin/users")
+@Tag(name = "Administration", description = "Endpoints pour la gestion administrative des utilisateurs")
 class AdminController (
     private val userService: UsersService,
     private val jwtProvider: JwtProvider
 ) {
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Récupérer tous les utilisateurs", description = "Retourne la liste complète des utilisateurs inscrits.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/")
     fun getAllUsers(request: HttpServletRequest): ResponseEntity<ApiResponse<List<ProfileDto.UserProfileResponse>>> {
         return try {
@@ -62,15 +66,50 @@ class AdminController (
         }
     }
 
+    // ── Créer un utilisateur (admin only) ─────────────────────────────────────
+    @Operation(summary = "Créer un utilisateur", description = "Permet à un administrateur de créer un nouvel utilisateur manuellement.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PostMapping("/")
+    fun createUser(
+        @Valid @RequestBody request: AdminDto.CreateUserRequest
+    ): ResponseEntity<ApiResponse<AdminDto.CreateUserResponse>> {
+        return try {
+            val created = userService.createUser(request)
+            ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse(
+                    success = true,
+                    message = "Utilisateur créé avec succès",
+                    data = created
+                ))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse(
+                    success = false,
+                    message = e.message ?: "Email déjà utilisé",
+                    data = null
+                ))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse(
+                    success = false,
+                    message = "Erreur lors de la création : ${e.message}",
+                    data = null
+                ))
+        }
+    }
+
+    @Operation(summary = "Récupérer un utilisateur par ID", description = "Récupère les détails d'un utilisateur spécifique par son identifiant unique.")
     @GetMapping("/{userId}")
-    fun getUserById(@PathVariable userId: Long): ResponseEntity<ProfileDto.UserProfileResponse> {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    fun getUserById(@PathVariable userId: String): ResponseEntity<ProfileDto.UserProfileResponse> {
         val response = userService.getUserById(userId)
         return ResponseEntity.ok(response)
     }
 
     // Dans le controller du microservice manage-users
+    @Operation(summary = "Récupérer les infos de base", description = "Récupère les informations essentielles d'un utilisateur.")
     @GetMapping("/{userId}/basic")
-    fun getUserBasicInfo(@PathVariable userId: Long): ResponseEntity<RegistrationDto.UserResponse> {
+    fun getUserBasicInfo(@PathVariable userId: String): ResponseEntity<RegistrationDto.UserResponse> {
         val profile = userService.getUserById(userId)
         val basicInfo = RegistrationDto.UserResponse(
             id = profile.id,
@@ -82,37 +121,41 @@ class AdminController (
         return ResponseEntity.ok(basicInfo)
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Mettre à jour un utilisateur", description = "Modifie les informations d'un utilisateur existant par un administrateur.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PutMapping("/{userId}")
     fun updateUser(
-        @PathVariable userId: Long,
+        @PathVariable userId: String,
         @Valid @RequestBody request: AdminDto.AdminUserUpdateRequest
     ): ResponseEntity<AdminDto.AdminUserResponse> {
         val response = userService.updateUser(userId, request)
         return ResponseEntity.ok(response)
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Mettre à jour le statut", description = "Active ou désactive un compte utilisateur.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @PatchMapping("/{userId}/status")
     fun updateUserStatus(
-        @PathVariable userId: Long,
+        @PathVariable userId: String,
         @Valid @RequestBody request: AdminDto.UserStatusUpdateRequest
     ): ResponseEntity<AdminDto.AdminUserResponse> {
         val response = userService.updateUserStatus(userId, request)
         return ResponseEntity.ok(response)
     }
 
+    @Operation(summary = "Mettre à jour le rôle", description = "Modifie le rôle d'un utilisateur (ex: USER vers ADMIN).")
     @PatchMapping("/{userId}/role")
     fun updateUserRole(
-        @PathVariable userId: Long,
+        @PathVariable userId: String,
         @Valid @RequestBody request: AdminDto.UserRoleUpdateRequest
     ): ResponseEntity<AdminDto.AdminUserResponse> {
         val response = userService.updateUserRole(userId, request)
         return ResponseEntity.ok(response)
     }
 
+    @Operation(summary = "Supprimer un utilisateur", description = "Supprime définitivement un utilisateur du système.")
     @DeleteMapping("/{userId}")
-    fun deleteUser(@PathVariable userId: Long): ResponseEntity<Void> {
+    fun deleteUser(@PathVariable userId: String): ResponseEntity<Void> {
         userService.deleteUser(userId)
         return ResponseEntity.noContent().build()
     }

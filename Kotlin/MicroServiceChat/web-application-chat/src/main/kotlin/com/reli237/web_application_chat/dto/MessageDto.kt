@@ -15,7 +15,7 @@ class MessageDto {
     // Request DTOs
     data class MessageCreateRequest(
         val content: String,
-        var chatRoomId: Long,
+        var chatRoomId: String,
         val messageType: MessageType = MessageType.TEXT
     )
 
@@ -23,42 +23,35 @@ class MessageDto {
      * Response for file messages in chat rooms
      */
     data class FileMessageResponse(
-        val messageId: Long,
-        val fileId: Long?,
+        val messageId: String,
+        val fileId: String?,
         val fileName: String?,
         val originalFileName: String,
         val fileType: String,
         val fileSize: Long,
         val description: String,
-        val uploaderId: Long,
+        val uploaderId: String,
         val uploaderName: String,
-        val chatRoomId: Long,
+        val chatRoomId: String,
         val chatRoomName: String,
         val timestamp: LocalDateTime,
         val uploadStatus: String
     )
 
-    /**
-     * Request to send a file to chat room
-     */
-    data class FileUploadRequest(
-        val chatRoomId: Long,
-        val description: String = ""
-    )
 
     // Response DTOs
     data class MessageResponse(
-        val id: Long,
+        val id: String,
         val content: String,
         val sender: UserDto.UserSimpleResponse,
-        val chatRoomId: Long,
+        val chatRoomId: String,
         val timestamp: LocalDateTime,
         val messageType: MessageType,
         val isDeleted: Boolean
     )
 
     data class MessageDetailResponse(
-        val id: Long,
+        val id: String,
         val content: String,
         val sender: UserDto.UserResponse,
         val chatRoom: ChatRoomDto.ChatRoomResponse,
@@ -71,7 +64,7 @@ class MessageDto {
      * Request to notify that a user is typing
      */
     data class TypingRequest(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean
     ) : Serializable
 
@@ -79,7 +72,7 @@ class MessageDto {
      * Notification sent when a user is typing
      */
     data class TypingNotification(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean,
         val timestamp: Long = System.currentTimeMillis()
     ) : Serializable
@@ -88,8 +81,8 @@ class MessageDto {
      * Notification sent when a message is read
      */
     data class MessageReadNotification(
-        val messageId: Long,
-        val readByUserId: Long,
+        val messageId: String,
+        val readByUserId: String,
         val readAt: Long
     ) : Serializable
 
@@ -97,7 +90,7 @@ class MessageDto {
      * Event triggered when a user joins a chat room
      */
     data class UserJoinEvent(
-        val userId: Long,
+        val userId: String,
         val username: String,
         val action: String,
         val timestamp: Long = System.currentTimeMillis()
@@ -107,13 +100,13 @@ class MessageDto {
      * Response for typing status query
      */
     data class TypingStatusResponse(
-        val roomId: Long,
+        val roomId: String,
         val typingUsers: List<TypingUser>,
         val timestamp: Long = System.currentTimeMillis()
     ) : Serializable
 
     data class TypingUser(
-        val userId: Long,
+        val userId: String,
         val username: String,
         val startedAt: Long
     ) : Serializable
@@ -122,13 +115,13 @@ class MessageDto {
      * Response for message read status
      */
     data class MessageReadStatusResponse(
-        val messageId: Long,
+        val messageId: String,
         val readBy: List<UserReadInfo>,
         val timestamp: Long = System.currentTimeMillis()
     ) : Serializable
 
     data class UserReadInfo(
-        val userId: Long,
+        val userId: String,
         val username: String,
         val readAt: Long
     ) : Serializable

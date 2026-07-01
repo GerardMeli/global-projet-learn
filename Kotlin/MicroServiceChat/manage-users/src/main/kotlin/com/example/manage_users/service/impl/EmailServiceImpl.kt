@@ -25,19 +25,21 @@ class EmailServiceImpl (
     @Value("\${app.email.from:ngandjougerard@gmail.com}")
     private val fromEmail: String,
     @Value("\${app.email.enabled:false}")
-    private val emailEnabled: Boolean
+    private val emailEnabled: Boolean,
+    @Value("\${app.frontend-url:http://localhost:4200}")
+    private val frontendUrl: String,
 ) : EmailService {
 
     companion object {
         private val log = LoggerFactory.getLogger(EmailServiceImpl::class.java)
     }
-
-    init {
-        log.info("📧 EmailServiceImpl initialized")
-        log.info("📧 Email sending enabled: $emailEnabled")
-        log.info("📧 Base URL: $baseUrl")
-        log.info("📧 From email: $fromEmail")
-    }
+//
+//    init {
+//        log.info("📧 EmailServiceImpl initialized")
+//        log.info("📧 Email sending enabled: $emailEnabled")
+//        log.info("📧 Base URL: $baseUrl")
+//        log.info("📧 From email: $fromEmail")
+//    }
 
     @Async
     override fun sendEmailVerification(user: Users): String {
@@ -124,43 +126,18 @@ class EmailServiceImpl (
             val context = Context().apply {
                 setVariable("user", user)
                 setVariable("supportEmail", "support@example.com")
+                // ← passer les URLs comme variables String simples
+                setVariable("loginUrl",        "$frontendUrl/auth/login")
+                setVariable("resetPasswordUrl","$frontendUrl/auth/reset-password")
+                setVariable("supportUrl",      "$frontendUrl/support")
             }
 
             val content = templateEngine.process("email/account-locked", context)
-
-            sendEmail(
-                to = user.email,
-                subject = "Your Account Has Been Locked",
-                content = content
-            )
+            sendEmail(user.email, "Votre compte a été bloqué", content)
 
             log.info("✅ Account locked notification sent to: ${user.email}")
         } catch (ex: Exception) {
             log.error("❌ Failed to send account locked notification to ${user.email}", ex)
-        }
-    }
-
-    @Async
-    override fun sendWelcomeEmail(user: Users) {
-        try {
-            log.info("📧 Preparing welcome email for: ${user.email}")
-
-            val context = Context().apply {
-                setVariable("user", user)
-                setVariable("loginUrl", "$baseUrl/login")
-            }
-
-            val content = templateEngine.process("email/welcome", context)
-
-            sendEmail(
-                to = user.email,
-                subject = "Welcome to Our Platform",
-                content = content
-            )
-
-            log.info("✅ Welcome email sent to: ${user.email}")
-        } catch (ex: Exception) {
-            log.error("❌ Failed to send welcome email to ${user.email}", ex)
         }
     }
 
@@ -304,6 +281,58 @@ class EmailServiceImpl (
             log.info("✅ Status change notification sent to: $email")
         } catch (ex: Exception) {
             log.error("❌ Failed to send status change notification to $email", ex)
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // NEW — Invitation « Créez votre mot de passe » (admin a créé le compte)
+    // Template: resources/templates/email/set-password-invitation.html
+    // ═══════════════════════════════════════════════════════════════════════
+    @Async
+    override fun sendSetPasswordInvitation(user: Users, token: String) {
+        try {
+            log.info("📧 Sending set-password invitation to: ${user.email}")
+
+            // Pointe vers la route Angular /auth/set-password?token=<jwt>
+            val setPasswordUrl = "$frontendUrl/auth/set-password?token=$token"
+
+            val context = Context().apply {
+                setVariable("user", user)
+                setVariable("setPasswordUrl", setPasswordUrl)
+            }
+
+            val content = templateEngine.process("email/set-password-invitation", context)
+            sendEmail(user.email, "FlowChat — Créez votre mot de passe", content)
+
+            log.info("✅ Set-password invitation sent to: ${user.email}")
+        } catch (ex: Exception) {
+            log.error("❌ Failed to send set-password invitation to ${user.email}", ex)
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // UPDATED — Welcome email
+    // Désormais envoyé APRÈS que le user a défini son mot de passe
+    // (déclenché par AuthController.resetPassword).
+    // Utilise frontendUrl/home au lieu de baseUrl/login.
+    // ═══════════════════════════════════════════════════════════════════════
+    @Async
+    override fun sendWelcomeEmail(user: Users) {
+        try {
+            log.info("📧 Preparing welcome email for: ${user.email}")
+
+            val context = Context().apply {
+                setVariable("user", user)
+                setVariable("loginUrl", "$frontendUrl/auth/login")   // ← /home (landing)
+            }
+
+            val content = templateEngine.process("email/welcome", context)
+
+            sendEmail(user.email, "Bienvenue sur FlowChat 🎉", content)
+
+            log.info("✅ Welcome email sent to: ${user.email}")
+        } catch (ex: Exception) {
+            log.error("❌ Failed to send welcome email to ${user.email}", ex)
         }
     }
 

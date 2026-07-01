@@ -1,0 +1,99 @@
+<div class="chat-verify">
+  <!-- Background -->
+  <div class="chat-bg">
+    <div class="verification-ring"></div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="chat-container">
+    <div class="verify-card">
+      <ng-container [ngSwitch]="state">
+        <!-- Loading -->
+        <div *ngSwitchCase="'loading'" class="verify-state">
+          <div class="spinner-container">
+            <mat-spinner diameter="48"></mat-spinner>
+          </div>
+          <h2>Verifying your email</h2>
+          <p>Please wait while we confirm your account...</p>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="progress"></div>
+          </div>
+        </div>
+
+        <!-- Success -->
+        <div *ngSwitchCase="'success'" class="verify-state success">
+          <div class="success-animation">
+            <div class="checkmark-circle">
+              <div class="checkmark-check"></div>
+            </div>
+          </div>
+          
+          <h2>Email verified!</h2>
+          <p class="message">Your account is now active. Welcome to the community!</p>
+          
+          <div class="action-buttons">
+            <button class="verify-button primary" routerLink="/auth/login">
+              <mat-icon>login</mat-icon>
+              Sign in now
+            </button>
+            <button class="verify-button secondary" routerLink="/">
+              <mat-icon>home</mat-icon>
+              Go to home
+            </button>
+          </div>
+        </div>
+
+        <!-- Expired -->
+        <div *ngSwitchCase="'expired'" class="verify-state error">
+          <div class="error-icon">
+            <mat-icon>timer_off</mat-icon>
+          </div>
+          
+          <h2>Link expired</h2>
+          <p class="message">
+            This verification link has expired. Request a new one to activate your account.
+          </p>
+          
+          <button class="verify-button primary" routerLink="/auth/resend-verification">
+            <mat-icon>refresh</mat-icon>
+            Get new link
+          </button>
+        </div>
+
+        <!-- Invalid -->
+        <div *ngSwitchCase="'invalid'" class="verify-state error">
+          <div class="error-icon">
+            <mat-icon>error_outline</mat-icon>
+          </div>
+          
+          <h2>Invalid link</h2>
+          <p class="message">
+            This verification link is invalid. Please request a new one.
+          </p>
+          
+          <button class="verify-button primary" routerLink="/auth/resend-verification">
+            <mat-icon>refresh</mat-icon>
+            Get new link
+          </button>
+        </div>
+
+        <!-- No Token -->
+        <div *ngSwitchCase="'no-token'" class="verify-state warning">
+          <div class="warning-icon">
+            <mat-icon>link_off</mat-icon>
+          </div>
+          
+          <h2>No verification token</h2>
+          <p class="message">
+            Please check your email for the verification link.
+          </p>
+          
+          <button class="verify-button secondary" routerLink="/auth/login">
+            <mat-icon>arrow_back</mat-icon>
+            Back to sign in
+          </button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>

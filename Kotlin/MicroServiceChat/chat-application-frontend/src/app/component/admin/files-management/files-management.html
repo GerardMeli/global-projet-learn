@@ -1,0 +1,189 @@
+<!-- admin-files.component.html -->
+<div class="afl-shell" (keydown.escape)="closeModal()">
+
+  <!-- Toasts -->
+  <div class="toast-stack" aria-live="polite">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" (click)="dismissToast(t.id)" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="$event.stopPropagation(); dismissToast(t.id)">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ── EN-TÊTE ─────────────────────────────────────────────────────────── -->
+  <div class="afl-header">
+    <div>
+      <h2 class="afl-title">Gestion des Fichiers</h2>
+      <p class="afl-subtitle">Consultez, téléchargez et supprimez les fichiers de la plateforme</p>
+    </div>
+    <button class="btn-ghost" (click)="loadData()" [disabled]="loading">
+      <span class="material-icons" [class.spin]="loading">refresh</span>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- ── STATS ──────────────────────────────────────────────────────────── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#fffbeb"><span class="material-icons" style="color:#d97706">folder</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ totalCount }}</span><span class="stat-card__lbl">Total fichiers</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#eff6ff"><span class="material-icons" style="color:#2563eb">storage</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ totalSize }}</span><span class="stat-card__lbl">Taille totale</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#fffbeb"><span class="material-icons" style="color:#d97706">image</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ imageCount }}</span><span class="stat-card__lbl">Images</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__ico" style="background:#eff6ff"><span class="material-icons" style="color:#2563eb">description</span></div>
+      <div class="stat-card__body"><span class="stat-card__val">{{ docCount }}</span><span class="stat-card__lbl">Documents</span></div>
+    </div>
+  </div>
+
+  <!-- ── FILTRES ────────────────────────────────────────────────────────── -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <span class="material-icons search-box__ico">search</span>
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchInput()"
+        placeholder="Rechercher par nom de fichier…" class="search-box__input">
+      @if (searchTerm) {
+        <button class="search-box__clear" (click)="searchTerm=''; applyFilters()">
+          <span class="material-icons">close</span>
+        </button>
+      }
+    </div>
+    <select class="filter-select" [(ngModel)]="typeFilter" (ngModelChange)="onFilterChange()">
+      <option value="">Tous les types</option>
+      <option value="image/">Images</option>
+      <option value="video/">Vidéos</option>
+      <option value="audio/">Audio</option>
+      <option value="application/pdf">PDF</option>
+      <option value="application/msword">Word</option>
+      <option value="application/vnd.ms-excel">Excel</option>
+      <option value="application/zip">Archives</option>
+    </select>
+  </div>
+
+  @if (hasActiveFilters) {
+    <div class="results-bar">
+      <span class="material-icons">filter_list</span>
+      <span>{{ filteredFiles.length }} fichier(s)
+        @if (searchTerm) { pour « <strong>{{ searchTerm }}</strong> » }
+      </span>
+      <button class="results-bar__clear" (click)="searchTerm=''; typeFilter=''; applyFilters()">Effacer</button>
+    </div>
+  }
+
+  <!-- ── CHARGEMENT ─────────────────────────────────────────────────────── -->
+  @if (loading) {
+    <div class="state-box" role="status"><div class="loader-ring"></div><p>Chargement des fichiers…</p></div>
+  }
+
+  <!-- ── GRILLE DE FICHIERS ─────────────────────────────────────────────── -->
+  @if (!loading && filteredFiles.length > 0) {
+    <div class="files-grid">
+      @for (f of paginatedFiles; track trackByFile($index, f)) {
+        <div class="file-card">
+          <div class="file-card__preview" [style.background]="getFileBg(f)">
+            <span class="file-card__icon">{{ fileService.getFileIcon(f.fileType) }}</span>
+            <span class="file-card__type-badge">{{ getFileTypeLabel(f.fileType) }}</span>
+          </div>
+          <div class="file-card__body">
+            <h4 class="file-card__name" [title]="f.originalFileName || f.fileName">
+              {{ (f.originalFileName || f.fileName) | slice:0:32 }}{{ (f.originalFileName || f.fileName).length > 32 ? '…' : '' }}
+            </h4>
+            <div class="file-card__meta">
+              <span class="file-card__size"><span class="material-icons">storage</span>{{ formatSize(f.fileSize) }}</span>
+            </div>
+            @if (f.description) {
+              <p class="file-card__desc">{{ f.description | slice:0:60 }}{{ f.description.length > 60 ? '…' : '' }}</p>
+            }
+            <div class="file-card__date">
+              <span class="material-icons">calendar_today</span>
+              {{ f.uploadTime | date:'dd/MM/yyyy HH:mm' }}
+            </div>
+          </div>
+          <div class="file-card__actions">
+            <button class="btn-ico btn-ico--dl"  (click)="downloadFile(f)" title="Télécharger">
+              <span class="material-icons">download</span>
+            </button>
+            <button class="btn-ico btn-ico--del" (click)="openDelete(f)" title="Supprimer">
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <div class="pagination__info">
+        {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, filteredFiles.length) }} sur {{ filteredFiles.length }}
+      </div>
+      <div class="pagination__controls">
+        <button class="btn-page" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+          <span class="material-icons">chevron_left</span>
+        </button>
+        <span class="pagination__pages">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="btn-page" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+          <span class="material-icons">chevron_right</span>
+        </button>
+        <select class="pagination__size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+          @for (s of pageSizeOptions; track s) { <option [value]="s">{{ s }}/page</option> }
+        </select>
+      </div>
+    </div>
+  }
+
+  <!-- Vide -->
+  @if (!loading && filteredFiles.length === 0) {
+    <div class="state-box">
+      <span class="material-icons state-box__icon">folder_open</span>
+      <h3>Aucun fichier trouvé</h3>
+      @if (hasActiveFilters) {
+        <p>Essayez de modifier vos filtres.</p>
+        <button class="btn-ghost" (click)="searchTerm=''; typeFilter=''; applyFilters()">Effacer les filtres</button>
+      } @else {
+        <p>Aucun fichier n'a encore été uploadé.</p>
+      }
+    </div>
+  }
+
+  <!-- ── MODAL SUPPRESSION ──────────────────────────────────────────────── -->
+  @if (showDeleteModal && fileToDelete) {
+    <div class="modal-overlay" (click)="closeModal()" role="dialog" aria-modal="true">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal__head modal__head--danger">
+          <h3 class="modal__title"><span class="material-icons">delete_forever</span> Supprimer le fichier</h3>
+          <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+        </div>
+        <div class="modal__body modal__body--center">
+          <div class="confirm-ico">
+            <span class="file-big-icon">{{ fileService.getFileIcon(fileToDelete.fileType) }}</span>
+          </div>
+          <h3 class="confirm-name">{{ fileToDelete.originalFileName || fileToDelete.fileName }}</h3>
+          <p class="confirm-meta">{{ formatSize(fileToDelete.fileSize) }} · {{ getFileTypeLabel(fileToDelete.fileType) }}</p>
+          <p class="confirm-warn">Êtes-vous sûr de vouloir supprimer ce fichier ?<br>
+            <strong>Cette action est irréversible.</strong>
+          </p>
+        </div>
+        <div class="modal__foot">
+          <button class="btn-ghost" (click)="closeModal()" [disabled]="deleting">Annuler</button>
+          <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+            @if (deleting) { <span class="spinner-sm"></span> }
+            <span class="material-icons">delete_forever</span>
+            {{ deleting ? 'Suppression…' : 'Supprimer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

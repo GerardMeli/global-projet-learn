@@ -9,7 +9,7 @@
   },
   "include": [
     "src/**/*.ts"
-  ],
+, "src/app/component/admin/profile/shared-componen.sass"  ],
   "exclude": [
     "src/**/*.spec.ts"
   ]

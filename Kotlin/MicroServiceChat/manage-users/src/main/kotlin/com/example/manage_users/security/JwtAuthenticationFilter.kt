@@ -41,7 +41,7 @@ class JwtAuthenticationFilter (
         try {
             val jwt = getJwtFromRequest(request)
             val token = extractToken(request)
-            println("🔍 [manage-users] Token reçu: ${token?.take(50)}")
+//            println("🔍 [manage-users] Token reçu: ${token?.take(50)}")
 
             // On valide d'abord la signature et l'expiration
             if (jwt?.isNotEmpty() == true && jwtProvider.validateToken(jwt)) {

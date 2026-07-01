@@ -1,0 +1,45 @@
+<div class="chat-forbidden">
+  <!-- Background Animation -->
+  <div class="chat-bg">
+    <div class="lock-pattern">
+      <div class="lock-icon" *ngFor="let i of [1,2,3,4,5,6]">🔒</div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="chat-container">
+    <div class="forbidden-card">
+      <div class="forbidden-icon">
+        <mat-icon>block</mat-icon>
+      </div>
+      
+      <h1>Access Denied</h1>
+      
+      <p class="message">
+        You don't have permission to access this page. This area is restricted.
+      </p>
+      
+      <div class="action-buttons">
+        <button class="forbidden-button primary" routerLink="/chat">
+          <mat-icon>chat</mat-icon>
+          Back to chat
+        </button>
+        
+        <button class="forbidden-button secondary" routerLink="/profile">
+          <mat-icon>person</mat-icon>
+          Your profile
+        </button>
+      </div>
+      
+      <div class="help-section">
+        <mat-icon>help_outline</mat-icon>
+        <span>Need access? Contact your workspace admin</span>
+      </div>
+      
+      <div class="admin-badge">
+        <span>Workspace: FlowChat Team</span>
+        <span class="badge">Enterprise</span>
+      </div>
+    </div>
+  </div>
+</div>

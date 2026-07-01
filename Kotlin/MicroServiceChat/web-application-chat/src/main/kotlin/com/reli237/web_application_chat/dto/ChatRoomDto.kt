@@ -9,7 +9,7 @@ class ChatRoomDto {
     data class ChatRoomCreateRequest(
         val name: String,
         val type: ChatRoomType = ChatRoomType.PRIVATE,
-        val userIds: List<Long> = emptyList()
+        val userIds: List<String> = emptyList()
     )
 
     data class ChatRoomUpdateRequest(
@@ -19,14 +19,14 @@ class ChatRoomDto {
 
     // Response DTOs
     data class ChatRoomResponse(
-        val id: Long,
+        val id: String,
         val name: String,
         val type: ChatRoomType,
         val participantCount: Int
     )
 
     data class ChatRoomDetailResponse(
-        val id: Long,
+        val id: String,
         val name: String,
         val type: ChatRoomType,
         val participants: List<ChatParticipantDto.ChatParticipantResponse> = emptyList(),

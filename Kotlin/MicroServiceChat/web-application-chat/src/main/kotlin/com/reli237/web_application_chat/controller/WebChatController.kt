@@ -50,7 +50,7 @@ class WebChatController(
      */
     @MessageMapping("/chat.sendMessage/{roomId}")
     fun sendMessage(
-        @DestinationVariable roomId: Long,
+        @DestinationVariable roomId: String,
         @Payload messageRequest: MessageDto.MessageCreateRequest,
         headerAccessor: SimpMessageHeaderAccessor
     ) {
@@ -62,7 +62,7 @@ class WebChatController(
         val sessionAttributes = headerAccessor.sessionAttributes
         println("📋 Session attributes keys: ${sessionAttributes?.keys}")
 
-        val userId = sessionAttributes?.get("userId") as? Long
+        val userId = sessionAttributes?.get("userId") as? String
         val token  = sessionAttributes?.get("token")  as? String  // ← token depuis session STOMP
 
         println("👤 User ID from session: $userId")
@@ -152,7 +152,7 @@ class WebChatController(
      */
     @MessageMapping("/chat.typing/{roomId}")
     fun typing(
-        @DestinationVariable roomId: Long,
+        @DestinationVariable roomId: String,
         @Payload typingNotification: TypingNotificationDto,
         headerAccessor: SimpMessageHeaderAccessor
     ) {
@@ -175,11 +175,11 @@ class WebChatController(
      */
     @MessageMapping("/chat.join/{roomId}")
     fun joinRoom(
-        @DestinationVariable roomId: Long,
+        @DestinationVariable roomId: String,
         headerAccessor: SimpMessageHeaderAccessor
     ) {
         val sessionAttributes = headerAccessor.sessionAttributes
-        val userId = sessionAttributes?.get("userId") as? Long
+        val userId = sessionAttributes?.get("userId") as? String
         val token  = sessionAttributes?.get("token")  as? String  // ← token
 
         if (userId != null) {
@@ -208,11 +208,11 @@ class WebChatController(
 
     @MessageMapping("/chat.leave/{roomId}")
     fun leaveRoom(
-        @DestinationVariable roomId: Long,
+        @DestinationVariable roomId: String,
         headerAccessor: SimpMessageHeaderAccessor
     ) {
         val sessionAttributes = headerAccessor.sessionAttributes
-        val userId = sessionAttributes?.get("userId") as? Long
+        val userId = sessionAttributes?.get("userId") as? String
 
         if (userId != null) {
             println("👋 Utilisateur $userId a quitté la salle $roomId")
@@ -249,8 +249,8 @@ class WebChatController(
 
     @MessageMapping("/chat.addUser/{roomId}")
     fun addUser(
-        @DestinationVariable roomId: Long,
-        @Payload userId: Long,
+        @DestinationVariable roomId: String,
+        @Payload userId: String,
         headerAccessor: SimpMessageHeaderAccessor
     ) {
         println("👤 Utilisateur $userId rejoint la salle $roomId")
@@ -274,7 +274,7 @@ class WebChatController(
         @Payload privateMessageRequest: PrivateMessageRequest,
         principal: Principal
     ): PrivateMessageResponse {
-        val senderId = principal.name.toLong()
+        val senderId = principal.name.toString()
         println("🔒 Message privé de $senderId à ${privateMessageRequest.recipientId}")
 
         messagingTemplate.convertAndSendToUser(
@@ -299,8 +299,8 @@ class WebChatController(
 
     @MessageMapping("/chat.message.read/{messageId}")
     fun messageRead(
-        @DestinationVariable messageId: Long,
-        @Payload readByUserId: Long,
+        @DestinationVariable messageId: String,
+        @Payload readByUserId: String,
         principal: Principal
     ) {
         val senderId = principal.name.toLong()
@@ -316,8 +316,8 @@ class WebChatController(
 
 //    @MessageMapping("/private/typing/{senderId}/{receiverId}")
 //    fun handleTypingIndicator(
-//        @DestinationVariable senderId: Long,
-//        @DestinationVariable receiverId: Long,
+//        @DestinationVariable senderId: String,
+//        @DestinationVariable receiverId: String,
 //        @Payload isTyping: Boolean
 //    ) {
 //        // Vérifier si l'utilisateur existe
@@ -365,7 +365,7 @@ class WebChatController(
     @MessageMapping("/private/send/{senderId}")
     @SendToUser("/queue/private/confirmation")
     fun sendPrivateMessage(
-        @DestinationVariable senderId: Long,
+        @DestinationVariable senderId: String,
         @Payload request: PrivateDto.PrivateChatRequest,
         headerAccessor: SimpMessageHeaderAccessor
     ): PrivateChatService.PrivateChatNotification {
@@ -388,11 +388,11 @@ class WebChatController(
 
     @MessageMapping("/private/typing/{userId}")
     fun handlePrivateTyping(
-        @DestinationVariable userId: Long,
+        @DestinationVariable userId: String,
         @Payload payload: TypingPayload,
         principal: Principal
     ) {
-        val senderId = principal.name.toLongOrNull() ?: return
+        val senderId = principal.name.toString()
         val receiverId = payload.userId
 
         val typingNotification = TypingNotification(
@@ -415,8 +415,8 @@ class WebChatController(
 
     @MessageMapping("/private/read/{userId}")
     fun markMessagesAsRead(
-        @DestinationVariable userId: Long,
-        @Payload messageIds: List<Long>
+        @DestinationVariable userId: String,
+        @Payload messageIds: List<String>
     ) {
         val request = PrivateDto.MarkAsReadRequest(messageIds = messageIds)
         privateChatService.markMessagesAsRead(userId, request)
@@ -428,7 +428,7 @@ class WebChatController(
      */
 
 
-    private fun sendError(userId: Long, message: String) {
+    private fun sendError(userId: String, message: String) {
         val error = mapOf(
             "error" to true,
             "message" to message,
@@ -457,7 +457,7 @@ class WebChatController(
      * Confirmation d'envoi de message
      */
     data class MessageConfirmation(
-        val messageId: Long,
+        val messageId: String,
         val status: String,
         val content: String
     )
@@ -476,7 +476,7 @@ class WebChatController(
      */
     data class UserEvent(
         val type: String,
-        val userId: Long,
+        val userId: String,
         val username: String,
         val action: String,
         val timestamp: Long = System.currentTimeMillis()
@@ -486,7 +486,7 @@ class WebChatController(
      * Demande de saisie
      */
     data class TypingRequest(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean
     )
 
@@ -494,7 +494,7 @@ class WebChatController(
      * Notification de saisie
      */
     data class TypingNotification(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean,
         val timestamp: Long = System.currentTimeMillis()
     )
@@ -503,7 +503,7 @@ class WebChatController(
      * Demande de message privé
      */
     data class PrivateMessageRequest(
-        val recipientId: Long,
+        val recipientId: String,
         val content: String
     )
 
@@ -511,8 +511,8 @@ class WebChatController(
      * Réponse de message privé
      */
     data class PrivateMessageResponse(
-        val senderId: Long,
-        val recipientId: Long,
+        val senderId: String,
+        val recipientId: String,
         val content: String,
         val timestamp: Long,
         val status: String = "received"
@@ -522,33 +522,33 @@ class WebChatController(
      * Notification de lecture
      */
     data class MessageReadNotification(
-        val messageId: Long,
-        val readByUserId: Long,
+        val messageId: String,
+        val readByUserId: String,
         val readAt: Long
     )
 
     data class TypingNotificationDto(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean,
-        val roomId: Long? = null
+        val roomId: String? = null
     )
 
     data class UserActivityDto(
         val type: String, // USER_JOINED, USER_LEFT
-        val userId: Long,
+        val userId: String,
         val username: String?,
-        val roomId: Long
+        val roomId: String
     )
 
     data class TypingPayload(
-        val userId: Long,
+        val userId: String,
         val isTyping: Boolean
     )
 
 //    data class TypingNotification(
-//        val userId: Long,
+//        val userId: String,
 //        val isTyping: Boolean,
-//        val timestamp: Long
+//        val timestamp: String
 //    )
 
 }

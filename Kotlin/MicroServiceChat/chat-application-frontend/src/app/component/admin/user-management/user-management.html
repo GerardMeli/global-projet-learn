@@ -1,0 +1,910 @@
+<!-- user-management.component.html -->
+<div class="container-fluid" (keydown)="onKeyDown($event)" tabindex="-1">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TOASTS — affichage automatique après chaque opération (aucun clic)
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="toast-stack" aria-live="polite" aria-atomic="false" role="status">
+    @for (t of toasts; track trackByToast($index, t)) {
+      <div class="toast toast--{{ t.type }}" [class.toast--out]="t.leaving" role="alert">
+        <span class="toast__icon">{{ toastIcon(t.type) }}</span>
+        <div class="toast__body">
+          <strong class="toast__title">{{ t.title }}</strong>
+          @if (t.text) { <span class="toast__text">{{ t.text }}</span> }
+        </div>
+        <button class="toast__close" (click)="dismissToast(t.id)" aria-label="Fermer">✕</button>
+      </div>
+    }
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       EN-TÊTE
+  ════════════════════════════════════════════════════════════════════════ -->
+  <header class="um-header">
+    <div class="um-header__left">
+      <h1 class="um-title">
+        <span class="um-title__icon material-icons">manage_accounts</span>
+        Gestion des utilisateurs
+      </h1>
+      <p class="um-subtitle">Administration des comptes et des permissions</p>
+    </div>
+    <div class="um-header__actions">
+      <button class="btn-ghost" (click)="loadUsers()" [disabled]="loading" title="Actualiser la liste">
+        <span class="material-icons" [class.spin]="loading">refresh</span>
+        Actualiser
+      </button>
+      <button class="btn-ghost btn-ghost--agri" (click)="openMigrationSingle()" title="Migrer un seul user Agriculture">
+        <span class="material-icons">person_search</span>
+        Migrer un user
+      </button>
+      <button class="btn-agri" (click)="openMigration()" title="Lancer la migration en masse">
+        <span class="material-icons">sync_alt</span>
+        Migration Agriculture
+      </button>
+      <button class="btn-primary" (click)="openAdd()">
+        <span class="material-icons">person_add</span>
+        Nouvel utilisateur
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STATISTIQUES — recalculées automatiquement à chaque chargement
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="stats-grid">
+    <div class="stat-card stat-card--purple">
+      <div class="stat-card__icon"><span class="material-icons">groups</span></div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statTotal }}</span>
+        <span class="stat-card__lbl">Total</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--green">
+      <div class="stat-card__icon"><span class="material-icons">check_circle</span></div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statActive }}</span>
+        <span class="stat-card__lbl">Actifs</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--red">
+      <div class="stat-card__icon"><span class="material-icons">admin_panel_settings</span></div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statAdmin }}</span>
+        <span class="stat-card__lbl">Admins</span>
+      </div>
+    </div>
+    <div class="stat-card stat-card--amber">
+      <div class="stat-card__icon"><span class="material-icons">hourglass_empty</span></div>
+      <div class="stat-card__body">
+        <span class="stat-card__val">{{ statPending }}</span>
+        <span class="stat-card__lbl">En attente</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       FILTRES — résultat automatique (debounce 250 ms pour le texte,
+                 immédiat pour les selects) — AUCUN bouton "Rechercher"
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="filters-bar">
+    <!-- Recherche texte -->
+    <div class="search-wrap">
+      <span class="search-wrap__icon material-icons">search</span>
+      <input
+        class="search-wrap__input"
+        type="text"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchInput()"
+        placeholder="Nom, email ou ID…"
+        aria-label="Recherche utilisateurs"
+        autocomplete="off"
+      />
+      @if (searchTerm) {
+        <button class="search-wrap__clear" (click)="clearSearch()" aria-label="Effacer">
+          <span class="material-icons">close</span>
+        </button>
+      }
+    </div>
+
+    <!-- Selects — (ngModelChange) déclenche onFilterChange() immédiatement -->
+    <select class="filter-sel" [(ngModel)]="roleFilter"   (ngModelChange)="onFilterChange()" aria-label="Rôle">
+      @for (o of filterRoleOptions; track o.value) {
+        <option [value]="o.value">{{ o.icon }} {{ o.label }}</option>
+      }
+    </select>
+
+    <select class="filter-sel" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" aria-label="Statut">
+      @for (o of filterStatusOptions; track o.value) {
+        <option [value]="o.value">{{ o.icon }} {{ o.label }}</option>
+      }
+    </select>
+
+    <select class="filter-sel" [(ngModel)]="activeFilter" (ngModelChange)="onFilterChange()" aria-label="Activité">
+      @for (o of activeOptions; track o.value) {
+        <option [value]="o.value">{{ o.label }}</option>
+      }
+    </select>
+
+    @if (hasActiveFilters) {
+      <button class="btn-ghost btn-ghost--sm" (click)="clearAllFilters()">
+        <span class="material-icons">filter_list_off</span>
+        Réinitialiser
+      </button>
+    }
+  </div>
+
+  <!-- Bandeau résultats — mis à jour automatiquement -->
+  @if (hasActiveFilters) {
+    <div class="results-bar">
+      <span class="results-bar__count">
+        <span class="material-icons">filter_list</span>
+        <strong>{{ filteredUsers.length }}</strong>
+        résultat{{ filteredUsers.length !== 1 ? 's' : '' }}
+        @if (searchTerm) { <span class="results-bar__term">pour « {{ searchTerm }} »</span> }
+      </span>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       ÉTAT CHARGEMENT
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (loading) {
+    <div class="state-box" role="status" aria-busy="true">
+      <div class="loader-ring"></div>
+      <p>Chargement des utilisateurs…</p>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TABLEAU
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (!loading && filteredUsers.length > 0) {
+    <div class="table-wrap">
+      <table class="um-table" aria-label="Liste des utilisateurs">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Rôle</th>
+            <th>Statut</th>
+            <th>Email</th>
+            <th>Inscription</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of paginatedUsers; track trackByUser($index, u)) {
+            <tr class="um-row" (click)="openDetail(u)" title="Voir les détails">
+
+              <!-- Utilisateur -->
+              <td>
+                <div class="user-cell">
+                  <div class="user-cell__av" [style.background]="getAvatarGradient(u.id)">
+                    {{ getInitials(u) }}
+                  </div>
+                  <div class="user-cell__info">
+                    <span class="user-cell__name">{{ getFullName(u) }}</span>
+                    <span class="user-cell__email">{{ u.email }}</span>
+                    <span class="user-cell__id">#{{ u.id }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Rôle -->
+              <td>
+                <span class="badge" [ngClass]="getRoleBadgeClass(u.role)">
+                  {{ getRoleIcon(u.role) }} {{ getRoleLabel(u.role) }}
+                </span>
+              </td>
+
+              <!-- Statut -->
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(u.status)">
+                  {{ getStatusIcon(u.status) }} {{ getStatusLabel(u.status) }}
+                </span>
+                <div class="active-dot" [class.active-dot--on]="u.isActive">
+                  {{ u.isActive ? '● Actif' : '○ Inactif' }}
+                </div>
+              </td>
+
+              <!-- Email vérifié -->
+              <td>
+                <span class="badge" [ngClass]="u.emailVerified ? 'badge--verified' : 'badge--unverified'">
+                  <span class="material-icons" style="font-size:12px">
+                    {{ u.emailVerified ? 'verified' : 'pending' }}
+                  </span>
+                  {{ u.emailVerified ? 'Vérifié' : 'Non vérifié' }}
+                </span>
+              </td>
+
+              <!-- Date -->
+              <td>
+                <div class="date-cell">
+                  <span class="material-icons">calendar_today</span>
+                  {{ u.createdAt | date:'dd/MM/yyyy' }}
+                </div>
+              </td>
+
+              <!-- Actions — stopPropagation pour ne pas ouvrir le détail -->
+              <td (click)="$event.stopPropagation()">
+                <div class="actions-cell">
+                  <button class="act-btn act-btn--view"   (click)="openDetail(u)" title="Détail">
+                    <span class="material-icons">visibility</span>
+                  </button>
+                  <button class="act-btn act-btn--edit"   (click)="openEdit(u)"   title="Modifier">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button class="act-btn act-btn--status" (click)="openStatus(u)" title="Statut">
+                    <span class="material-icons">swap_horiz</span>
+                  </button>
+                  <button class="act-btn act-btn--role"   (click)="openRole(u)"   title="Rôle">
+                    <span class="material-icons">shield</span>
+                  </button>
+                  <button class="act-btn act-btn--del"    (click)="openDelete(u)" title="Supprimer">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span class="pagination__info">
+          {{ pageStart }}–{{ pageEnd }} sur {{ filteredUsers.length }} utilisateur{{ filteredUsers.length !== 1 ? 's' : '' }}
+        </span>
+        <div class="pagination__ctrl">
+          <button class="pag-btn" [disabled]="currentPage === 1"          (click)="changePage(currentPage - 1)">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <span class="pag-indicator">{{ currentPage }} / {{ totalPages }}</span>
+          <button class="pag-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+            <span class="material-icons">chevron_right</span>
+          </button>
+          <select class="pag-size" [(ngModel)]="pageSize" (ngModelChange)="onPageSizeChange()">
+            <option [value]="10">10 / page</option>
+            <option [value]="25">25 / page</option>
+            <option [value]="50">50 / page</option>
+            <option [value]="100">100 / page</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Aucun résultat -->
+  @if (!loading && filteredUsers.length === 0) {
+    <div class="state-box">
+      <span class="material-icons state-box__icon">people_outline</span>
+      <h3>Aucun utilisateur trouvé</h3>
+      <p>
+        @if (hasActiveFilters) { Modifiez vos critères de recherche. }
+        @else { Aucun compte n'a encore été créé. }
+      </p>
+      @if (hasActiveFilters) {
+        <button class="btn-ghost" style="margin-top:16px" (click)="clearAllFilters()">
+          Réinitialiser les filtres
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       MODALES
+  ════════════════════════════════════════════════════════════════════════ -->
+  @if (modalMode) {
+    <div class="modal-overlay" (click)="onOverlayClick($event)" role="dialog" aria-modal="true">
+
+      <!-- ── DÉTAIL ──────────────────────────────────────────────────────── -->
+      @if (modalMode === 'detail' && selectedUser) {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--teal"><span class="material-icons">account_circle</span></div>
+              <h2 class="modal__title">Détail utilisateur</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body">
+            <!-- Mini card colorée -->
+            <div class="mini-profile" [style.background]="getAvatarGradient(selectedUser.id)">
+              <div class="mini-profile__av">{{ getInitials(selectedUser) }}</div>
+              <div class="mini-profile__info">
+                <strong>{{ getFullName(selectedUser) }}</strong>
+                <span>{{ selectedUser.email }}</span>
+                <div class="mini-profile__badges">
+                  <span class="badge" [ngClass]="getRoleBadgeClass(selectedUser.role)">
+                    {{ getRoleIcon(selectedUser.role) }} {{ getRoleLabel(selectedUser.role) }}
+                  </span>
+                  <span class="badge" [ngClass]="getStatusBadgeClass(selectedUser.status)">
+                    {{ getStatusIcon(selectedUser.status) }} {{ getStatusLabel(selectedUser.status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grille d'infos -->
+            <div class="detail-grid">
+              <div class="detail-row">
+                <span class="detail-row__key">ID</span>
+                <span class="detail-row__val detail-row__val--mono">#{{ selectedUser.id }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Prénom</span>
+                <span class="detail-row__val">{{ selectedUser.firstName || '—' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Nom</span>
+                <span class="detail-row__val">{{ selectedUser.lastName || '—' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Téléphone</span>
+                <span class="detail-row__val">{{ selectedUser.phoneNumber || '—' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Adresse</span>
+                <span class="detail-row__val">{{ selectedUser.address || '—' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Langue</span>
+                <span class="detail-row__val">{{ selectedUser.language }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Thème</span>
+                <span class="detail-row__val">{{ selectedUser.theme }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Email vérifié</span>
+                <span class="detail-row__val">
+                  <span class="badge" [ngClass]="selectedUser.emailVerified ? 'badge--verified' : 'badge--unverified'">
+                    {{ selectedUser.emailVerified ? '✅ Oui' : '❌ Non' }}
+                  </span>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Compte actif</span>
+                <span class="detail-row__val">
+                  <span class="badge" [ngClass]="selectedUser.isActive ? 'badge--active' : 'badge--deleted'">
+                    {{ selectedUser.isActive ? '✅ Actif' : '○ Inactif' }}
+                  </span>
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Tentatives échouées</span>
+                <span class="detail-row__val"
+                  [class.txt--warn]="selectedUser.failedLoginAttempts >= 3"
+                  [class.txt--danger]="selectedUser.failedLoginAttempts >= 5">
+                  {{ selectedUser.failedLoginAttempts }}
+                </span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Inscription</span>
+                <span class="detail-row__val">{{ selectedUser.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-row__key">Dernière modif.</span>
+                <span class="detail-row__val">{{ selectedUser.updatedAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()">Fermer</button>
+            <button class="btn-primary" (click)="openEdit(selectedUser)">
+              <span class="material-icons">edit</span> Modifier
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── AJOUTER ─────────────────────────────────────────────────────── -->
+      @if (modalMode === 'add') {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--purple"><span class="material-icons">person_add</span></div>
+              <h2 class="modal__title">Nouvel utilisateur</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body modal__body--form">
+            <div class="form-grid">
+              <div class="fg">
+                <label class="fg__lbl" for="nu-fn">Prénom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="nu-fn" type="text" [(ngModel)]="newUser.firstName" placeholder="Prénom">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-ln">Nom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="nu-ln" type="text" [(ngModel)]="newUser.lastName" placeholder="Nom de famille">
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="nu-em">Email <span class="fg__required">*</span></label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">mail</span>
+                  <input id="nu-em" type="email" [(ngModel)]="newUser.email" placeholder="utilisateur@domaine.com">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-ph">Téléphone</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">phone</span>
+                  <input id="nu-ph" type="tel" [(ngModel)]="newUser.phoneNumber" placeholder="+237 6XX XXX XXX">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-ro">Rôle</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="nu-ro" [(ngModel)]="newUser.role">
+                    @for (o of roleOptions; track o.value) { <option [value]="o.value">{{ o.icon }} {{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-st">Statut initial</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="nu-st" [(ngModel)]="newUser.status">
+                    @for (o of statusOptions; track o.value) { <option [value]="o.value">{{ o.icon }} {{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-lg">Langue</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="nu-lg" [(ngModel)]="newUser.language">
+                    @for (o of languageOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="nu-th">Thème</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="nu-th" [(ngModel)]="newUser.theme">
+                    @for (o of themeOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="nu-ad">Adresse</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">home</span>
+                  <textarea id="nu-ad" [(ngModel)]="newUser.address" placeholder="Adresse complète" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <span class="toggle-row__lbl">Compte actif</span>
+                <label class="toggle-sw"><input type="checkbox" [(ngModel)]="newUser.isActive"><span class="toggle-sw__track"></span></label>
+              </div>
+              <div class="toggle-row">
+                <span class="toggle-row__lbl">Email vérifié</span>
+                <label class="toggle-sw"><input type="checkbox" [(ngModel)]="newUser.emailVerified"><span class="toggle-sw__track"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="saving">Annuler</button>
+            <button class="btn-primary" (click)="createUser()" [disabled]="saving || !newUser.email">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">person_add</span>
+              {{ saving ? 'Création…' : 'Créer' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── ÉDITER ──────────────────────────────────────────────────────── -->
+      @if (modalMode === 'edit' && selectedUser) {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--blue"><span class="material-icons">edit</span></div>
+              <h2 class="modal__title">Modifier — {{ getFullName(selectedUser) }}</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body modal__body--form">
+            <div class="form-grid">
+              <div class="fg">
+                <label class="fg__lbl" for="ed-fn">Prénom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="ed-fn" type="text" [(ngModel)]="editData.firstName" placeholder="Prénom">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="ed-ln">Nom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="ed-ln" type="text" [(ngModel)]="editData.lastName" placeholder="Nom">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="ed-ph">Téléphone</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">phone</span>
+                  <input id="ed-ph" type="tel" [(ngModel)]="editData.phoneNumber" placeholder="Numéro">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="ed-lg">Langue</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="ed-lg" [(ngModel)]="editData.language">
+                    @for (o of languageOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="ed-th">Thème</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="ed-th" [(ngModel)]="editData.theme">
+                    @for (o of themeOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                  </select>
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="ed-ad">Adresse</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">home</span>
+                  <textarea id="ed-ad" [(ngModel)]="editData.address" placeholder="Adresse" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="toggle-list">
+              <div class="toggle-row">
+                <span class="toggle-row__lbl">Compte actif</span>
+                <label class="toggle-sw"><input type="checkbox" [(ngModel)]="editData.isActive"><span class="toggle-sw__track"></span></label>
+              </div>
+              <div class="toggle-row">
+                <span class="toggle-row__lbl">Email vérifié</span>
+                <label class="toggle-sw"><input type="checkbox" [(ngModel)]="editData.emailVerified"><span class="toggle-sw__track"></span></label>
+              </div>
+              <div class="toggle-row">
+                <span class="toggle-row__lbl">Notifications email</span>
+                <label class="toggle-sw"><input type="checkbox" [(ngModel)]="emailNotifications"><span class="toggle-sw__track"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="saving">Annuler</button>
+            <button class="btn-primary" (click)="saveEdit()" [disabled]="saving || !hasEditChanges()">
+              @if (saving) { <span class="spinner-sm"></span> }
+              <span class="material-icons">save</span>
+              {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── STATUT ──────────────────────────────────────────────────────── -->
+      @if (modalMode === 'status' && selectedUser) {
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--amber"><span class="material-icons">swap_horiz</span></div>
+              <h2 class="modal__title">Modifier le statut</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body">
+            <div class="user-mini">
+              <div class="user-mini__av" [style.background]="getAvatarGradient(selectedUser.id)">{{ getInitials(selectedUser) }}</div>
+              <div class="user-mini__info">
+                <strong>{{ getFullName(selectedUser) }}</strong>
+                <span class="user-mini__email">{{ selectedUser.email }}</span>
+              </div>
+              <span class="badge" [ngClass]="getStatusBadgeClass(selectedUser.status)">
+                {{ getStatusIcon(selectedUser.status) }} {{ getStatusLabel(selectedUser.status) }}
+              </span>
+            </div>
+
+            <div class="fg" style="margin-top:20px">
+              <label class="fg__lbl" for="st-nw">Nouveau statut</label>
+              <div class="fg__wrap fg__wrap--bare">
+                <select id="st-nw" [(ngModel)]="statusUpdate.status">
+                  @for (o of statusOptions; track o.value) { <option [value]="o.value">{{ o.icon }} {{ o.label }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="fg" style="margin-top:14px">
+              <label class="fg__lbl" for="st-rs">Raison (optionnelle — envoyée par email)</label>
+              <div class="fg__wrap fg__wrap--bare">
+                <textarea id="st-rs" [(ngModel)]="statusUpdate.reason"
+                  placeholder="Expliquez le changement de statut…" rows="3" maxlength="500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="updating">Annuler</button>
+            <button class="btn-primary" (click)="updateStatus()"
+              [disabled]="updating || statusUpdate.status === selectedUser.status">
+              @if (updating) { <span class="spinner-sm"></span> }
+              <span class="material-icons">update</span>
+              {{ updating ? 'Mise à jour…' : 'Mettre à jour' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── RÔLE ────────────────────────────────────────────────────────── -->
+      @if (modalMode === 'role' && selectedUser) {
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--blue"><span class="material-icons">shield</span></div>
+              <h2 class="modal__title">Modifier le rôle</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body">
+            <div class="user-mini">
+              <div class="user-mini__av" [style.background]="getAvatarGradient(selectedUser.id)">{{ getInitials(selectedUser) }}</div>
+              <div class="user-mini__info">
+                <strong>{{ getFullName(selectedUser) }}</strong>
+                <span class="user-mini__email">{{ selectedUser.email }}</span>
+              </div>
+              <span class="badge" [ngClass]="getRoleBadgeClass(selectedUser.role)">
+                {{ getRoleIcon(selectedUser.role) }} {{ getRoleLabel(selectedUser.role) }}
+              </span>
+            </div>
+
+            <div class="fg" style="margin-top:20px">
+              <label class="fg__lbl" for="ro-nw">Nouveau rôle</label>
+              <div class="fg__wrap fg__wrap--bare">
+                <select id="ro-nw" [(ngModel)]="roleUpdate.role">
+                  @for (o of roleOptions; track o.value) { <option [value]="o.value">{{ o.icon }} {{ o.label }}</option> }
+                </select>
+              </div>
+            </div>
+            <div class="fg" style="margin-top:14px">
+              <label class="fg__lbl" for="ro-rs">Raison (optionnelle — envoyée par email)</label>
+              <div class="fg__wrap fg__wrap--bare">
+                <textarea id="ro-rs" [(ngModel)]="roleUpdate.reason"
+                  placeholder="Expliquez le changement de rôle…" rows="3" maxlength="500"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="updating">Annuler</button>
+            <button class="btn-primary" (click)="updateRole()"
+              [disabled]="updating || roleUpdate.role === selectedUser.role">
+              @if (updating) { <span class="spinner-sm"></span> }
+              <span class="material-icons">admin_panel_settings</span>
+              {{ updating ? 'Mise à jour…' : 'Mettre à jour' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- ── SUPPRIMER ───────────────────────────────────────────────────── -->
+      @if (modalMode === 'delete' && selectedUser) {
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--red"><span class="material-icons">delete_forever</span></div>
+              <h2 class="modal__title">Supprimer l'utilisateur</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body modal__body--confirm">
+            <div class="confirm-ico confirm-ico--danger">
+              <span class="material-icons">warning</span>
+            </div>
+            <p class="confirm-msg">Vous êtes sur le point de supprimer définitivement :</p>
+            <p class="confirm-name">{{ getFullName(selectedUser) }}</p>
+            <p class="confirm-email">{{ selectedUser.email }}</p>
+            <p class="confirm-warn">
+              Cette action est <strong>irréversible</strong>. Toutes les données associées seront perdues.
+            </p>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="deleteProgress">Annuler</button>
+            <button class="btn-danger" (click)="confirmDelete()" [disabled]="deleteProgress">
+              @if (deleteProgress) { <span class="spinner-sm"></span> }
+              <span class="material-icons">delete_forever</span>
+              {{ deleteProgress ? 'Suppression…' : 'Supprimer définitivement' }}
+            </button>
+          </div>
+        </div>
+      }
+
+
+      <!-- ── MIGRATION EN MASSE ──────────────────────────────────────────── -->
+      @if (modalMode === 'migration') {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--agri"><span class="material-icons">sync_alt</span></div>
+              <h2 class="modal__title">Migration Agriculture → Chat</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body">
+
+            <!-- Avertissement avant migration -->
+            @if (!migrationReport) {
+              <div class="migration-info">
+                <div class="migration-info__icon"><span class="material-icons">info</span></div>
+                <div class="migration-info__text">
+                  <strong>Que fait cette migration ?</strong>
+                  <ul>
+                    <li>Récupère tous les utilisateurs du système Agriculture</li>
+                    <li>Crée un compte Chat pour chacun (si inexistant)</li>
+                    <li>Envoie un email d'invitation pour définir leur mot de passe</li>
+                    <li>Les users déjà migrés sont ignorés automatiquement</li>
+                    <li>Les bases de données restent <strong>totalement séparées</strong></li>
+                  </ul>
+                </div>
+              </div>
+            }
+
+            <!-- Résultat après migration -->
+            @if (migrationReport) {
+              <div class="migration-report">
+                <div class="migration-report__title">📊 Rapport de migration</div>
+                <div class="migration-report__grid">
+                  <div class="mstat mstat--total">
+                    <span class="mstat__val">{{ migrationReport.total }}</span>
+                    <span class="mstat__lbl">Total traités</span>
+                  </div>
+                  <div class="mstat mstat--created">
+                    <span class="mstat__val">{{ migrationReport.created }}</span>
+                    <span class="mstat__lbl">✅ Créés</span>
+                  </div>
+                  <div class="mstat mstat--skipped">
+                    <span class="mstat__val">{{ migrationReport.skipped }}</span>
+                    <span class="mstat__lbl">⏭️ Ignorés</span>
+                  </div>
+                  <div class="mstat mstat--error">
+                    <span class="mstat__val">{{ migrationReport.errors }}</span>
+                    <span class="mstat__lbl">❌ Erreurs</span>
+                  </div>
+                </div>
+
+                @if (migrationReport.details.length > 0) {
+                  <div class="migration-errors">
+                    <strong>Détails des erreurs :</strong>
+                    <ul>
+                      @for (d of migrationReport.details; track $index) {
+                        <li class="migration-errors__item">{{ d }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="migrating">Fermer</button>
+            @if (!migrationReport) {
+              <button class="btn-agri" (click)="runMigration()" [disabled]="migrating">
+                @if (migrating) { <span class="spinner-sm"></span> }
+                <span class="material-icons">sync_alt</span>
+                {{ migrating ? 'Migration en cours…' : 'Lancer la migration' }}
+              </button>
+            } @else {
+              <button class="btn-primary" (click)="closeModal()">
+                <span class="material-icons">check</span>
+                Terminé
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ── MIGRATION UNITAIRE ──────────────────────────────────────────── -->
+      @if (modalMode === 'migration-single') {
+        <div class="modal modal--lg" (click)="$event.stopPropagation()">
+          <div class="modal__head">
+            <div class="modal__head-left">
+              <div class="modal__ico modal__ico--agri"><span class="material-icons">person_search</span></div>
+              <h2 class="modal__title">Migrer un utilisateur Agriculture</h2>
+            </div>
+            <button class="modal__close" (click)="closeModal()"><span class="material-icons">close</span></button>
+          </div>
+
+          <div class="modal__body modal__body--form">
+            <p class="migration-hint">
+              Collez les données d'un utilisateur Agriculture pour le migrer manuellement vers le Chat.
+            </p>
+            <div class="form-grid">
+              <div class="fg">
+                <label class="fg__lbl" for="mg-code">User Code <span class="fg__required">*</span></label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">tag</span>
+                  <input id="mg-code" type="text" [(ngModel)]="singleAgriUser.userCode"
+                    placeholder="RESP_1750425644567">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-type">Type utilisateur</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="mg-type" [(ngModel)]="singleAgriUser.userType">
+                    <option value="">— Sélectionner —</option>
+                    <option value="RESPONSABLE">RESPONSABLE</option>
+                    <option value="POS_AGENT">POS_AGENT</option>
+                    <option value="ADMIN">ADMIN</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-fn">Prénom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="mg-fn" type="text" [(ngModel)]="singleAgriUser.userFirstName" placeholder="Prénom">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-ln">Nom</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">badge</span>
+                  <input id="mg-ln" type="text" [(ngModel)]="singleAgriUser.userLastName" placeholder="Nom">
+                </div>
+              </div>
+              <div class="fg fg--full">
+                <label class="fg__lbl" for="mg-em">Email <span class="fg__required">*</span></label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">mail</span>
+                  <input id="mg-em" type="email" [(ngModel)]="singleAgriUser.userEmail"
+                    placeholder="utilisateur@domaine.com">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-ph">Téléphone</label>
+                <div class="fg__wrap">
+                  <span class="fg__ico material-icons">phone</span>
+                  <input id="mg-ph" type="tel" [(ngModel)]="singleAgriUser.userPhoneNumber"
+                    placeholder="6 74 34 56 79">
+                </div>
+              </div>
+              <div class="fg">
+                <label class="fg__lbl" for="mg-st">État</label>
+                <div class="fg__wrap fg__wrap--bare">
+                  <select id="mg-st" [(ngModel)]="singleAgriUser.state">
+                    <option value="">— Sélectionner —</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="CREATE_BUT_NOT_ACTIVE">CREATE_BUT_NOT_ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal__foot">
+            <button class="btn-cancel" (click)="closeModal()" [disabled]="migratingOne">Annuler</button>
+            <button class="btn-agri" (click)="runSingleMigration()"
+              [disabled]="migratingOne || !singleAgriUser.userCode || !singleAgriUser.userEmail">
+              @if (migratingOne) { <span class="spinner-sm"></span> }
+              <span class="material-icons">person_search</span>
+              {{ migratingOne ? 'Migration…' : 'Migrer cet utilisateur' }}
+            </button>
+          </div>
+        </div>
+      }
+
+    </div><!-- /modal-overlay -->
+  }
+
+</div><!-- /um-shell -->

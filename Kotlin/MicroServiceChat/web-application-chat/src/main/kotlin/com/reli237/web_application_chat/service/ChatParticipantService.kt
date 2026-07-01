@@ -38,27 +38,28 @@ class ChatParticipantService(
             throw IllegalArgumentException("User is already a participant in this chat room")
 
         val saved = chatParticipantRepository.save(
-            ChatParticipant(id = 0, userId = request.userId, chatRoom = chatRoom,
+            ChatParticipant(
+                id = "", userId = request.userId, chatRoom = chatRoom,
                 joinedAt = LocalDateTime.now(), role = request.role)
         )
         return mapToResponse(saved)
     }
 
-    fun getParticipantById(id: Long): ChatParticipantDto.ChatParticipantDetailResponse =
+    fun getParticipantById(id: String): ChatParticipantDto.ChatParticipantDetailResponse =
         mapToDetailResponse(findParticipantById(id))
 
     fun getAllParticipants(): List<ChatParticipantDto.ChatParticipantResponse> =
         chatParticipantRepository.findAll().map { mapToResponse(it) }
 
     /** Supprimer par participantId */
-    fun removeParticipant(participantId: Long) {
+    fun removeParticipant(participantId: String) {
         if (!chatParticipantRepository.existsById(participantId))
             throw IllegalArgumentException("Participant not found with id: $participantId")
         chatParticipantRepository.deleteById(participantId)
     }
 
     /** Supprimer par userId + chatRoomId */
-    fun removeParticipant(userId: Long, chatRoomId: Long) {
+    fun removeParticipant(userId: String, chatRoomId: String) {
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .orElseThrow { IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
         chatParticipantRepository.deleteByUserIdAndChatRoomId(userId, chatRoomId)
@@ -68,18 +69,18 @@ class ChatParticipantService(
     // REQUÊTES
     // ═══════════════════════════════════════════════════════════
 
-    fun getParticipantsByChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
+    fun getParticipantsByChatRoom(chatRoomId: String): List<ChatParticipantDto.ChatParticipantResponse> {
         chatRoomRepository.findById(chatRoomId)
             .orElseThrow { IllegalArgumentException("Chat room not found with id: $chatRoomId") }
         return chatParticipantRepository.findByChatRoomId(chatRoomId).map { mapToResponse(it) }
     }
 
-    fun getChatRoomsForUser(userId: Long): List<ChatParticipantDto.ChatParticipantResponse> {
+    fun getChatRoomsForUser(userId: String): List<ChatParticipantDto.ChatParticipantResponse> {
         usersWebChatInterface.getUserBasicInfo(userId).getBodyOrThrow("User not found with id: $userId")
         return chatParticipantRepository.findByUserId(userId).map { mapToResponse(it) }
     }
 
-    fun getParticipant(userId: Long, chatRoomId: Long): ChatParticipantDto.ChatParticipantResponse =
+    fun getParticipant(userId: String, chatRoomId: String): ChatParticipantDto.ChatParticipantResponse =
         mapToResponse(findParticipantByUserAndRoom(userId, chatRoomId))
 
     /**
@@ -87,7 +88,7 @@ class ChatParticipantService(
      * ✅ getAdminsInChatRoom + getModeratorsInChatRoom + getMembersInChatRoom SUPPRIMÉS
      *    → ce sont de simples alias, utilisez getParticipantsByRoleInChatRoom(id, ADMIN/MODERATOR/MEMBER)
      */
-    fun getParticipantsByRoleInChatRoom(chatRoomId: Long, role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> {
+    fun getParticipantsByRoleInChatRoom(chatRoomId: String, role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> {
         chatRoomRepository.findById(chatRoomId)
             .orElseThrow { IllegalArgumentException("Chat room not found with id: $chatRoomId") }
         return chatParticipantRepository.findByChatRoomIdAndRole(chatRoomId, role).map { mapToResponse(it) }
@@ -97,7 +98,7 @@ class ChatParticipantService(
      * Raccourci conservé pour getMembersInChatRoom (utilisé dans ChatRoomController).
      * Délègue vers getParticipantsByRoleInChatRoom.
      */
-    fun getMembersInChatRoom(chatRoomId: Long): List<ChatParticipantDto.ChatParticipantResponse> =
+    fun getMembersInChatRoom(chatRoomId: String): List<ChatParticipantDto.ChatParticipantResponse> =
         getParticipantsByRoleInChatRoom(chatRoomId, ParticipantRole.MEMBER)
 
     fun getParticipantsByRole(role: ParticipantRole): List<ChatParticipantDto.ChatParticipantResponse> =
@@ -108,13 +109,13 @@ class ChatParticipantService(
     // ═══════════════════════════════════════════════════════════
 
     /** Mettre à jour le rôle par participantId */
-    fun updateParticipantRole(participantId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
+    fun updateParticipantRole(participantId: String, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
         val saved = chatParticipantRepository.save(findParticipantById(participantId).copy(role = request.role))
         return mapToResponse(saved)
     }
 
     /** Mettre à jour le rôle par userId + chatRoomId */
-    fun updateParticipantRole(userId: Long, chatRoomId: Long, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
+    fun updateParticipantRole(userId: String, chatRoomId: String, request: ChatParticipantDto.ChatParticipantUpdateRequest): ChatParticipantDto.ChatParticipantResponse {
         val saved = chatParticipantRepository.save(findParticipantByUserAndRoom(userId, chatRoomId).copy(role = request.role))
         return mapToResponse(saved)
     }
@@ -123,31 +124,31 @@ class ChatParticipantService(
     // VÉRIFICATIONS / COMPTAGES
     // ═══════════════════════════════════════════════════════════
 
-    fun isUserParticipant(userId: Long, chatRoomId: Long): Boolean =
+    fun isUserParticipant(userId: String, chatRoomId: String): Boolean =
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId).isPresent
 
-    fun isUserAdmin(userId: Long, chatRoomId: Long): Boolean =
+    fun isUserAdmin(userId: String, chatRoomId: String): Boolean =
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .map { it.role == ParticipantRole.ADMIN }.orElse(false)
 
-    fun isUserModerator(userId: Long, chatRoomId: Long): Boolean =
+    fun isUserModerator(userId: String, chatRoomId: String): Boolean =
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .map { it.role == ParticipantRole.MODERATOR }.orElse(false)
 
-    fun countParticipantsInChatRoom(chatRoomId: Long): Long =
+    fun countParticipantsInChatRoom(chatRoomId: String): Long =
         chatParticipantRepository.countByChatRoomId(chatRoomId)
 
-    fun countChatRoomsForUser(userId: Long): Long =
+    fun countChatRoomsForUser(userId: String): Long =
         chatParticipantRepository.countByUserId(userId)
 
     // ═══════════════════════════════════════════════════════════
     // MAPPERS PRIVÉS
     // ═══════════════════════════════════════════════════════════
 
-    private fun findParticipantById(id: Long): ChatParticipant =
+    private fun findParticipantById(id: String): ChatParticipant =
         chatParticipantRepository.findById(id).orElseThrow { IllegalArgumentException("Participant not found with id: $id") }
 
-    private fun findParticipantByUserAndRoom(userId: Long, chatRoomId: Long): ChatParticipant =
+    private fun findParticipantByUserAndRoom(userId: String, chatRoomId: String): ChatParticipant =
         chatParticipantRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
             .orElseThrow { IllegalArgumentException("Participant not found for user $userId in chat room $chatRoomId") }
 
